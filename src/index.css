@@ -5575,3 +5575,44 @@ a.nav-user:hover {
     align-items: stretch;
   }
 }
+
+/* "Zgłoś ogłoszenie" (bidigo-backend V44) */
+.report-link {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.report-done {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.report-modal {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.report-modal fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.report-modal legend {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-modal textarea {
+  width: 100%;
+  margin-top: 0.3rem;
+}

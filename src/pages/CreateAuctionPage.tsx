@@ -12,7 +12,6 @@ import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
 import type { Auction, Category } from '../lib/database.types'
 import { calcSuccessFee, formatPln } from '../lib/format'
 import { newId } from '../lib/id'
-import { scanAuctionImages, scanAuctionText } from '../lib/moderationBot'
 import { supabase } from '../lib/supabase'
 
 const MAX_PHOTOS = 5
@@ -301,10 +300,6 @@ export function CreateAuctionPage() {
       const endsAt = new Date(`${endsOn}T23:59:00`).toISOString()
       const start = Number(startingPrice)
 
-      const textFlags = scanAuctionText(title.trim(), description.trim())
-      const imageFlags = await scanAuctionImages(photos.map((p) => p.file))
-      const botReasons = [...new Set([...textFlags, ...imageFlags])]
-
       const baseInsert = {
         seller_id: user.id,
         category_id: categoryId,
@@ -323,7 +318,6 @@ export function CreateAuctionPage() {
         shipping_options: shipping,
         duration_days: durationDays,
         auto_renew: autoRenew,
-        moderation_reasons: botReasons,
       }
 
       let insertPayload: Record<string, unknown> = { ...baseInsert }
@@ -344,14 +338,9 @@ export function CreateAuctionPage() {
       }
 
       if (insErr) throw insErr
-      const created = data as { id: string; moderation_status?: string }
-      if (created.moderation_status === 'pending_review') {
-        navigate(`/my/selling`, {
-          state: { notice: 'Aukcja została oznaczona do sprawdzenia — nie jest jeszcze widoczna publicznie.' },
-        })
-      } else {
-        navigate(`/auction/${created.id}`)
-      }
+      // The listing is checked on the server now (pending_auto); its page shows the progress
+      const created = data as { id: string }
+      navigate(`/auction/${created.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się wystawić aukcji'))
       if (isFeeBlockError(err)) void reloadFeeBlock()

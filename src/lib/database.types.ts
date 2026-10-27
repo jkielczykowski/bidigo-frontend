@@ -82,7 +82,7 @@ export type Auction = {
   duration_days?: number | null
   /** If true and unsold at end → extend another duration_days */
   auto_renew?: boolean | null
-  moderation_status?: 'approved' | 'pending_review' | 'rejected'
+  moderation_status?: 'approved' | 'pending_auto' | 'pending_review' | 'rejected'
   moderation_reasons?: string[]
   moderation_notes?: string | null
   /** Paid promotion (bidigo-backend V41): highlighted / on the home page until, last bump */

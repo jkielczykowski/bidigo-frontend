@@ -125,11 +125,14 @@ export function MySellingPage() {
               return (
                 <div key={a.id} className="selling-item">
                   <AuctionCard auction={a} />
+                  {a.moderation_status === 'pending_auto' && (
+                    <p className="selling-bid-info mod-pill">Weryfikujemy ogłoszenie…</p>
+                  )}
                   {a.status === 'active' && a.moderation_status === 'pending_review' && (
                     <p className="selling-bid-info mod-pill">Oznaczono do sprawdzenia</p>
                   )}
                   {a.status === 'cancelled' && a.moderation_status === 'rejected' && (
-                    <p className="selling-bid-info mod-pill rejected">Odrzucona przez administratora</p>
+                    <p className="selling-bid-info mod-pill rejected">Odrzucona{a.moderation_notes ? `: ${a.moderation_notes}` : ''}</p>
                   )}
                   {a.status === 'active' && last && a.moderation_status !== 'pending_review' && (
                     <p className="selling-bid-info">

@@ -4,6 +4,7 @@ import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { Modal } from '../components/Modal'
 import { PromoteAuction } from '../components/PromoteAuction'
+import { ReportAuction } from '../components/ReportAuction'
 import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
@@ -124,8 +125,7 @@ export function AuctionDetailPage() {
   const live = useMemo(
     () =>
       auction?.status === 'active' &&
-      auction.moderation_status !== 'pending_review' &&
-      auction.moderation_status !== 'rejected' &&
+      auction.moderation_status === 'approved' &&
       new Date(auction.ends_at).getTime() > now,
     [auction, now],
   )
@@ -137,6 +137,13 @@ export function AuctionDetailPage() {
   const canChat = auction?.status === 'sold' && (isSeller || isWinner)
   const canRateSeller = auction?.status === 'sold' && isWinner && !isSeller
   const pendingReview = auction?.moderation_status === 'pending_review'
+  // Waiting for the automatic check (bidigo-backend V44); the decision arrives as a broadcast, polling is a fallback
+  const pendingAuto = auction?.moderation_status === 'pending_auto'
+  useEffect(() => {
+    if (!pendingAuto) return
+    const timer = window.setInterval(() => void load(), 3000)
+    return () => window.clearInterval(timer)
+  }, [pendingAuto, id])
   const rejected = auction?.moderation_status === 'rejected'
   const sellerRatingLabel = formatSellerRating(auction?.seller?.rating_avg, auction?.seller?.rating_count)
 
@@ -421,6 +428,12 @@ export function AuctionDetailPage() {
             {live && <span className="timer-ends muted">Koniec: {formatEndsAt(auction.ends_at, now)}</span>}
           </div>
           <h1>{auction.title}</h1>
+          {pendingAuto && (isSeller || isAdmin) && (
+            <div className="mod-banner pending" role="status">
+              <strong>Weryfikujemy ogłoszenie…</strong>
+              <p>Sprawdzamy treść i zdjęcia — zwykle trwa to kilka sekund. Do tego czasu ogłoszenie nie jest widoczne dla innych.</p>
+            </div>
+          )}
           {pendingReview && (isSeller || isAdmin) && (
             <div className="mod-banner pending">
               <strong>W trakcie weryfikacji</strong>
@@ -441,7 +454,7 @@ export function AuctionDetailPage() {
           {rejected && (
             <div className="mod-banner rejected">
               <strong>Aukcja odrzucona</strong>
-              <p>{auction.moderation_notes || 'Administrator odrzucił tę ofertę.'}</p>
+              <p>{auction.moderation_notes || 'Ogłoszenie nie przeszło weryfikacji.'}</p>
             </div>
           )}
           <p className="meta">
@@ -646,6 +659,9 @@ export function AuctionDetailPage() {
         <h2>Opis</h2>
         <p className="description">{auction.description || 'Brak opisu.'}</p>
         <p className="muted">Dostawa: {auction.shipping_options?.join(', ') || 'do uzgodnienia'}</p>
+        {!isSeller && auction.moderation_status === 'approved' && (
+          <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
+        )}
         {Array.isArray(auction.seller_notes) && auction.seller_notes.length > 0 && (
           <div className="seller-notes">
             <h3>Notatki sprzedawcy</h3>
