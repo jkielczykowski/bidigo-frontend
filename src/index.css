@@ -4151,91 +4151,17 @@ select {
   font-size: 0.9rem;
 }
 
-.mod-queue {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-top: 1.25rem;
-}
 
-.mod-card {
-  display: grid;
-  grid-template-columns: minmax(180px, 280px) 1fr;
-  gap: 1.15rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
 
-.mod-card-gallery {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem;
-  align-content: start;
-}
 
-.mod-thumb {
-  display: block;
-  aspect-ratio: 1;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #292524;
-}
 
-.mod-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 
-.mod-thumb.empty {
-  display: grid;
-  place-items: center;
-  color: #a8a29e;
-  font-size: 0.75rem;
-}
 
-.mod-card-body h2 {
-  margin: 0.35rem 0 0.35rem;
-  font-size: 1.25rem;
-}
 
-.mod-price {
-  margin: 0 0 0.65rem;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
 
-.mod-desc {
-  white-space: pre-wrap;
-  margin: 0 0 0.75rem;
-  font-size: 0.92rem;
-}
 
-.mod-reasons {
-  margin: 0 0 0.85rem;
-  padding-left: 1.1rem;
-  color: var(--accent-hover);
-  font-size: 0.875rem;
-}
 
-.mod-note {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 0.85rem;
-}
 
-.mod-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
 
 .mod-banner {
   margin: 0.75rem 0 1rem;
@@ -4269,11 +4195,6 @@ select {
   color: #b91c1c;
 }
 
-@media (max-width: 860px) {
-  .mod-card {
-    grid-template-columns: 1fr;
-  }
-}
 
 
 .page-head-row {

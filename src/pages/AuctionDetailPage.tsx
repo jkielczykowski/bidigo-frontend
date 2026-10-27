@@ -444,11 +444,6 @@ export function AuctionDetailPage() {
                   : '.'}{' '}
                 Nie jest widoczna publicznie.
               </p>
-              {isAdmin && (
-                <Link to="/admin/moderation" className="btn btn-outline btn-sm">
-                  Otwórz panel administratora
-                </Link>
-              )}
             </div>
           )}
           {rejected && (
