@@ -178,7 +178,8 @@ export function HomePage() {
             })
             if (nearErr) throw nearErr
             ids = ((near as { id: string }[]) ?? []).map((r) => r.id)
-            total = ids.length + (ids.length === PAGE_SIZE ? offset + PAGE_SIZE : offset)
+            // The page may also carry promotion slots on top (bidigo-backend V47): a full page means more
+            total = Math.min(ids.length, PAGE_SIZE) + (ids.length >= PAGE_SIZE ? offset + PAGE_SIZE : offset)
           } else {
             throw new Error('Nie udało się wyszukać')
           }
