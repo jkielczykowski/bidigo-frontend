@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { AdminShell } from '../components/AdminShell'
 import { useAuth } from '../lib/auth'
 import type { Auction } from '../lib/database.types'
 import { formatPln } from '../lib/format'
@@ -13,7 +14,7 @@ type ModerationAuction = Auction & {
 }
 
 export function AdminModerationPage() {
-  const { user, profile, loading: authLoading } = useAuth()
+  const { profile } = useAuth()
   const [items, setItems] = useState<ModerationAuction[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -57,39 +58,16 @@ export function AdminModerationPage() {
     }
   }
 
-  if (authLoading) {
-    return (
-      <div className="container page">
-        <p className="muted">Ładowanie…</p>
-      </div>
-    )
-  }
-
-  if (!user) return <Navigate to="/login" replace />
-  if (!isAdmin) {
-    return (
-      <div className="container page">
-        <h1>Panel admina</h1>
-        <p className="error">Brak uprawnień administratora.</p>
-        <Link to="/">Wróć na start</Link>
-      </div>
-    )
-  }
-
   return (
-    <div className="container page">
-      <div className="page-head-row">
-        <div>
-          <h1>Administracja aukcji</h1>
-          <p className="muted">
-            Podejrzane aukcje trafiają tu do sprawdzenia. Ty decydujesz: zaakceptuj albo odrzuć.
-          </p>
-        </div>
+    <AdminShell
+      title="Moderacja aukcji"
+      subtitle="Podejrzane aukcje trafiają tu do sprawdzenia. Ty decydujesz: zaakceptuj albo odrzuć."
+      actions={
         <button type="button" className="btn btn-outline" onClick={() => void load()}>
           Odśwież
         </button>
-      </div>
-
+      }
+    >
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Ładowanie kolejki…</p>}
 
@@ -169,6 +147,6 @@ export function AdminModerationPage() {
           </article>
         ))}
       </div>
-    </div>
+    </AdminShell>
   )
 }

@@ -26,6 +26,9 @@ const MyHubPage = page(() => import('./pages/MyHubPage'), 'MyHubPage')
 const MySellingPage = page(() => import('./pages/MySellingPage'), 'MySellingPage')
 const NotificationsPage = page(() => import('./pages/NotificationsPage'), 'NotificationsPage')
 const AdminModerationPage = page(() => import('./pages/AdminModerationPage'), 'AdminModerationPage')
+const AdminDashboardPage = page(() => import('./pages/AdminDashboardPage'), 'AdminDashboardPage')
+const AdminUsersPage = page(() => import('./pages/AdminUsersPage'), 'AdminUsersPage')
+const AdminFeesPage = page(() => import('./pages/AdminFeesPage'), 'AdminFeesPage')
 const ProfileSettingsPage = page(() => import('./pages/ProfileSettingsPage'), 'ProfileSettingsPage')
 const LoginPage = page(() => import('./pages/AuthPages'), 'LoginPage')
 const RegisterPage = page(() => import('./pages/AuthPages'), 'RegisterPage')
@@ -56,6 +59,10 @@ export default function App() {
                 <Route path="/my/fees" element={<MyFeesPage />} />
                 <Route path="/my/activity" element={<MyActivityPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/admin" element={<AdminDashboardPage />} />
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/admin/users/:id" element={<AdminUsersPage />} />
+                <Route path="/admin/fees" element={<AdminFeesPage />} />
                 <Route path="/admin/moderation" element={<AdminModerationPage />} />
                 <Route path="/settings" element={<ProfileSettingsPage />} />
                 <Route path="/messages" element={<MessagesPage />} />

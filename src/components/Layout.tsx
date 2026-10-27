@@ -155,7 +155,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       Opłaty
                     </Link>
                     {profile?.is_admin && (
-                      <Link to="/admin/moderation" role="menuitem" onClick={closeMenu}>
+                      <Link to="/admin" role="menuitem" onClick={closeMenu}>
                         Administracja
                       </Link>
                     )}
