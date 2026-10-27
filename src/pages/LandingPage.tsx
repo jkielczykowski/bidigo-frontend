@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
+import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
 
 type LiveFilter = 'all' | 'bid' | 'buy'
@@ -130,6 +131,7 @@ function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boole
         <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>
           {buyNowOnly ? '✓ Kup teraz' : '🔨 Licytacja'}
         </span>
+        {!demo && isPromoted(auction, now) && <span className="promoted-badge bg-card-promoted">Promowane</span>}
         <span className="bg-heart" aria-hidden>
           ♡
         </span>
@@ -178,6 +180,8 @@ function cachedCategories(): Category[] {
 
 export function LandingPage() {
   const [featured, setFeatured] = useState<DemoAuction[]>([])
+  // Paid "Strona główna" promotions (bidigo-backend V41), rotating
+  const [promoted, setPromoted] = useState<Auction[]>([])
   const [categories, setCategories] = useState<Category[]>(cachedCategories)
   const [usingDemo, setUsingDemo] = useState(false)
   const [filter, setFilter] = useState<LiveFilter>('all')
@@ -224,6 +228,13 @@ export function LandingPage() {
     })()
   }, [])
 
+  useEffect(() => {
+    void supabase
+      .rpc('homepage_promoted_auctions', { p_limit: 8 })
+      .select(AUCTION_CARD_COLUMNS)
+      .then(({ data }) => setPromoted((data as unknown as Auction[]) ?? []))
+  }, [])
+
   const visible = useMemo(() => {
     if (filter === 'all') return featured
     if (filter === 'buy') {
@@ -254,6 +265,26 @@ export function LandingPage() {
           <CategoryBrowse categories={categories} variant="hub" />
         </div>
       </section>
+
+      {promoted.length > 0 && (
+        <section className="bg-section bg-promoted" aria-labelledby="home-promoted">
+          <div className="container">
+            <header className="bg-live-head">
+              <div>
+                <p className="bg-eyebrow">
+                  <span className="bidigo-dot-inline" /> Wyróżnione przez sprzedających
+                </p>
+                <h2 id="home-promoted">Promowane</h2>
+              </div>
+            </header>
+            <div className="bg-cards">
+              {promoted.map((a) => (
+                <HomeAuctionCard key={a.id} auction={a} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="bg-section bg-live">
         <div className="container">

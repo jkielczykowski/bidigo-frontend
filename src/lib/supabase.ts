@@ -20,4 +20,4 @@ export const PUBLIC_PROFILE_COLUMNS =
 
 /** Columns an auction card (home page, search results) actually renders — not whole rows. */
 export const AUCTION_CARD_COLUMNS =
-  'id, title, image_urls, current_price, starting_price, buy_now_price, bid_count, ends_at, city, status, moderation_status, category_id, seller_id, category:categories(id, name, icon, parent_id)'
+  'id, title, image_urls, current_price, starting_price, buy_now_price, bid_count, ends_at, city, status, moderation_status, category_id, seller_id, promoted_until, category:categories(id, name, icon, parent_id)'

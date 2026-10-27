@@ -5474,3 +5474,104 @@ a.nav-user:hover {
   font-size: 0.9rem;
   white-space: nowrap;
 }
+
+/* Paid promotion (bidigo-backend V41) */
+.promoted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-orange);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(255, 133, 81, 0.35);
+}
+
+.promoted-badge::before {
+  content: '★';
+  font-size: 0.7rem;
+}
+
+.auction-card-promoted {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+}
+
+.auction-card.is-promoted {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 1px var(--accent-orange), var(--shadow);
+}
+
+.bg-card-promoted {
+  position: absolute;
+  top: 2.6rem;
+  left: 0.75rem;
+}
+
+.detail-top .promoted-badge {
+  align-self: center;
+}
+
+.promote-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.promote-notice,
+.promote-state {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.promote-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+}
+
+.promote-modal > p {
+  margin-top: 0;
+}
+
+.promote-packages {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.promote-package {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.promote-package p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.promote-package .btn {
+  flex-shrink: 0;
+  min-width: 6.5rem;
+}
+
+@media (max-width: 520px) {
+  .promote-package {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

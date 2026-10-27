@@ -85,6 +85,10 @@ export type Auction = {
   moderation_status?: 'approved' | 'pending_review' | 'rejected'
   moderation_reasons?: string[]
   moderation_notes?: string | null
+  /** Paid promotion (bidigo-backend V41): highlighted / on the home page until, last bump */
+  promoted_until?: string | null
+  homepage_until?: string | null
+  bumped_at?: string | null
   created_at: string
   updated_at: string
   seller?: Profile | null
@@ -217,4 +221,36 @@ export type Database = {
       }
     }
   }
+}
+
+export type PromotionKind = 'bump' | 'highlight' | 'homepage'
+
+/** public.promotion_packages — prices live in the database */
+export type PromotionPackage = {
+  id: string
+  kind: PromotionKind
+  name: string
+  description: string
+  days: number
+  price: number
+  sort_order: number
+}
+
+/** public.auction_promotions — one purchase of a package (paid only after Stripe's webhook) */
+export type AuctionPromotion = {
+  id: string
+  number: string
+  auction_id: string
+  package_id: string
+  kind: PromotionKind
+  package_name: string
+  days: number
+  amount: number
+  status: 'pending' | 'paid' | 'cancelled'
+  created_at: string
+  paid_at: string | null
+  starts_at: string | null
+  ends_at: string | null
+  checkout_expires_at: string | null
+  auction?: { title: string } | null
 }

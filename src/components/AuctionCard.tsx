@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { Auction } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining } from '../lib/format'
+import { isPromoted } from '../lib/promotions'
 
 export function AuctionCard({ auction }: { auction: Auction }) {
   const [now, setNow] = useState(Date.now())
@@ -17,9 +18,13 @@ export function AuctionCard({ auction }: { auction: Auction }) {
   const ended = auction.status !== 'active' || msLeft <= 0
   const soon = live && msLeft <= 24 * 60 * 60 * 1000
   const bids = auction.bid_count ?? 0
+  const promoted = live && isPromoted(auction, now)
 
   return (
-    <Link to={`/auction/${auction.id}`} className={`auction-card${soon ? ' is-ending' : ''}${ended ? ' is-ended' : ''}`}>
+    <Link
+      to={`/auction/${auction.id}`}
+      className={`auction-card${soon ? ' is-ending' : ''}${ended ? ' is-ended' : ''}${promoted ? ' is-promoted' : ''}`}
+    >
       <div className="auction-card-media">
         {img ? (
           <img src={img} alt="" loading="lazy" />
@@ -35,6 +40,7 @@ export function AuctionCard({ auction }: { auction: Auction }) {
         ) : (
           <span className="ended-pill">Zakończona</span>
         )}
+        {promoted && <span className="promoted-badge auction-card-promoted">Promowane</span>}
         <span className={`auction-card-timer${soon ? ' is-soon' : ''}`}>
           {formatRemaining(auction.ends_at, now)}
           {live && <span className="auction-card-ends"> · do {formatEndsAt(auction.ends_at, now)}</span>}

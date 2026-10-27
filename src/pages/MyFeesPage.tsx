@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { Pagination } from '../components/Pagination'
 import { useAuth } from '../lib/auth'
+import { PromotionHistory } from '../components/PromotionHistory'
 import { ApiError, startSettlementCheckout } from '../lib/bidigoApi'
 import type { FeeSettlement, SellerFee } from '../lib/database.types'
 import { useFeeBlock } from '../lib/feeBlock'
@@ -492,6 +493,8 @@ export function MyFeesPage() {
           )}
         </div>
       )}
+
+      <PromotionHistory userId={user.id} />
     </div>
   )
 }

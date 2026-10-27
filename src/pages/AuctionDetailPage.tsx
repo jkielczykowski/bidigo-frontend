@@ -3,11 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { Modal } from '../components/Modal'
+import { PromoteAuction } from '../components/PromoteAuction'
 import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
+import { isPromoted } from '../lib/promotions'
 import { PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 
 function formatSellerRating(avg?: number | null, count?: number | null) {
@@ -414,6 +416,7 @@ export function AuctionDetailPage() {
                 {auction.status === 'sold' ? 'Sprzedane' : auction.status === 'ended' ? 'Zakończona' : auction.status}
               </span>
             )}
+            {live && isPromoted(auction, now) && <span className="promoted-badge">Promowane</span>}
             <span className="timer big">{formatRemaining(auction.ends_at, now)}</span>
             {live && <span className="timer-ends muted">Koniec: {formatEndsAt(auction.ends_at, now)}</span>}
           </div>
@@ -463,6 +466,11 @@ export function AuctionDetailPage() {
               >
                 Zakończ aukcję
               </button>
+            </div>
+          )}
+          {isSeller && live && (
+            <div className="promote-block">
+              <PromoteAuction auction={auction} feeBlock={feeBlock} onPaid={() => void load()} />
             </div>
           )}
           <div className="price-block">

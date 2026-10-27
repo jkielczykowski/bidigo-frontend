@@ -148,6 +148,11 @@ export function MySellingPage() {
                       <Link to={`/auction/${a.id}`} className="btn btn-ghost btn-sm selling-edit">
                         Zakończ
                       </Link>
+                      {a.moderation_status === 'approved' && (
+                        <Link to={`/auction/${a.id}?promuj=1`} className="btn btn-primary btn-sm selling-edit">
+                          Promuj
+                        </Link>
+                      )}
                     </>
                   )}
                   {a.status === 'sold' && (
