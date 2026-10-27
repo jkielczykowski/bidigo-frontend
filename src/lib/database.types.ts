@@ -252,5 +252,7 @@ export type AuctionPromotion = {
   starts_at: string | null
   ends_at: string | null
   checkout_expires_at: string | null
+  /** Paid while the same promotion was already running (V48): not applied, to refund */
+  refund_needed?: boolean
   auction?: { title: string } | null
 }

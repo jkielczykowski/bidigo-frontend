@@ -27,6 +27,8 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
   const returned = params.get('promotion')
   const cancelled = params.get('promotion_cancelled')
   const [returnedPromotion, setReturnedPromotion] = useState<AuctionPromotion | null>(null)
+  // promotion_availability (bidigo-backend V48): what can be bought now, and why not
+  const [availability, setAvailability] = useState<Map<string, { available: boolean; reason: string | null }>>(new Map())
   const promoted = isPromoted(auction)
   const endsAt = new Date(auction.ends_at).getTime()
 
@@ -35,7 +37,7 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
     if (!returned) return null
     const { data } = await supabase
       .from('auction_promotions')
-      .select('id, number, package_name, kind, status, ends_at')
+      .select('id, number, package_name, kind, status, ends_at, refund_needed')
       .eq('id', returned)
       .maybeSingle()
     const row = (data as AuctionPromotion | null) ?? null
@@ -61,6 +63,17 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
     // eslint-disable-next-line react-hooks/exhaustive-deps -- poll once per returned purchase
   }, [returned, checkReturned])
 
+  const loadAvailability = useCallback(async () => {
+    const { data } = await supabase.rpc('promotion_availability', { p_auction_id: auction.id })
+    const rows = (data as { package_id: string; available: boolean; reason: string | null }[] | null) ?? []
+    setAvailability(new Map(rows.map((r) => [r.package_id, { available: r.available, reason: r.reason }])))
+  }, [auction.id])
+
+  useEffect(() => {
+    if (open) void loadAvailability()
+    // auction changes (paid, expired) → fresh availability
+  }, [open, loadAvailability, auction.promoted_until, auction.homepage_until, auction.bumped_at])
+
   async function buy(packageId: string) {
     setError(null)
     setBuying(packageId)
@@ -71,7 +84,10 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
       setBuying(null)
       const status = e instanceof ApiError ? e.status : 0
       if (status === 403) setError('Konto zablokowane za nieopłaconą prowizję — zapłać ją w zakładce Opłaty, żeby promować.')
-      else if (status === 409) setError('Promować można tylko trwającą, zaakceptowaną aukcję.')
+      else if (status === 409) {
+        setError('Tego pakietu nie można teraz kupić — sprawdź, co jest aktywne.')
+        void loadAvailability()
+      }
       else if (status === 503) setError('Płatności są chwilowo niedostępne. Spróbuj później.')
       else setError('Nie udało się rozpocząć płatności. Spróbuj ponownie.')
     }
@@ -88,7 +104,11 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
   return (
     <>
       {returned &&
-        (returnedPromotion?.status === 'paid' ? (
+        (returnedPromotion?.status === 'paid' && returnedPromotion.refund_needed ? (
+          <p className="error promote-notice" role="status">
+            To promowanie było już aktywne, więc tej płatności nie wykorzystaliśmy — zwrócimy ją.
+          </p>
+        ) : returnedPromotion?.status === 'paid' ? (
           <p className="success promote-notice" role="status">
             Dziękujemy — {returnedPromotion.package_name} opłacone
             {returnedPromotion.kind === 'bump' ? ', aukcja jest na górze listy.' : ` (do ${formatDate(returnedPromotion.ends_at!)}).`}{' '}
@@ -136,7 +156,7 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
           <p className="muted">
             Promowana aukcja jest wyżej na liście, w kategorii i w wynikach wyszukiwania. Płacisz jednorazowo przez
             Stripe; promowanie włącza się po potwierdzeniu płatności i kończy się samo.
-            {promoted ? ' Kolejne wyróżnienie przedłuży obecne.' : ''}
+            {promoted ? ' Przy aktywnym wyróżnieniu możesz przejść na „Stronę główną”.' : ''}
           </p>
           {feeBlock?.blocked && (
             <p className="error" role="alert">
@@ -146,18 +166,21 @@ export function PromoteAuction({ auction, feeBlock, onPaid }: { auction: Auction
           )}
           <ul className="promote-packages">
             {packages.map((p) => {
+              const state = availability.get(p.id)
+              const unavailable = state ? !state.available : false
               const outlasts = p.days > 0 && Date.now() + p.days * 86_400_000 > endsAt && !auction.auto_renew
               return (
-                <li key={p.id} className="promote-package" data-package={p.id}>
+                <li key={p.id} className={`promote-package${unavailable ? ' is-unavailable' : ''}`} data-package={p.id}>
                   <div>
                     <strong>{p.name}</strong>
                     <p className="muted">{p.description}</p>
-                    {outlasts && <p className="hint">Aukcja kończy się wcześniej, niż minie {p.days} dni.</p>}
+                    {unavailable && state?.reason && <p className="promote-package-reason">{state.reason}</p>}
+                    {!unavailable && outlasts && <p className="hint">Aukcja kończy się wcześniej, niż minie {p.days} dni.</p>}
                   </div>
                   <button
                     type="button"
                     className="btn btn-outline"
-                    disabled={buying !== null || !!feeBlock?.blocked}
+                    disabled={buying !== null || !!feeBlock?.blocked || unavailable}
                     onClick={() => void buy(p.id)}
                   >
                     {buying === p.id ? 'Przekierowanie…' : formatPln(p.price)}

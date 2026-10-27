@@ -5537,3 +5537,16 @@ a.nav-user:hover {
   width: 100%;
   margin-top: 0.3rem;
 }
+
+.promote-package.is-unavailable {
+  background: var(--surface-warm);
+}
+
+.promote-package.is-unavailable strong {
+  color: var(--text-muted);
+}
+
+.promote-package-reason {
+  color: var(--text-muted);
+  font-weight: 600;
+}

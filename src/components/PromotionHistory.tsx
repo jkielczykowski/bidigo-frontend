@@ -15,7 +15,7 @@ export function PromotionHistory({ userId }: { userId: string }) {
   useEffect(() => {
     void supabase
       .from('auction_promotions')
-      .select('id, number, auction_id, package_id, kind, package_name, days, amount, status, created_at, paid_at, starts_at, ends_at, checkout_expires_at, auction:auctions(title)')
+      .select('id, number, auction_id, package_id, kind, package_name, days, amount, status, created_at, paid_at, starts_at, ends_at, checkout_expires_at, refund_needed, auction:auctions(title)')
       .eq('seller_id', userId)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false })
@@ -29,7 +29,7 @@ export function PromotionHistory({ userId }: { userId: string }) {
     (p) => p.status === 'paid' || (p.checkout_expires_at && new Date(p.checkout_expires_at).getTime() > now),
   )
   if (visible.length === 0) return null
-  const paidTotal = visible.filter((p) => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0)
+  const paidTotal = visible.filter((p) => p.status === 'paid' && !p.refund_needed).reduce((sum, p) => sum + Number(p.amount), 0)
 
   return (
     <section className="my-fee-section my-promotions" aria-labelledby="fees-promotions">
@@ -46,11 +46,13 @@ export function PromotionHistory({ userId }: { userId: string }) {
                 <span className={`fee-status ${p.status === 'paid' ? 'paid' : 'pending'}`}>
                   {p.status !== 'paid'
                     ? 'Czeka na płatność'
-                    : p.kind === 'bump'
-                      ? 'Podbite'
-                      : running
-                        ? 'Trwa'
-                        : 'Zakończone'}
+                    : p.refund_needed
+                      ? 'Do zwrotu'
+                      : p.kind === 'bump'
+                        ? 'Podbite'
+                        : running
+                          ? 'Trwa'
+                          : 'Zakończone'}
                 </span>
               </div>
               <h3 className="my-card-title">
@@ -60,7 +62,7 @@ export function PromotionHistory({ userId }: { userId: string }) {
                 {formatPln(p.amount)} · {p.number}
                 {p.paid_at ? ` · zapłacono ${day(p.paid_at)}` : ''}
               </p>
-              {p.status === 'paid' && p.kind !== 'bump' && p.starts_at && p.ends_at && (
+              {p.status === 'paid' && !p.refund_needed && p.kind !== 'bump' && p.starts_at && p.ends_at && (
                 <p className="muted">
                   {day(p.starts_at)} – {day(p.ends_at)}
                 </p>
