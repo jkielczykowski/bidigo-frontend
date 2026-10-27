@@ -5,6 +5,7 @@ import { Pagination } from '../components/Pagination'
 import { useAuth } from '../lib/auth'
 import type { Auction } from '../lib/database.types'
 import { formatPln } from '../lib/format'
+import { usePromotionsEnabled } from '../lib/features'
 import { supabase } from '../lib/supabase'
 
 const PAGE_SIZE = 12
@@ -18,6 +19,7 @@ type BidActivity = {
 
 export function MySellingPage() {
   const { user } = useAuth()
+  const promotionsOn = usePromotionsEnabled()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
   const [selling, setSelling] = useState<Auction[]>([])
@@ -151,7 +153,7 @@ export function MySellingPage() {
                       <Link to={`/auction/${a.id}`} className="btn btn-ghost btn-sm selling-edit">
                         Zakończ
                       </Link>
-                      {a.moderation_status === 'approved' && (
+                      {promotionsOn && a.moderation_status === 'approved' && (
                         <Link to={`/auction/${a.id}?promuj=1`} className="btn btn-primary btn-sm selling-edit">
                           Promuj
                         </Link>

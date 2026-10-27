@@ -10,6 +10,7 @@ import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
+import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 
@@ -131,6 +132,7 @@ export function AuctionDetailPage() {
   )
 
   const isSeller = !!user && auction?.seller_id === user.id
+  const promotionsOn = usePromotionsEnabled()
   const { block: feeBlock, reload: reloadFeeBlock } = useFeeBlock()
   const isAdmin = !!profile?.is_admin
   const isWinner = !!user && auction?.winner_id === user.id
@@ -423,7 +425,7 @@ export function AuctionDetailPage() {
                 {auction.status === 'sold' ? 'Sprzedane' : auction.status === 'ended' ? 'Zakończona' : auction.status}
               </span>
             )}
-            {live && isPromoted(auction, now) && <span className="promoted-badge">Promowane</span>}
+            {promotionsOn && live && isPromoted(auction, now) && <span className="promoted-badge">Promowane</span>}
             <span className="timer big">{formatRemaining(auction.ends_at, now)}</span>
             {live && <span className="timer-ends muted">Koniec: {formatEndsAt(auction.ends_at, now)}</span>}
           </div>
@@ -476,7 +478,7 @@ export function AuctionDetailPage() {
               </button>
             </div>
           )}
-          {isSeller && live && (
+          {promotionsOn && isSeller && live && (
             <div className="promote-block">
               <PromoteAuction auction={auction} feeBlock={feeBlock} onPaid={() => void load()} />
             </div>

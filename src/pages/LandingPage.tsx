@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
+import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
 
@@ -114,6 +115,7 @@ function mockAuctions(): DemoAuction[] {
 }
 
 function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boolean }) {
+  const promotionsOn = usePromotionsEnabled()
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -131,7 +133,7 @@ function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boole
         <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>
           {buyNowOnly ? '✓ Kup teraz' : '🔨 Licytacja'}
         </span>
-        {!demo && isPromoted(auction, now) && <span className="promoted-badge bg-card-promoted">Promowane</span>}
+        {promotionsOn && !demo && isPromoted(auction, now) && <span className="promoted-badge bg-card-promoted">Promowane</span>}
         <span className="bg-heart" aria-hidden>
           ♡
         </span>
@@ -182,6 +184,7 @@ export function LandingPage() {
   const [featured, setFeatured] = useState<DemoAuction[]>([])
   // Paid "Strona główna" promotions (bidigo-backend V41), rotating
   const [promoted, setPromoted] = useState<Auction[]>([])
+  const promotionsOn = usePromotionsEnabled()
   const [categories, setCategories] = useState<Category[]>(cachedCategories)
   const [usingDemo, setUsingDemo] = useState(false)
   const [filter, setFilter] = useState<LiveFilter>('all')
@@ -266,7 +269,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {promoted.length > 0 && (
+      {promotionsOn && promoted.length > 0 && (
         <section className="bg-section bg-promoted" aria-labelledby="home-promoted">
           <div className="container">
             <header className="bg-live-head">

@@ -5,6 +5,7 @@ import { Pagination } from '../components/Pagination'
 import { useAuth } from '../lib/auth'
 import { PromotionHistory } from '../components/PromotionHistory'
 import { ApiError, startSettlementCheckout } from '../lib/bidigoApi'
+import { usePromotionsEnabled } from '../lib/features'
 import type { FeeSettlement, SellerFee } from '../lib/database.types'
 import { useFeeBlock } from '../lib/feeBlock'
 import { formatPln } from '../lib/format'
@@ -77,6 +78,7 @@ function FeeDue({ dueAt }: { dueAt: string }) {
 
 export function MyFeesPage() {
   const { user } = useAuth()
+  const promotionsOn = usePromotionsEnabled()
   const [settlements, setSettlements] = useState<FeeSettlement[]>([])
   const [unsettledTotal, setUnsettledTotal] = useState(0)
   const [unsettledCount, setUnsettledCount] = useState(0)
@@ -494,7 +496,7 @@ export function MyFeesPage() {
         </div>
       )}
 
-      <PromotionHistory userId={user.id} />
+      {promotionsOn && <PromotionHistory userId={user.id} />}
     </div>
   )
 }

@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { Auction } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining } from '../lib/format'
+import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 
 export function AuctionCard({ auction }: { auction: Auction }) {
+  const promotionsOn = usePromotionsEnabled()
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -18,7 +20,7 @@ export function AuctionCard({ auction }: { auction: Auction }) {
   const ended = auction.status !== 'active' || msLeft <= 0
   const soon = live && msLeft <= 24 * 60 * 60 * 1000
   const bids = auction.bid_count ?? 0
-  const promoted = live && isPromoted(auction, now)
+  const promoted = promotionsOn && live && isPromoted(auction, now)
 
   return (
     <Link
