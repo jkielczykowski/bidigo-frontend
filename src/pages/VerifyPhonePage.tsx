@@ -16,6 +16,8 @@ export function VerifyPhonePage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = params.get('next') || '/my'
+  // Changing a confirmed number: the server allows it once every 30 days (V50)
+  const changing = params.get('change') === '1'
 
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
@@ -31,12 +33,12 @@ export function VerifyPhonePage() {
   }, [loading, user, navigate])
 
   useEffect(() => {
-    if (profile?.phone_verified_at) {
+    if (profile?.phone_verified_at && !changing) {
       navigate(next, { replace: true })
       return
     }
-    if (profile?.phone) setPhone(displayPhone(profile.phone))
-  }, [profile, navigate, next])
+    if (profile?.phone && !changing) setPhone(displayPhone(profile.phone))
+  }, [profile, navigate, next, changing])
 
   async function sendCode() {
     setBusy(true)
@@ -116,10 +118,11 @@ export function VerifyPhonePage() {
 
   return (
     <div className="container narrow page">
-      <h1>Potwierdź telefon</h1>
+      <h1>{changing ? 'Zmień numer telefonu' : 'Potwierdź telefon'}</h1>
       <p className="muted">
-        Kod SMS jest wymagany przy licytacji i wystawianiu aukcji. Numer podany przy rejestracji możesz zmienić
-        poniżej.
+        {changing
+          ? `Wyślemy kod SMS na nowy numer. Obecny (${displayPhone(profile?.phone)}) zostaje, dopóki nie potwierdzisz nowego. Numer można zmienić raz na 30 dni.`
+          : 'Kod SMS jest wymagany przy licytacji i wystawianiu aukcji. Numer podany przy rejestracji możesz zmienić poniżej.'}
       </p>
 
       {step === 'phone' && (

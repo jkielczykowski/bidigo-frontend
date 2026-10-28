@@ -5,6 +5,9 @@ import { useAuth } from '../lib/auth'
 import { normalizePlPhone } from '../lib/phone'
 import { supabase } from '../lib/supabase'
 
+/** A confirmed number can be changed once every 30 days, by an SMS code to the new number (V50) */
+const PHONE_CHANGE_DAYS = 30
+
 export function ProfileSettingsPage() {
   const { user, profile, loading, refreshProfile } = useAuth()
   const navigate = useNavigate()
@@ -15,6 +18,10 @@ export function ProfileSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const phoneVerified = Boolean(profile?.phone_verified_at)
+  const phoneChangeFrom = profile?.phone_verified_at
+    ? new Date(new Date(profile.phone_verified_at).getTime() + PHONE_CHANGE_DAYS * 86_400_000)
+    : null
 
   useEffect(() => {
     if (!loading && !user) navigate('/login')
@@ -38,7 +45,7 @@ export function ProfileSettingsPage() {
       if (!displayName.trim() || displayName.trim().length < 2) {
         throw new Error('Nick min. 2 znaki')
       }
-      const normalizedPhone = normalizePlPhone(phone)
+      const normalizedPhone = phoneVerified ? (profile?.phone ?? null) : normalizePlPhone(phone)
       if (!normalizedPhone) {
         throw new Error('Podaj prawidłowy numer telefonu (9 cyfr)')
       }
@@ -52,8 +59,9 @@ export function ProfileSettingsPage() {
         .update({
           display_name: displayName.trim(),
           username: displayName.trim().toLowerCase().replace(/\s+/g, ''),
-          phone: normalizedPhone,
-          ...(phoneChanged ? { phone_verified_at: null } : {}),
+          // A confirmed number is changed only through /verify-phone?change=1
+          ...(phoneVerified ? {} : { phone: normalizedPhone }),
+          ...(phoneChanged && !phoneVerified ? { phone_verified_at: null } : {}),
           city: city.trim() || null,
           bio: bio.trim() || null,
           updated_at: new Date().toISOString(),
@@ -113,9 +121,17 @@ export function ProfileSettingsPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="512 345 678"
+            disabled={phoneVerified}
           />
-          {profile?.phone_verified_at ? (
-            <span className="field-hint">Numer potwierdzony SMS.</span>
+          {phoneVerified ? (
+            <span className="field-hint">
+              Numer potwierdzony SMS.{' '}
+              {phoneChangeFrom && phoneChangeFrom > new Date() ? (
+                <>Zmienisz go od {phoneChangeFrom.toLocaleDateString('pl-PL')} (raz na {PHONE_CHANGE_DAYS} dni).</>
+              ) : (
+                <Link to="/verify-phone?change=1&next=/settings">Zmień numer</Link>
+              )}
+            </span>
           ) : (
             <span className="field-hint">
               Numer niepotwierdzony —{' '}
