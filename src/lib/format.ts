@@ -72,8 +72,8 @@ export function minNextBid(currentPrice: number, startingPrice: number, bidIncre
   return Number(currentPrice) + Number(bidIncrement)
 }
 
-/** Success fee: % of sale, min 2 zł, max 150 (P24-oriented) */
-export function calcSuccessFee(salePrice: number, feePercent: number) {
-  const raw = salePrice * (feePercent / 100)
-  return Math.min(150, Math.max(2, Math.round(raw * 100) / 100))
+/** Success fee: % of sale, at least minFee, at most maxFee (null: no cap) — the rate of the category (V51) */
+export function calcSuccessFee(salePrice: number, feePercent: number, minFee = 2, maxFee: number | null = 150) {
+  const fee = Math.max(minFee, Math.round(salePrice * feePercent) / 100)
+  return maxFee === null ? fee : Math.min(maxFee, fee)
 }

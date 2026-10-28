@@ -182,10 +182,16 @@ export function CreateAuctionPage() {
     })
   }
 
-  const feePercent = useMemo(() => {
+  // Rate of the chosen category: set per category in the admin panel, subcategories inherit it
+  const feeRate = useMemo(() => {
     const cat = categories.find((c) => c.id === categoryId)
-    return Number(cat?.fee_percent ?? 5)
+    return {
+      percent: Number(cat?.fee_percent ?? 5),
+      min: cat?.fee_min == null ? 2 : Number(cat.fee_min),
+      max: cat ? (cat.fee_max == null ? (cat.fee_min == null ? 150 : null) : Number(cat.fee_max)) : 150,
+    }
   }, [categories, categoryId])
+  const feePercent = feeRate.percent
 
   const feePreviewPrice = useMemo(() => {
     const buy = buyNowPrice ? Number(buyNowPrice) : NaN
@@ -197,8 +203,8 @@ export function CreateAuctionPage() {
   }, [buyNowPrice, startingPrice, reservePrice])
 
   const feeAmount = useMemo(
-    () => (feePreviewPrice > 0 ? calcSuccessFee(feePreviewPrice, feePercent) : 0),
-    [feePreviewPrice, feePercent],
+    () => (feePreviewPrice > 0 ? calcSuccessFee(feePreviewPrice, feeRate.percent, feeRate.min, feeRate.max) : 0),
+    [feePreviewPrice, feeRate],
   )
 
   function validate(): FieldErrors {
@@ -604,10 +610,12 @@ export function CreateAuctionPage() {
           </p>
           <ul>
             <li>
-              Stawka dla kategorii: <strong>{feePercent}%</strong>
+              Stawka dla {categoryId ? 'wybranej kategorii' : 'kategorii'}:{' '}
+              <strong>{feePercent.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%</strong>
             </li>
             <li>
-              Min. {formatPln(2)} · max {formatPln(150)}
+              Min. {formatPln(feeRate.min)}
+              {feeRate.max === null ? ' · bez górnego limitu' : <> · max {formatPln(feeRate.max)}</>}
             </li>
             {feePreviewPrice > 0 && (
               <li>

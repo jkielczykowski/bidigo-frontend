@@ -334,7 +334,7 @@ export function MyFeesPage() {
       </div>
 
       <p className="muted my-section-count">
-        Niskie prowizje: 3–5% (min. 2 zł). Płacisz je zbiorczo, jedną płatnością przez Stripe: rozliczenie wystawiamy,
+        Stawka prowizji zależy od kategorii — widzisz ją przy wystawianiu aukcji. Płacisz je zbiorczo, jedną płatnością przez Stripe: rozliczenie wystawiamy,
         gdy prowizje dojdą do {formatPln(threshold)}, albo 1. dnia miesiąca — masz wtedy 14 dni na zapłatę.
       </p>
 

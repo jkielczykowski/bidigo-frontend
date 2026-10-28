@@ -23,7 +23,11 @@ export type Category = {
   icon: string | null
   parent_id?: string | null
   sort_order?: number
+  /** Effective commission rate of the category (own, inherited from a parent, or the default) */
   fee_percent?: number
+  /** Min / max commission in zł for the category (fee_max null: no cap) */
+  fee_min?: number | null
+  fee_max?: number | null
 }
 
 export type SellerFee = {

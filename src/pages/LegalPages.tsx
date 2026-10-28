@@ -248,7 +248,7 @@ export function TermsPage() {
         <h2>4. Opłaty</h2>
         <ol>
           <li>Wystawianie aukcji jest bezpłatne.</li>
-          <li>Po udanej sprzedaży naliczamy prowizję platformy zgodnie z aktualnym cennikiem (zwykle 3–5%, min. 2 zł, max 150 zł — zależnie od kategorii).</li>
+          <li>Po udanej sprzedaży naliczamy prowizję platformy zgodnie ze stawką kategorii obowiązującą w chwili sprzedaży (procent ceny z kwotą minimalną i maksymalną; stawkę widać przy wystawianiu aukcji). Zmiana stawek nie dotyczy prowizji już naliczonych.</li>
           <li>Status opłat widać w sekcji „Opłaty”.</li>
         </ol>
 
