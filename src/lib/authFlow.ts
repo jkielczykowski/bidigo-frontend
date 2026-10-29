@@ -22,6 +22,11 @@ export function isEmailNotConfirmed(err: unknown) {
   return code === 'email_not_confirmed' || /email not confirmed/i.test(message)
 }
 
+export function isUserExists(err: unknown) {
+  const { code } = parts(err)
+  return code === 'user_already_exists' || code === 'email_exists'
+}
+
 export function isRateLimited(err: unknown) {
   const { code, status, message } = parts(err)
   return status === 429 || /rate_limit/.test(code) || /rate limit|too many requests/i.test(message)

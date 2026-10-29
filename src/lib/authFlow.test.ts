@@ -5,6 +5,7 @@ import {
   isEmailNotConfirmed,
   isPlausibleEmail,
   isRateLimited,
+  isUserExists,
   knownAuthError,
   parseAuthLanding,
   passwordProblem,
@@ -53,4 +54,10 @@ test('parametry linku z maila', () => {
   const msg = parseAuthLanding('#message=Confirmation+link+accepted.+Please+proceed+to+confirm+link+sent+to+the+other+email').message
   assert.equal(awaitsSecondConfirmation(msg), true)
   assert.equal(awaitsSecondConfirmation(null), false)
+})
+
+test('konto z tym adresem już istnieje', () => {
+  assert.equal(isUserExists({ code: 'user_already_exists' }), true)
+  assert.equal(isUserExists({ code: 'email_exists' }), true)
+  assert.equal(isUserExists({ code: 'weak_password' }), false)
 })

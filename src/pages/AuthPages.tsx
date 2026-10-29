@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ResendConfirmation } from '../components/ResendConfirmation'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 import {
   awaitsSecondConfirmation,
   isEmailNotConfirmed,
+  isUserExists,
   isPlausibleEmail,
   knownAuthError,
   landing,
@@ -107,13 +109,22 @@ export function RegisterPage() {
         throw new Error('Podaj prawidłowy numer telefonu (9 cyfr, np. 512 345 678)')
       }
 
+      // Before the account exists: the database refuses a used number only as "Database error saving new user"
+      const { data: taken } = await supabase.rpc('phone_taken', { p_phone: normalized })
+      if (taken === true) throw new Error('Ten numer telefonu jest już używany. Zaloguj się lub podaj inny numer.')
+
       const { needsConfirmation } = await signUp(email.trim(), password, displayName.trim(), normalized)
       if (needsConfirmation) setSentTo(email.trim())
       else navigate('/')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Nie udało się zarejestrować'
       if (/profiles_phone_unique|duplicate key.*phone/i.test(msg)) {
-        setError('Ten numer telefonu jest już zajęty')
+        setError('Ten numer telefonu jest już używany')
+      } else if (/database error saving new user/i.test(msg)) {
+        // Race with the pre-check, or any other failure of the profile insert
+        setError('Nie udało się założyć konta. Sprawdź, czy numer telefonu nie jest już używany, i spróbuj ponownie.')
+      } else if (isUserExists(err)) {
+        setError('Konto z tym adresem e-mail już istnieje. Zaloguj się albo użyj „Nie pamiętam hasła”.')
       } else {
         setError(knownAuthError(err) ?? msg)
       }
