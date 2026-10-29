@@ -5,6 +5,8 @@ import {
   isEmailNotConfirmed,
   isPlausibleEmail,
   isRateLimited,
+  ACCOUNT_EXISTS_MESSAGE,
+  isAccountExists,
   isUserExists,
   knownAuthError,
   parseAuthLanding,
@@ -60,4 +62,19 @@ test('konto z tym adresem już istnieje', () => {
   assert.equal(isUserExists({ code: 'user_already_exists' }), true)
   assert.equal(isUserExists({ code: 'email_exists' }), true)
   assert.equal(isUserExists({ code: 'weak_password' }), false)
+})
+
+test('zajęty e-mail i zajęty telefon dają ten sam komunikat (nie zdradzamy, co istnieje)', () => {
+  const taken = [
+    { code: 'user_already_exists', status: 422, message: 'User already registered' },
+    { message: 'User already registered' },
+    { status: 500, message: 'Database error saving new user' },
+    { message: 'duplicate key value violates unique constraint "profiles_phone_unique"' },
+  ]
+  for (const err of taken) assert.equal(isAccountExists(err), true)
+  assert.match(ACCOUNT_EXISTS_MESSAGE, /adresem e-mail lub numerem telefonu już istnieje/)
+  assert.match(ACCOUNT_EXISTS_MESSAGE, /kontakt@bidigo\.pl/)
+  // rate limit and network errors stay separate
+  assert.equal(isAccountExists({ status: 429, code: 'over_email_send_rate_limit' }), false)
+  assert.equal(isAccountExists({ name: 'AuthRetryableFetchError', message: 'Failed to fetch' }), false)
 })

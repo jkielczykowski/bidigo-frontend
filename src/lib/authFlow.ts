@@ -27,6 +27,19 @@ export function isUserExists(err: unknown) {
   return code === 'user_already_exists' || code === 'email_exists'
 }
 
+/** One neutral text for a taken e-mail and a taken phone — sign-up must not reveal which one exists */
+export const ACCOUNT_EXISTS_MESSAGE =
+  'Konto z tym adresem e-mail lub numerem telefonu już istnieje. Zaloguj się albo zresetuj hasło. Jeśli to nie ty, napisz na kontakt@bidigo.pl.'
+
+/** Sign-up refused because the e-mail or the phone (profiles_phone_unique) is already used */
+export function isAccountExists(err: unknown) {
+  const { message } = parts(err)
+  return (
+    isUserExists(err) ||
+    /user already registered|database error saving new user|profiles_phone_unique|duplicate key.*phone/i.test(message)
+  )
+}
+
 export function isRateLimited(err: unknown) {
   const { code, status, message } = parts(err)
   return status === 429 || /rate_limit/.test(code) || /rate limit|too many requests/i.test(message)

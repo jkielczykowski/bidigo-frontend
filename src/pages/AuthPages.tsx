@@ -4,8 +4,9 @@ import { ResendConfirmation } from '../components/ResendConfirmation'
 import { useAuth } from '../lib/auth'
 import {
   awaitsSecondConfirmation,
+  ACCOUNT_EXISTS_MESSAGE,
+  isAccountExists,
   isEmailNotConfirmed,
-  isUserExists,
   isPlausibleEmail,
   knownAuthError,
   landing,
@@ -88,11 +89,13 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [exists, setExists] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
+    setExists(false)
     try {
       if (!displayName.trim() || displayName.trim().length < 2) {
         throw new Error('Podaj nick (min. 2 znaki)')
@@ -112,16 +115,11 @@ export function RegisterPage() {
       if (needsConfirmation) setSentTo(email.trim())
       else navigate('/')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Nie udało się zarejestrować'
-      if (/profiles_phone_unique|duplicate key.*phone/i.test(msg)) {
-        setError('Ten numer telefonu jest już używany')
-      } else if (/database error saving new user/i.test(msg)) {
-        // Race with the pre-check, or any other failure of the profile insert
-        setError('Nie udało się założyć konta. Możliwe, że ten numer telefonu jest już używany — sprawdź go i spróbuj ponownie. Jeśli błąd się powtarza, napisz na kontakt@bidigo.pl.')
-      } else if (isUserExists(err)) {
-        setError('Konto z tym adresem e-mail już istnieje. Zaloguj się albo użyj „Nie pamiętam hasła”.')
+      if (isAccountExists(err)) {
+        setExists(true)
+        setError(ACCOUNT_EXISTS_MESSAGE)
       } else {
-        setError(knownAuthError(err) ?? msg)
+        setError(knownAuthError(err) ?? (err instanceof Error ? err.message : 'Nie udało się zarejestrować'))
       }
     } finally {
       setBusy(false)
@@ -193,6 +191,11 @@ export function RegisterPage() {
         {error && (
           <p className="error" role="alert">
             {error}
+          </p>
+        )}
+        {exists && (
+          <p className="muted">
+            <Link to="/login">Zaloguj się</Link> · <Link to="/auth/zapomniane-haslo">Nie pamiętam hasła</Link>
           </p>
         )}
         <button className="btn btn-primary" disabled={busy} type="submit">
