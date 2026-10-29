@@ -1,11 +1,18 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ResendConfirmation } from '../components/ResendConfirmation'
 import { useAuth } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 import {
   awaitsSecondConfirmation,
   ACCOUNT_EXISTS_MESSAGE,
+  EMAIL_TAKEN_MESSAGE,
+  PHONE_TAKEN_MESSAGE,
+  SIGNUP_FAILED_MESSAGE,
   isAccountExists,
+  isServerError,
+  parseAvailability,
+  type Availability,
   isEmailNotConfirmed,
   isPlausibleEmail,
   knownAuthError,
@@ -90,6 +97,27 @@ export function RegisterPage() {
   const [busy, setBusy] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [exists, setExists] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const checkSeq = useRef(0)
+
+  /** Asks the database whether the e-mail / phone is taken; null (= do not block) when the call fails */
+  async function checkAvailability(): Promise<Availability | null> {
+    const normalized = isValidPlPhone(phone) ? normalizePlPhone(phone) : null
+    if (!isPlausibleEmail(email) && !normalized) return null
+    const seq = ++checkSeq.current
+    const { data, error: rpcError } = await supabase.rpc('signup_availability', {
+      p_email: email.trim(),
+      p_phone: normalized ?? '',
+    })
+    const result = rpcError ? null : parseAvailability(data)
+    if (seq !== checkSeq.current) return null // a newer check superseded this one
+    if (result) {
+      if (isPlausibleEmail(email)) setEmailError(result.emailTaken ? EMAIL_TAKEN_MESSAGE : null)
+      if (normalized) setPhoneError(result.phoneTaken ? PHONE_TAKEN_MESSAGE : null)
+    }
+    return result
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -111,13 +139,21 @@ export function RegisterPage() {
         throw new Error('Podaj prawidłowy numer telefonu (9 cyfr, np. 512 345 678)')
       }
 
+      const taken = await checkAvailability()
+      if (taken?.emailTaken || taken?.phoneTaken) {
+        setError('Popraw zaznaczone pola.')
+        return
+      }
+
       const { needsConfirmation } = await signUp(email.trim(), password, displayName.trim(), normalized)
       if (needsConfirmation) setSentTo(email.trim())
       else navigate('/')
     } catch (err) {
-      if (isAccountExists(err)) {
+      if (isAccountExists(err) && !isServerError(err)) {
         setExists(true)
         setError(ACCOUNT_EXISTS_MESSAGE)
+      } else if (isServerError(err)) {
+        setError(SIGNUP_FAILED_MESSAGE)
       } else {
         setError(knownAuthError(err) ?? (err instanceof Error ? err.message : 'Nie udało się zarejestrować'))
       }
@@ -157,7 +193,25 @@ export function RegisterPage() {
           <span className="label-text">
             Email<span className="req"> *</span>
           </span>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? 'register-email-error' : undefined}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setEmailError(null)
+            }}
+            onBlur={() => void checkAvailability()}
+          />
+          {emailError && (
+            <span className="field-error" id="register-email-error" role="alert">
+              {emailError}{' '}
+              <Link to="/login">Zaloguj się</Link> · <Link to="/auth/zapomniane-haslo">Nie pamiętam hasła</Link>
+            </span>
+          )}
         </label>
         <label>
           <span className="label-text">
@@ -184,9 +238,20 @@ export function RegisterPage() {
               required
               placeholder="512 345 678"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              aria-invalid={phoneError ? true : undefined}
+              aria-describedby={phoneError ? 'register-phone-error' : undefined}
+              onChange={(e) => {
+                setPhone(e.target.value)
+                setPhoneError(null)
+              }}
+              onBlur={() => void checkAvailability()}
             />
           </div>
+          {phoneError && (
+            <span className="field-error" id="register-phone-error" role="alert">
+              {phoneError}
+            </span>
+          )}
         </label>
         {error && (
           <p className="error" role="alert">

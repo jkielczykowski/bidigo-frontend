@@ -7,7 +7,12 @@ import {
   isRateLimited,
   ACCOUNT_EXISTS_MESSAGE,
   isAccountExists,
+  isServerError,
   isUserExists,
+  parseAvailability,
+  SIGNUP_FAILED_MESSAGE,
+  EMAIL_TAKEN_MESSAGE,
+  PHONE_TAKEN_MESSAGE,
   knownAuthError,
   parseAuthLanding,
   passwordProblem,
@@ -77,4 +82,23 @@ test('zajęty e-mail i zajęty telefon dają ten sam komunikat (nie zdradzamy, c
   // rate limit and network errors stay separate
   assert.equal(isAccountExists({ status: 429, code: 'over_email_send_rate_limit' }), false)
   assert.equal(isAccountExists({ name: 'AuthRetryableFetchError', message: 'Failed to fetch' }), false)
+})
+
+test('odpowiedź signup_availability: wiersz, tablica, śmieci', () => {
+  assert.deepEqual(parseAvailability([{ email_taken: true, phone_taken: false }]), { emailTaken: true, phoneTaken: false })
+  assert.deepEqual(parseAvailability({ email_taken: false, phone_taken: true }), { emailTaken: false, phoneTaken: true })
+  assert.equal(parseAvailability([]), null)
+  assert.equal(parseAvailability(null), null)
+  assert.equal(parseAvailability([{ email_taken: 'tak', phone_taken: false }]), null)
+  assert.match(EMAIL_TAKEN_MESSAGE, /adres e-mail jest już zajęty/)
+  assert.equal(PHONE_TAKEN_MESSAGE, 'Ten numer telefonu jest już zajęty.')
+})
+
+test('błąd 500 z signUp (prawdziwy kształt: AuthRetryableFetchError, status 500, bez kodu)', () => {
+  const real = { name: 'AuthRetryableFetchError', message: 'Database error saving new user', status: 500 }
+  assert.equal(isServerError(real), true)
+  assert.equal(isServerError({ code: 'unexpected_failure', message: 'x' }), true)
+  assert.equal(isServerError({ status: 422, code: 'user_already_exists' }), false)
+  assert.equal(isServerError({ status: 429 }), false)
+  assert.doesNotMatch(SIGNUP_FAILED_MESSAGE, /Database error/)
 })
