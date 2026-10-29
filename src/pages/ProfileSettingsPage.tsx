@@ -2,7 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CitySuggest } from '../components/CitySuggest'
 import { useAuth } from '../lib/auth'
-import { isPlausibleEmail, knownAuthError, PHONE_CONFIRMED_ELSEWHERE_MESSAGE } from '../lib/authFlow'
+import {
+  isInvalidCredentials,
+  isPlausibleEmail,
+  knownAuthError,
+  passwordChangeProblem,
+  PASSWORD_MIN_LENGTH,
+  PHONE_CONFIRMED_ELSEWHERE_MESSAGE,
+} from '../lib/authFlow'
 import { normalizePlPhone } from '../lib/phone'
 import { supabase } from '../lib/supabase'
 
@@ -10,7 +17,7 @@ import { supabase } from '../lib/supabase'
 const PHONE_CHANGE_DAYS = 30
 
 export function ProfileSettingsPage() {
-  const { user, profile, loading, refreshProfile, changeEmail } = useAuth()
+  const { user, profile, loading, refreshProfile, changeEmail, changePassword } = useAuth()
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
@@ -23,6 +30,12 @@ export function ProfileSettingsPage() {
   const [emailError, setEmailError] = useState<string | null>(null)
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null)
   const [emailBusy, setEmailBusy] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [repeatPassword, setRepeatPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordOk, setPasswordOk] = useState(false)
+  const [passwordBusy, setPasswordBusy] = useState(false)
   const phoneVerified = Boolean(profile?.phone_verified_at)
   const phoneChangeFrom = profile?.phone_verified_at
     ? new Date(new Date(profile.phone_verified_at).getTime() + PHONE_CHANGE_DAYS * 86_400_000)
@@ -105,6 +118,30 @@ export function ProfileSettingsPage() {
       setEmailError(knownAuthError(err) ?? 'Nie udało się zmienić adresu e-mail. Spróbuj ponownie.')
     } finally {
       setEmailBusy(false)
+    }
+  }
+
+  async function onChangePassword(e: FormEvent) {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordOk(false)
+    const problem = passwordChangeProblem(currentPassword, newPassword, repeatPassword)
+    if (problem) return setPasswordError(problem)
+    setPasswordBusy(true)
+    try {
+      await changePassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setRepeatPassword('')
+      setPasswordOk(true)
+    } catch (err) {
+      setPasswordError(
+        isInvalidCredentials(err)
+          ? 'Obecne hasło jest nieprawidłowe'
+          : (knownAuthError(err) ?? 'Nie udało się zmienić hasła. Spróbuj ponownie.'),
+      )
+    } finally {
+      setPasswordBusy(false)
     }
   }
 
@@ -221,6 +258,55 @@ export function ProfileSettingsPage() {
         )}
         <button className="btn btn-outline" type="submit" disabled={emailBusy}>
           {emailBusy ? 'Wysyłanie…' : 'Zmień adres e-mail'}
+        </button>
+      </form>
+
+      <h2 style={{ marginTop: '2rem' }}>Zmień hasło</h2>
+      <form className="card-form" onSubmit={(e) => void onChangePassword(e)} noValidate>
+        <label>
+          <span className="label-text">Obecne hasło</span>
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+        </label>
+        <label>
+          <span className="label-text">Nowe hasło</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={PASSWORD_MIN_LENGTH}
+            value={newPassword}
+            aria-describedby="change-password-hint"
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <span className="field-hint" id="change-password-hint">
+            Min. {PASSWORD_MIN_LENGTH} znaków, w tym litera i cyfra.
+          </span>
+        </label>
+        <label>
+          <span className="label-text">Powtórz nowe hasło</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={repeatPassword}
+            onChange={(e) => setRepeatPassword(e.target.value)}
+          />
+        </label>
+        {passwordError && (
+          <p className="error" role="alert">
+            {passwordError}
+          </p>
+        )}
+        {passwordOk && (
+          <p className="success" role="status">
+            Hasło zostało zmienione.
+          </p>
+        )}
+        <button className="btn btn-outline" type="submit" disabled={passwordBusy}>
+          {passwordBusy ? 'Zapisywanie…' : 'Zmień hasło'}
         </button>
       </form>
 

@@ -6,7 +6,9 @@ import {
   isPlausibleEmail,
   isRateLimited,
   isServerError,
+  isInvalidCredentials,
   isUserExists,
+  passwordChangeProblem,
   parseAvailability,
   SIGNUP_FAILED_MESSAGE,
   EMAIL_TAKEN_MESSAGE,
@@ -84,4 +86,20 @@ test('błąd 500 z signUp (prawdziwy kształt: AuthRetryableFetchError, status 5
   assert.equal(isServerError({ status: 422, code: 'user_already_exists' }), false)
   assert.equal(isServerError({ status: 429 }), false)
   assert.doesNotMatch(SIGNUP_FAILED_MESSAGE, /Database error/)
+})
+
+test('zmiana hasła: kolejność walidacji', () => {
+  assert.equal(passwordChangeProblem('', 'Nowe12345', 'Nowe12345'), 'Podaj obecne hasło')
+  assert.match(passwordChangeProblem('Stare1234', 'krotkie', 'krotkie') ?? '', /min\. 8/)
+  assert.equal(passwordChangeProblem('Stare1234', 'Stare1234', 'Stare1234'), 'Nowe hasło musi być inne niż obecne')
+  assert.equal(passwordChangeProblem('Stare1234', 'Nowe12345', 'Inne12345'), 'Hasła nie są takie same')
+  assert.equal(passwordChangeProblem('Stare1234', 'Nowe12345', 'Nowe12345'), null)
+})
+
+test('błędne obecne hasło i wymóg ponownego uwierzytelnienia', () => {
+  assert.equal(isInvalidCredentials({ code: 'invalid_credentials' }), true)
+  assert.equal(isInvalidCredentials({ message: 'Invalid login credentials' }), true)
+  assert.equal(isInvalidCredentials({ code: 'same_password' }), false)
+  assert.match(knownAuthError({ code: 'reauthentication_needed' }) ?? '', /zaloguj się ponownie/)
+  assert.match(knownAuthError({ code: 'same_password' }) ?? '', /inne niż obecne/)
 })

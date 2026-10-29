@@ -33,6 +33,8 @@ type AuthContextValue = {
   recovery: boolean
   updatePassword: (password: string) => Promise<void>
   changeEmail: (email: string) => Promise<void>
+  /** Checks the current password first; other sessions stay signed in */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -131,6 +133,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      const email = session?.user?.email
+      if (!email) throw new Error('Sesja wygasła. Zaloguj się ponownie.')
+      // Proves the current password (and satisfies "secure password change"); a sign-in does not end other sessions
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
+      if (authError) throw authError
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+    },
+    [session?.user?.email],
+  )
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -149,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       recovery,
       updatePassword,
       changeEmail,
+      changePassword,
       signOut,
       refreshProfile,
     }),
@@ -163,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       updatePassword,
       changeEmail,
+      changePassword,
       signOut,
       refreshProfile,
     ],

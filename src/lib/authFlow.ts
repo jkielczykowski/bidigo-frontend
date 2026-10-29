@@ -99,6 +99,21 @@ export function passwordProblem(password: string): string | null {
   return null
 }
 
+/** First problem of a password change form (Polish), or null; checked before anything is sent */
+export function passwordChangeProblem(current: string, next: string, repeat: string): string | null {
+  if (!current) return 'Podaj obecne hasło'
+  const weak = passwordProblem(next)
+  if (weak) return weak
+  if (next === current) return 'Nowe hasło musi być inne niż obecne'
+  if (next !== repeat) return 'Hasła nie są takie same'
+  return null
+}
+
+export function isInvalidCredentials(err: unknown) {
+  const { code, message } = parts(err)
+  return code === 'invalid_credentials' || /invalid login credentials/i.test(message)
+}
+
 export function isPlausibleEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())
 }
