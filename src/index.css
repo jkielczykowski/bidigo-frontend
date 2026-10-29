@@ -5550,3 +5550,19 @@ a.nav-user:hover {
   color: var(--text-muted);
   font-weight: 600;
 }
+
+.resend-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.resend-confirmation p:empty {
+  display: none;
+}
+
+.auth-notice {
+  margin-top: 1rem;
+}

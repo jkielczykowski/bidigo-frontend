@@ -45,3 +45,28 @@ test('zapis do indeksu wyszukiwania wymaga tokenu', async ({ request }) => {
     expect(res.status()).toBe(401)
   }
 })
+
+test('logowanie ma link „Nie pamiętam hasła” do formularza resetu', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByRole('link', { name: 'Nie pamiętam hasła' }).click()
+  await expect(page).toHaveURL(/\/auth\/zapomniane-haslo$/)
+  await expect(page.getByRole('heading', { name: 'Nie pamiętam hasła' })).toBeVisible()
+  await expect(page.getByLabel('Email')).toBeVisible() // nic nie wysyłamy
+})
+
+test('strona nowego hasła bez linku z maila jest nieważna (nie pozwala zmienić hasła)', async ({ page }) => {
+  await page.goto('/auth/nowe-haslo')
+  await expect(page.getByRole('heading', { name: 'Link jest nieważny' })).toBeVisible()
+  await expect(page.getByLabel('Nowe hasło')).toHaveCount(0)
+})
+
+test('strona potwierdzenia adresu odsyła niezalogowanego do logowania', async ({ page }) => {
+  await page.goto('/auth/potwierdzono')
+  await expect(page.getByRole('heading', { name: 'Adres potwierdzony' })).toBeVisible()
+  await expect(page.getByRole('main').getByRole('link', { name: 'Zaloguj się' })).toBeVisible()
+})
+
+test('link z błędem (wygasły) pokazuje komunikat po polsku', async ({ page }) => {
+  await page.goto('/auth/potwierdzono#error=access_denied&error_code=otp_expired')
+  await expect(page.getByRole('alert')).toContainText('wygasł')
+})

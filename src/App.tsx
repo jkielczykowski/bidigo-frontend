@@ -29,6 +29,9 @@ const NotificationsPage = page(() => import('./pages/NotificationsPage'), 'Notif
 const ProfileSettingsPage = page(() => import('./pages/ProfileSettingsPage'), 'ProfileSettingsPage')
 const LoginPage = page(() => import('./pages/AuthPages'), 'LoginPage')
 const RegisterPage = page(() => import('./pages/AuthPages'), 'RegisterPage')
+const EmailConfirmedPage = page(() => import('./pages/AuthPages'), 'EmailConfirmedPage')
+const ForgotPasswordPage = page(() => import('./pages/AuthPages'), 'ForgotPasswordPage')
+const NewPasswordPage = page(() => import('./pages/AuthPages'), 'NewPasswordPage')
 const PrivacyPolicyPage = page(() => import('./pages/LegalPages'), 'PrivacyPolicyPage')
 const TermsPage = page(() => import('./pages/LegalPages'), 'TermsPage')
 const SupportPage = page(() => import('./pages/LegalPages'), 'SupportPage')
@@ -62,6 +65,9 @@ export default function App() {
                   <Route path="/messages/:id" element={<MessagesPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/auth/potwierdzono" element={<EmailConfirmedPage />} />
+                  <Route path="/auth/zapomniane-haslo" element={<ForgotPasswordPage />} />
+                  <Route path="/auth/nowe-haslo" element={<NewPasswordPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/pomoc" element={<SupportPage />} />

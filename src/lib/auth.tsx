@@ -9,6 +9,8 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+// Reads the e-mail link's URL parameters now, before supabase-js clears them
+import './authFlow'
 import type { Profile } from '../lib/database.types'
 
 type AuthContextValue = {
@@ -17,7 +19,19 @@ type AuthContextValue = {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, displayName: string, phone: string) => Promise<void>
+  /** needsConfirmation: the account exists but the link from the e-mail has to be clicked first */
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    phone: string,
+  ) => Promise<{ needsConfirmation: boolean }>
+  resendConfirmation: (email: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  /** True after the user came from a reset link (Supabase PASSWORD_RECOVERY) until the password is set */
+  recovery: boolean
+  updatePassword: (password: string) => Promise<void>
+  changeEmail: (email: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -28,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recovery, setRecovery] = useState(false)
 
   const loadProfile = useCallback(async (userId: string) => {
     // Own row incl. phone — direct selects can't read phone (column privileges)
@@ -50,7 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+      if (event === 'SIGNED_OUT') setRecovery(false)
       setSession(next)
       if (next?.user) void loadProfile(next.user.id)
       else setProfile(null)
@@ -65,10 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, displayName: string, phone: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/potwierdzono`,
         data: {
           display_name: displayName,
           username: displayName.toLowerCase().replace(/\s+/g, ''),
@@ -76,6 +94,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     })
+    if (error) throw error
+    // With "Confirm email" on, Supabase returns the user but no session
+    return { needsConfirmation: !data.session }
+  }, [])
+
+  const resendConfirmation = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/potwierdzono` },
+    })
+    if (error) throw error
+  }, [])
+
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/nowe-haslo`,
+    })
+    if (error) throw error
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+    setRecovery(false)
+  }, [])
+
+  const changeEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.updateUser(
+      { email },
+      { emailRedirectTo: `${window.location.origin}/auth/potwierdzono?zmiana=email` },
+    )
     if (error) throw error
   }, [])
 
@@ -92,10 +142,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signUp,
+      resendConfirmation,
+      requestPasswordReset,
+      recovery,
+      updatePassword,
+      changeEmail,
       signOut,
       refreshProfile,
     }),
-    [session, profile, loading, signIn, signUp, signOut, refreshProfile],
+    [
+      session,
+      profile,
+      loading,
+      recovery,
+      signIn,
+      signUp,
+      resendConfirmation,
+      requestPasswordReset,
+      updatePassword,
+      changeEmail,
+      signOut,
+      refreshProfile,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

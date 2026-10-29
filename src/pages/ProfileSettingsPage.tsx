@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CitySuggest } from '../components/CitySuggest'
 import { useAuth } from '../lib/auth'
+import { isPlausibleEmail, knownAuthError } from '../lib/authFlow'
 import { normalizePlPhone } from '../lib/phone'
 import { supabase } from '../lib/supabase'
 
@@ -9,7 +10,7 @@ import { supabase } from '../lib/supabase'
 const PHONE_CHANGE_DAYS = 30
 
 export function ProfileSettingsPage() {
-  const { user, profile, loading, refreshProfile } = useAuth()
+  const { user, profile, loading, refreshProfile, changeEmail } = useAuth()
   const navigate = useNavigate()
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
@@ -18,6 +19,10 @@ export function ProfileSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null)
+  const [emailBusy, setEmailBusy] = useState(false)
   const phoneVerified = Boolean(profile?.phone_verified_at)
   const phoneChangeFrom = profile?.phone_verified_at
     ? new Date(new Date(profile.phone_verified_at).getTime() + PHONE_CHANGE_DAYS * 86_400_000)
@@ -84,6 +89,25 @@ export function ProfileSettingsPage() {
     }
   }
 
+  async function onChangeEmail(e: FormEvent) {
+    e.preventDefault()
+    const next = newEmail.trim()
+    setEmailError(null)
+    setEmailSentTo(null)
+    if (!isPlausibleEmail(next)) return setEmailError('Podaj prawidłowy adres e-mail')
+    if (next.toLowerCase() === user?.email?.toLowerCase()) return setEmailError('To jest Twój obecny adres e-mail')
+    setEmailBusy(true)
+    try {
+      await changeEmail(next)
+      setEmailSentTo(next)
+      setNewEmail('')
+    } catch (err) {
+      setEmailError(knownAuthError(err) ?? 'Nie udało się zmienić adresu e-mail. Spróbuj ponownie.')
+    } finally {
+      setEmailBusy(false)
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -95,7 +119,7 @@ export function ProfileSettingsPage() {
         <label>
           <span className="label-text">Email</span>
           <input type="email" value={user.email ?? ''} disabled />
-          <span className="field-hint">Email zmienia się w logowaniu — na razie tylko do odczytu.</span>
+          <span className="field-hint">Adres zmienisz w sekcji „Zmiana adresu e-mail” poniżej.</span>
         </label>
 
         <label>
@@ -163,6 +187,40 @@ export function ProfileSettingsPage() {
 
         <button className="btn btn-primary btn-lg" type="submit" disabled={busy}>
           {busy ? 'Zapisywanie…' : 'Zapisz'}
+        </button>
+      </form>
+
+      <h2 style={{ marginTop: '2rem' }}>Zmiana adresu e-mail</h2>
+      <form className="card-form" onSubmit={(e) => void onChangeEmail(e)} noValidate>
+        <label>
+          <span className="label-text">Nowy adres e-mail</span>
+          <input
+            type="email"
+            autoComplete="email"
+            value={newEmail}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby="change-email-hint"
+            onChange={(e) => setNewEmail(e.target.value)}
+          />
+          <span className="field-hint" id="change-email-hint">
+            Wyślemy link potwierdzający na nowy adres — dotychczasowy działa do chwili jego kliknięcia.
+          </span>
+        </label>
+        {user.new_email && !emailSentTo && (
+          <p className="field-hint">Czeka na potwierdzenie: {user.new_email}</p>
+        )}
+        {emailError && (
+          <p className="error" role="alert">
+            {emailError}
+          </p>
+        )}
+        {emailSentTo && (
+          <p className="success" role="status">
+            Wysłaliśmy link potwierdzający na nowy adres {emailSentTo}. Zmiana zadziała po jego kliknięciu.
+          </p>
+        )}
+        <button className="btn btn-outline" type="submit" disabled={emailBusy}>
+          {emailBusy ? 'Wysyłanie…' : 'Zmień adres e-mail'}
         </button>
       </form>
 
