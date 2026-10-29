@@ -1,18 +1,16 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ResendConfirmation } from '../components/ResendConfirmation'
+import { TURNSTILE_SITE_KEY, Turnstile } from '../components/Turnstile'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import {
   awaitsSecondConfirmation,
-  ACCOUNT_EXISTS_MESSAGE,
   EMAIL_TAKEN_MESSAGE,
-  PHONE_TAKEN_MESSAGE,
   SIGNUP_FAILED_MESSAGE,
-  isAccountExists,
+  isUserExists,
   isServerError,
   parseAvailability,
-  type Availability,
   isEmailNotConfirmed,
   isPlausibleEmail,
   knownAuthError,
@@ -98,24 +96,18 @@ export function RegisterPage() {
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [exists, setExists] = useState(false)
   const [emailError, setEmailError] = useState<string | null>(null)
-  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaKey, setCaptchaKey] = useState(0)
   const checkSeq = useRef(0)
 
-  /** Asks the database whether the e-mail / phone is taken; null (= do not block) when the call fails */
-  async function checkAvailability(): Promise<Availability | null> {
-    const normalized = isValidPlPhone(phone) ? normalizePlPhone(phone) : null
-    if (!isPlausibleEmail(email) && !normalized) return null
+  /** Asks the database whether the e-mail has an account; null (= do not block) when the call fails */
+  async function checkEmailAvailability(): Promise<{ emailTaken: boolean } | null> {
+    if (!isPlausibleEmail(email)) return null
     const seq = ++checkSeq.current
-    const { data, error: rpcError } = await supabase.rpc('signup_availability', {
-      p_email: email.trim(),
-      p_phone: normalized ?? '',
-    })
+    const { data, error: rpcError } = await supabase.rpc('signup_availability', { p_email: email.trim() })
     const result = rpcError ? null : parseAvailability(data)
     if (seq !== checkSeq.current) return null // a newer check superseded this one
-    if (result) {
-      if (isPlausibleEmail(email)) setEmailError(result.emailTaken ? EMAIL_TAKEN_MESSAGE : null)
-      if (normalized) setPhoneError(result.phoneTaken ? PHONE_TAKEN_MESSAGE : null)
-    }
+    if (result) setEmailError(result.emailTaken ? EMAIL_TAKEN_MESSAGE : null)
     return result
   }
 
@@ -139,19 +131,31 @@ export function RegisterPage() {
         throw new Error('Podaj prawidłowy numer telefonu (9 cyfr, np. 512 345 678)')
       }
 
-      const taken = await checkAvailability()
-      if (taken?.emailTaken || taken?.phoneTaken) {
-        setError('Popraw zaznaczone pola.')
+      if (TURNSTILE_SITE_KEY && !captchaToken) {
+        throw new Error('Potwierdź, że nie jesteś robotem')
+      }
+      const taken = await checkEmailAvailability()
+      if (taken?.emailTaken) {
+        setError('Popraw zaznaczone pole.')
         return
       }
 
-      const { needsConfirmation } = await signUp(email.trim(), password, displayName.trim(), normalized)
+      const { needsConfirmation } = await signUp(
+        email.trim(),
+        password,
+        displayName.trim(),
+        normalized,
+        captchaToken ?? undefined,
+      )
       if (needsConfirmation) setSentTo(email.trim())
       else navigate('/')
     } catch (err) {
-      if (isAccountExists(err) && !isServerError(err)) {
+      // A captcha token works once — the widget gives a new one
+      setCaptchaToken(null)
+      setCaptchaKey((k) => k + 1)
+      if (isUserExists(err)) {
         setExists(true)
-        setError(ACCOUNT_EXISTS_MESSAGE)
+        setError(EMAIL_TAKEN_MESSAGE)
       } else if (isServerError(err)) {
         setError(SIGNUP_FAILED_MESSAGE)
       } else {
@@ -204,7 +208,7 @@ export function RegisterPage() {
               setEmail(e.target.value)
               setEmailError(null)
             }}
-            onBlur={() => void checkAvailability()}
+            onBlur={() => void checkEmailAvailability()}
           />
           {emailError && (
             <span className="field-error" id="register-email-error" role="alert">
@@ -238,21 +242,11 @@ export function RegisterPage() {
               required
               placeholder="512 345 678"
               value={phone}
-              aria-invalid={phoneError ? true : undefined}
-              aria-describedby={phoneError ? 'register-phone-error' : undefined}
-              onChange={(e) => {
-                setPhone(e.target.value)
-                setPhoneError(null)
-              }}
-              onBlur={() => void checkAvailability()}
+              onChange={(e) => setPhone(e.target.value)}
             />
           </div>
-          {phoneError && (
-            <span className="field-error" id="register-phone-error" role="alert">
-              {phoneError}
-            </span>
-          )}
         </label>
+        {TURNSTILE_SITE_KEY && <Turnstile key={captchaKey} onToken={setCaptchaToken} />}
         {error && (
           <p className="error" role="alert">
             {error}

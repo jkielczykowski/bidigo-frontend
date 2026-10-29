@@ -5,14 +5,12 @@ import {
   isEmailNotConfirmed,
   isPlausibleEmail,
   isRateLimited,
-  ACCOUNT_EXISTS_MESSAGE,
-  isAccountExists,
   isServerError,
   isUserExists,
   parseAvailability,
   SIGNUP_FAILED_MESSAGE,
   EMAIL_TAKEN_MESSAGE,
-  PHONE_TAKEN_MESSAGE,
+  PHONE_CONFIRMED_ELSEWHERE_MESSAGE,
   knownAuthError,
   parseAuthLanding,
   passwordProblem,
@@ -69,29 +67,14 @@ test('konto z tym adresem już istnieje', () => {
   assert.equal(isUserExists({ code: 'weak_password' }), false)
 })
 
-test('zajęty e-mail i zajęty telefon dają ten sam komunikat (nie zdradzamy, co istnieje)', () => {
-  const taken = [
-    { code: 'user_already_exists', status: 422, message: 'User already registered' },
-    { message: 'User already registered' },
-    { status: 500, message: 'Database error saving new user' },
-    { message: 'duplicate key value violates unique constraint "profiles_phone_unique"' },
-  ]
-  for (const err of taken) assert.equal(isAccountExists(err), true)
-  assert.match(ACCOUNT_EXISTS_MESSAGE, /adresem e-mail lub numerem telefonu już istnieje/)
-  assert.match(ACCOUNT_EXISTS_MESSAGE, /kontakt@bidigo\.pl/)
-  // rate limit and network errors stay separate
-  assert.equal(isAccountExists({ status: 429, code: 'over_email_send_rate_limit' }), false)
-  assert.equal(isAccountExists({ name: 'AuthRetryableFetchError', message: 'Failed to fetch' }), false)
-})
-
 test('odpowiedź signup_availability: wiersz, tablica, śmieci', () => {
-  assert.deepEqual(parseAvailability([{ email_taken: true, phone_taken: false }]), { emailTaken: true, phoneTaken: false })
-  assert.deepEqual(parseAvailability({ email_taken: false, phone_taken: true }), { emailTaken: false, phoneTaken: true })
+  assert.deepEqual(parseAvailability([{ email_taken: true }]), { emailTaken: true })
+  assert.deepEqual(parseAvailability({ email_taken: false }), { emailTaken: false })
   assert.equal(parseAvailability([]), null)
   assert.equal(parseAvailability(null), null)
-  assert.equal(parseAvailability([{ email_taken: 'tak', phone_taken: false }]), null)
+  assert.equal(parseAvailability([{ email_taken: 'tak' }]), null)
   assert.match(EMAIL_TAKEN_MESSAGE, /adres e-mail jest już zajęty/)
-  assert.equal(PHONE_TAKEN_MESSAGE, 'Ten numer telefonu jest już zajęty.')
+  assert.match(PHONE_CONFIRMED_ELSEWHERE_MESSAGE, /potwierdzony na innym koncie/)
 })
 
 test('błąd 500 z signUp (prawdziwy kształt: AuthRetryableFetchError, status 500, bez kodu)', () => {

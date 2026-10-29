@@ -31,6 +31,8 @@ echo "→ Target: ${TARGET} (${VPS_USER}@${VPS_HOST}, port ${HOST_HTTP_PORT})"
 
 VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-}"
 VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}"
+# Optional: Cloudflare Turnstile site key (public); empty = no captcha on sign-up
+VITE_TURNSTILE_SITE_KEY="${VITE_TURNSTILE_SITE_KEY:-}"
 if [[ -z "${VITE_SUPABASE_URL}" || -z "${VITE_SUPABASE_ANON_KEY}" ]]; then
   echo "Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (.env or environment)"
   exit 1
@@ -61,6 +63,7 @@ cd ${REMOTE_DIR}
 docker build \
   --build-arg VITE_SUPABASE_URL='${VITE_SUPABASE_URL}' \
   --build-arg VITE_SUPABASE_ANON_KEY='${VITE_SUPABASE_ANON_KEY}' \
+  --build-arg VITE_TURNSTILE_SITE_KEY='${VITE_TURNSTILE_SITE_KEY}' \
   -t ${APP_NAME}:latest .
 
 cat > docker-compose.prod.yml << 'COMPOSE'

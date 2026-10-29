@@ -25,6 +25,7 @@ type AuthContextValue = {
     password: string,
     displayName: string,
     phone: string,
+    captchaToken?: string,
   ) => Promise<{ needsConfirmation: boolean }>
   resendConfirmation: (email: string) => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
@@ -81,12 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string, displayName: string, phone: string) => {
+  const signUp = useCallback(async (email: string, password: string, displayName: string, phone: string, captchaToken?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/potwierdzono`,
+        captchaToken,
         data: {
           display_name: displayName,
           username: displayName.toLowerCase().replace(/\s+/g, ''),

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { isValidPlPhone, normalizePlPhone } from '../lib/phone'
+import { errorMessage } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 
 function displayPhone(phone: string | null | undefined) {
@@ -66,7 +67,7 @@ export function VerifyPhonePage() {
         })
       }, 1000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie udało się wysłać kodu')
+      setError(errorMessage(err, 'Nie udało się wysłać kodu'))
     } finally {
       setBusy(false)
     }
@@ -108,7 +109,7 @@ export function VerifyPhonePage() {
       await refreshProfile()
       navigate(next, { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie udało się potwierdzić numeru')
+      setError(errorMessage(err, 'Nie udało się potwierdzić numeru'))
     } finally {
       setBusy(false)
     }

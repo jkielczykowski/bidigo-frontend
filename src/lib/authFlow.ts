@@ -27,40 +27,25 @@ export function isUserExists(err: unknown) {
   return code === 'user_already_exists' || code === 'email_exists'
 }
 
-/** One neutral text for a taken e-mail and a taken phone — sign-up must not reveal which one exists */
-export const ACCOUNT_EXISTS_MESSAGE =
-  'Konto z tym adresem e-mail lub numerem telefonu już istnieje. Zaloguj się albo zresetuj hasło. Jeśli to nie ty, napisz na kontakt@bidigo.pl.'
-
 export const EMAIL_TAKEN_MESSAGE = 'Ten adres e-mail jest już zajęty. Zaloguj się lub zresetuj hasło.'
-export const PHONE_TAKEN_MESSAGE = 'Ten numer telefonu jest już zajęty.'
 /** Any server-side failure of sign-up (5xx / "Database error…"): never show Supabase's English text */
 export const SIGNUP_FAILED_MESSAGE =
   'Nie udało się założyć konta. Spróbuj ponownie za chwilę. Jeśli błąd się powtarza, napisz na kontakt@bidigo.pl.'
+/** A number already confirmed by SMS on another account (request_phone_otp / claim_phone_verification, V52) */
+export const PHONE_CONFIRMED_ELSEWHERE_MESSAGE = 'Ten numer telefonu jest już potwierdzony na innym koncie.'
 
-export type Availability = { emailTaken: boolean; phoneTaken: boolean }
-
-/** Row of rpc('signup_availability') → flags; null when the answer is unusable (sign-up then goes on without the check) */
-export function parseAvailability(data: unknown): Availability | null {
+/** Row of rpc('signup_availability') → emailTaken; null when the answer is unusable (sign-up then goes on without the check) */
+export function parseAvailability(data: unknown): { emailTaken: boolean } | null {
   const row = Array.isArray(data) ? data[0] : data
   if (typeof row !== 'object' || row === null) return null
-  const r = row as { email_taken?: unknown; phone_taken?: unknown }
-  if (typeof r.email_taken !== 'boolean' || typeof r.phone_taken !== 'boolean') return null
-  return { emailTaken: r.email_taken, phoneTaken: r.phone_taken }
+  const taken = (row as { email_taken?: unknown }).email_taken
+  return typeof taken === 'boolean' ? { emailTaken: taken } : null
 }
 
 /** Server-side failure (HTTP 5xx, e.g. unexpected_failure) */
 export function isServerError(err: unknown) {
   const { code, status } = parts(err)
   return status >= 500 || code === 'unexpected_failure'
-}
-
-/** Sign-up refused because the e-mail or the phone (profiles_phone_unique) is already used */
-export function isAccountExists(err: unknown) {
-  const { message } = parts(err)
-  return (
-    isUserExists(err) ||
-    /user already registered|database error saving new user|profiles_phone_unique|duplicate key.*phone/i.test(message)
-  )
 }
 
 export function isRateLimited(err: unknown) {

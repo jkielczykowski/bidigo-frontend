@@ -15,6 +15,7 @@ Lokalnie te same wartości trzymasz w `.env` (wzór: `.env.example`) — nigdy w
 | Secret | Wymagany | Skąd wziąć |
 |--------|----------|------------|
 | `VITE_SUPABASE_URL` | tak | `https://<REF>.supabase.co` |
+| `VITE_TURNSTILE_SITE_KEY` | nie | Cloudflare Turnstile → site key (publiczny). Pusty/brak = rejestracja bez captchy. Włączając, włącz też CAPTCHA w Supabase (Authentication → Attack Protection) |
 | `VITE_SUPABASE_ANON_KEY` | tak | Supabase → Project Settings → API → anon / publishable key (publiczny, trafia do przeglądarki) |
 | `VPS_SSH_KEY` | tak | **cały** prywatny klucz SSH do VPS (multiline), bez passphrase |
 | `BACKEND_DEPLOY_KEY` | tak | prywatna część klucza wdrożeniowego (deploy key, tylko odczyt) repo `bidigo-backend` — testy E2E są w backendzie. Ustawia go `bash scripts/backend-deploy-key.sh` |

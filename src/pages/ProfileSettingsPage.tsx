@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CitySuggest } from '../components/CitySuggest'
 import { useAuth } from '../lib/auth'
-import { isPlausibleEmail, knownAuthError } from '../lib/authFlow'
+import { isPlausibleEmail, knownAuthError, PHONE_CONFIRMED_ELSEWHERE_MESSAGE } from '../lib/authFlow'
 import { normalizePlPhone } from '../lib/phone'
 import { supabase } from '../lib/supabase'
 
@@ -75,7 +75,7 @@ export function ProfileSettingsPage() {
 
       if (updErr) {
         if (/profiles_phone_unique|duplicate key.*phone/i.test(updErr.message)) {
-          throw new Error('Ten numer telefonu jest już zajęty')
+          throw new Error(PHONE_CONFIRMED_ELSEWHERE_MESSAGE)
         }
         throw updErr
       }
