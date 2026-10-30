@@ -6255,3 +6255,17 @@ a.nav-user:hover {
   outline: 3px solid var(--accent-orange);
   outline-offset: 2px;
 }
+
+/* On phones the nav search lives in the burger menu, so the landing hero gets its own */
+.bg-hero-search {
+  display: none;
+  max-width: 560px;
+  margin: 1.4rem auto 0;
+  text-align: left;
+}
+
+@media (max-width: 860px) {
+  .bg-hero-search {
+    display: block;
+  }
+}

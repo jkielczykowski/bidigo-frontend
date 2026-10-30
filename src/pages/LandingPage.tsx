@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
 import { HowItWorks } from '../components/HowItWorks'
+import { SearchBar } from '../components/SearchBar'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
@@ -368,6 +369,9 @@ export function LandingPage() {
             Licytuj, kupuj, sprzedawaj. <em>Wszystko w jednym miejscu.</em>
           </h2>
           <p className="bg-hero-tagline">Aukcje z całej Polski. Lokalne okazje. Licytacje na żywo.</p>
+          <div className="bg-hero-search">
+            <SearchBar variant="hero" placeholder="Czego szukasz? Np. rower, aparat, LEGO" />
+          </div>
           <div className="bg-hero-ctas">
             <Link to="/auctions?all=1" className="bg-hero-btn is-primary">
               Przeglądaj aukcje
