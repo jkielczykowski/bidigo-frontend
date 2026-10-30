@@ -4,6 +4,12 @@ import { CategoryBrowse } from '../components/CategoryBrowse'
 import { HowItWorks } from '../components/HowItWorks'
 import { SearchBar } from '../components/SearchBar'
 import {
+  getInterests,
+  removeInterest,
+  subscribeInterests,
+  type Interest,
+} from '../lib/interests'
+import {
   clearRecentSearches,
   getRecentSearches,
   removeRecentSearch,
@@ -154,7 +160,17 @@ function mockAuctions(): DemoAuction[] {
   ]
 }
 
-function HomeAuctionCard({ auction, demo, bumpKey }: { auction: DemoAuction; demo?: boolean; bumpKey?: number }) {
+function HomeAuctionCard({
+  auction,
+  demo,
+  bumpKey,
+  isNew,
+}: {
+  auction: DemoAuction
+  demo?: boolean
+  bumpKey?: number
+  isNew?: boolean
+}) {
   const promotionsOn = usePromotionsEnabled()
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
@@ -170,6 +186,7 @@ function HomeAuctionCard({ auction, demo, bumpKey }: { auction: DemoAuction; dem
     <article className={`bg-card${bumpKey ? ' is-bump' : ''}`} key={bumpKey}>
       <Link to={to} className="bg-card-media">
         {img ? <img src={img} alt="" loading="lazy" /> : <div className="bg-card-ph" />}
+        {isNew && <span className="bg-new">Nowość</span>}
         <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>
           {buyNowOnly ? '✓ Kup teraz' : '🔨 Licytacja'}
         </span>
@@ -210,7 +227,17 @@ function HomeAuctionCard({ auction, demo, bumpKey }: { auction: DemoAuction; dem
 
 type RailRow = { id: string; title: string; icon: string; items: DemoAuction[] }
 
-function Rail({ row, demo, bump }: { row: RailRow; demo: boolean; bump: { id: string; nonce: number } | null }) {
+function Rail({
+  row,
+  demo,
+  bump,
+  fresh,
+}: {
+  row: RailRow
+  demo: boolean
+  bump: { id: string; nonce: number } | null
+  fresh: Set<string>
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const scroll = (dir: number) => {
     const el = ref.current
@@ -249,7 +276,7 @@ function Rail({ row, demo, bump }: { row: RailRow; demo: boolean; bump: { id: st
         }}
       >
         {row.items.map((a) => (
-          <HomeAuctionCard key={a.id} auction={a} demo={demo} bumpKey={bump?.id === a.id ? bump.nonce : undefined} />
+          <HomeAuctionCard key={a.id} auction={a} demo={demo} bumpKey={bump?.id === a.id ? bump.nonce : undefined} isNew={fresh.has(a.id)} />
         ))}
       </div>
     </section>
@@ -281,6 +308,86 @@ export function LandingPage() {
   const [forYou, setForYou] = useState<Auction[]>([])
 
   useEffect(() => subscribeRecentSearches(() => setRecents(getRecentSearches())), [])
+
+  // Interest profile (categories you keep looking at) -> "Dla Ciebie" rails that refresh on their own
+  const [interests, setInterests] = useState<Interest[]>(getInterests)
+  const [mine, setMine] = useState<Record<string, Auction[]>>({})
+  const [fresh, setFresh] = useState<Set<string>>(() => new Set())
+  const [liveToast, setLiveToast] = useState<{ key: number; title: string; sub: string } | null>(null)
+  const seen = useRef<Set<string>>(new Set())
+
+  useEffect(() => subscribeInterests(() => setInterests(getInterests())), [])
+
+  const topInterests = useMemo(() => interests.slice(0, 2), [interests])
+  const interestKey = topInterests.map((i) => i.id).join('|')
+
+  useEffect(() => {
+    if (!interestKey) {
+      setMine({})
+      return
+    }
+    seen.current = new Set()
+    let cancelled = false
+    let toastTimer: ReturnType<typeof setTimeout> | undefined
+
+    // The chosen category plus everything below it
+    const withChildren = (id: string) => {
+      const ids = new Set([id])
+      let grew = true
+      while (grew) {
+        grew = false
+        for (const c of categories) {
+          if (c.parent_id && ids.has(c.parent_id) && !ids.has(c.id)) {
+            ids.add(c.id)
+            grew = true
+          }
+        }
+      }
+      return [...ids]
+    }
+
+    const load = async (polling: boolean) => {
+      const out: Record<string, Auction[]> = {}
+      const added: { a: Auction; cat: string }[] = []
+      for (const it of interestKey.split('|')) {
+        const { data } = await supabase
+          .from('auctions')
+          .select(AUCTION_CARD_COLUMNS)
+          .eq('status', 'active')
+          .eq('moderation_status', 'approved')
+          .in('category_id', withChildren(it))
+          .order('ends_at', { ascending: true })
+          .limit(12)
+        const list = (data as unknown as Auction[]) ?? []
+        out[it] = list
+        for (const a of list) {
+          if (!seen.current.has(a.id)) {
+            seen.current.add(a.id)
+            if (polling) added.push({ a, cat: interests.find((i) => i.id === it)?.name ?? '' })
+          }
+        }
+      }
+      if (cancelled) return
+      setMine(out)
+      if (added.length > 0) {
+        setFresh((prev) => new Set([...prev, ...added.map((x) => x.a.id)]))
+        setLiveToast({ key: Date.now(), title: `Nowa aukcja: ${added[0].cat}`, sub: added[0].a.title })
+        toastTimer = setTimeout(() => setLiveToast(null), 3200)
+      }
+    }
+
+    void load(false)
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void load(true)
+    }, 45_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+      if (toastTimer) clearTimeout(toastTimer)
+    }
+    // topInterests names are only read for the toast text; re-run when the set of categories or the tree changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interestKey, categories])
 
   // "Based on your searches": active auctions whose title matches one of the last searches
   const recentKey = recents.slice(0, 3).join('|')
@@ -361,21 +468,25 @@ export function LandingPage() {
 
   // Themed rows need enough offers to look different from each other; with a small catalogue show one row
   const rows = useMemo<RailRow[]>(() => {
-    const mine: RailRow[] =
+    const byInterest: RailRow[] = topInterests
+      .filter((i) => (mine[i.id]?.length ?? 0) > 0)
+      .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, icon: '✨', items: mine[i.id] }))
+    const byTerms: RailRow[] =
       forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', icon: '🔎', items: forYou }] : []
+    const personal = [...byInterest, ...byTerms]
     const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', icon: '⏱️', items: featured }
-    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [...mine, ending]
+    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [...personal, ending]
     const byBids = [...featured].filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
     const fresh = [...featured].sort((a, b) => b.created_at.localeCompare(a.created_at))
     const buy = featured.filter((a) => a.buyNowOnly || a.buy_now_price != null)
     return [
-      ...mine,
+      ...personal,
       ending,
       { id: 'popularne', title: 'Popularne', icon: '🔥', items: byBids },
       { id: 'nowosci', title: 'Nowości', icon: '✨', items: fresh },
       { id: 'kup-teraz', title: 'Kup teraz', icon: '🛒', items: buy },
-    ].filter((r) => r.id === 'dla-ciebie' || r.id === 'koncza-sie' || r.items.length >= 3)
-  }, [featured, usingDemo, forYou])
+    ].filter((r) => r.id.startsWith('dla-ciebie') || r.id === 'koncza-sie' || r.items.length >= 3)
+  }, [featured, usingDemo, forYou, mine, topInterests])
 
   // ?demo=1 preview only: simulate new bids so the page shows how it feels with live traffic
   const [bump, setBump] = useState<{ id: string; nonce: number } | null>(null)
@@ -471,6 +582,19 @@ export function LandingPage() {
               ))}
             </ul>
           )}
+          {interests.length > 0 && (
+            <div className="bg-recent" aria-label="Twoje zainteresowania">
+              <span className="bg-recent-label">Twoje zainteresowania:</span>
+              {interests.slice(0, 4).map((i) => (
+                <span key={i.id} className="bg-recent-chip">
+                  <Link to={`/auctions?cat=${encodeURIComponent(i.id)}`}>{i.name}</Link>
+                  <button type="button" aria-label={`Przestań polecać: ${i.name}`} onClick={() => removeInterest(i.id)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           {recents.length > 0 && (
             <div className="bg-recent" aria-label="Ostatnio szukane">
               <span className="bg-recent-label">Ostatnio szukane:</span>
@@ -490,7 +614,7 @@ export function LandingPage() {
           {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 
           {rows.map((r) => (
-            <Rail key={r.id} row={r} demo={usingDemo} bump={bump} />
+            <Rail key={r.id} row={r} demo={usingDemo} bump={bump} fresh={fresh} />
           ))}
         </div>
       </section>
@@ -505,6 +629,16 @@ export function LandingPage() {
           <HowItWorks />
         </div>
       </section>
+
+      {liveToast && !(DEMO_MODE && bump) && (
+        <div key={liveToast.key} className="bg-toast" role="status">
+          <span className="bg-toast-ic">✨</span>
+          <span>
+            <b>{liveToast.title}</b>
+            {liveToast.sub}
+          </span>
+        </div>
+      )}
 
       {DEMO_MODE && bump && (
         <div key={bump.nonce} className="bg-toast" aria-hidden>

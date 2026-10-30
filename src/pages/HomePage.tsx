@@ -11,6 +11,25 @@ import type { Auction, Category } from '../lib/database.types'
 import { geocodeCity } from '../lib/cities'
 import { fetchSearch } from '../lib/searchApi'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
+import { recordInterest } from '../lib/interests'
+
+// A search or a browsed category tells which category the visitor cares about: the one most results share
+function learnInterest(results: Auction[], query: string, category: string) {
+  if (results.length === 0) return
+  if (query.trim().length < 2 && category === 'all') return
+  const tally = new Map<string, { name: string; n: number }>()
+  for (const a of results) {
+    const id = a.category_id
+    if (!id) continue
+    const t = tally.get(id) ?? { name: a.category?.name ?? '', n: 0 }
+    t.n++
+    tally.set(id, t)
+  }
+  const top = [...tally.entries()].sort((a, b) => b[1].n - a[1].n)[0]
+  if (!top) return
+  const [id, { name, n }] = top
+  if (query.trim().length >= 2 ? n / results.length >= 0.4 : true) recordInterest(id, name, query.trim().length >= 2 ? 2 : 1.5)
+}
 
 const PAGE_SIZE = 12
 // FluffyTag-style radius options
@@ -205,7 +224,9 @@ export function HomePage() {
           setAuctions([])
         } else {
           const byId = new Map(((data as unknown as Auction[]) ?? []).map((a) => [a.id, a]))
-          setAuctions(ids.map((id) => byId.get(id)).filter(Boolean) as Auction[])
+          const shown = ids.map((id) => byId.get(id)).filter(Boolean) as Auction[]
+          setAuctions(shown)
+          if (offset === 0) learnInterest(shown, q, category)
         }
       } catch (e) {
         if (cancelled) return

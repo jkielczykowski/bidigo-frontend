@@ -13,6 +13,10 @@ import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
+import { recordInterest } from '../lib/interests'
+
+// One interest signal per auction per visit (load() runs again on realtime refreshes)
+const countedViews = new Set<string>()
 
 function formatSellerRating(avg?: number | null, count?: number | null) {
   const n = Number(count ?? 0)
@@ -70,6 +74,11 @@ export function AuctionDetailPage() {
     }
     setAuction(a as Auction)
     setActiveImage(0)
+    const viewed = a as Auction
+    if (viewed.category_id && !countedViews.has(viewed.id)) {
+      countedViews.add(viewed.id)
+      recordInterest(viewed.category_id, viewed.category?.name ?? '', 1.5)
+    }
 
     const { data: b } = await supabase
       .from('bids')

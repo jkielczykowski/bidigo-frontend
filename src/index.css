@@ -6383,3 +6383,17 @@ a.nav-user:hover {
   justify-content: center;
   padding: 0;
 }
+
+/* "Nowość" badge on a card that appeared in the visitor's interest rail while the page was open */
+.bg-new {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 2;
+  background: var(--accent-orange);
+  color: #2a1200;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+}
