@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { getInterests } from '../lib/interests'
 import { fetchSuggest, type SuggestAuction, type SuggestCategory } from '../lib/searchApi'
 import { formatPln } from '../lib/format'
 import {
@@ -18,6 +19,9 @@ type SearchBarProps = {
   /** hero = big pill with Szukaj button; nav = slim pill with arrow */
   variant?: 'default' | 'hero' | 'nav'
 }
+
+// Shown to a first-time visitor in the empty field, like the example queries on ricardo.ch
+const DEFAULT_PHRASES = ['LEGO klocki', 'rower miejski', 'aparat analogowy', 'konsola do gier']
 
 type Highlight = { kind: 'category' | 'auction'; index: number }
 
@@ -138,7 +142,21 @@ export function SearchBar({
 
   const flatCount = categories.length + auctions.length
   const showPanel = open && q.trim().length >= 2 && (loading || flatCount > 0 || !loading)
-  const showRecent = open && q.trim().length < 2 && recents.length > 0
+  const showRecent = open && q.trim().length < 2
+  // Empty field: own history first; without one, the categories you look at, then general examples
+  const phrases =
+    recents.length > 0
+      ? recents
+      : (() => {
+          const own = getInterests()
+            .slice(0, 4)
+            .map((i) => i.name)
+          return own.length > 0 ? own : DEFAULT_PHRASES
+        })()
+  // While typing: earlier searches that contain what is typed come first
+  const typed = q.trim().toLowerCase()
+  const matchingRecents =
+    typed.length >= 2 ? recents.filter((t) => t.toLowerCase().includes(typed) && t.toLowerCase() !== typed).slice(0, 3) : []
 
   function moveHighlight(dir: 1 | -1) {
     if (!flatCount) return
@@ -190,7 +208,7 @@ export function SearchBar({
           }}
           onFocus={() => {
             setRecents(getRecentSearches())
-            setOpen(q.trim().length >= 2 || getRecentSearches().length > 0)
+            setOpen(true)
           }}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
@@ -212,34 +230,38 @@ export function SearchBar({
       </form>
 
       {showRecent ? (
-        <div className="search-suggest" role="region" aria-label="Ostatnie wyszukiwania">
+        <div className="search-suggest" role="region" aria-label={recents.length > 0 ? 'Ostatnie wyszukiwania' : 'Podpowiedzi'}>
           <div className="search-suggest-section">
             <p className="search-suggest-label search-recent-head">
-              Ostatnie wyszukiwania
-              <button type="button" className="search-recent-clear" onClick={() => clearRecentSearches()}>
-                Wyczyść
-              </button>
+              {recents.length > 0 ? 'Ostatnie wyszukiwania' : 'Popularne wyszukiwania'}
+              {recents.length > 0 ? (
+                <button type="button" className="search-recent-clear" onClick={() => clearRecentSearches()}>
+                  Wyczyść
+                </button>
+              ) : null}
             </p>
             <ul>
-              {recents.map((t) => (
+              {phrases.map((t) => (
                 <li key={t} className="search-recent-row">
                   <button type="button" className="search-recent-term" onClick={() => goSearch(t)}>
-                    <span aria-hidden>🕘</span>
+                    <span aria-hidden>{recents.length > 0 ? '🕘' : '🔍'}</span>
                     <span className="search-suggest-main">{t}</span>
                   </button>
-                  <button
-                    type="button"
-                    className="search-recent-x"
-                    aria-label={`Usuń „${t}” z historii`}
-                    onClick={() => removeRecentSearch(t)}
-                  >
-                    ×
-                  </button>
+                  {recents.length > 0 ? (
+                    <button
+                      type="button"
+                      className="search-recent-x"
+                      aria-label={`Usuń „${t}” z historii`}
+                      onClick={() => removeRecentSearch(t)}
+                    >
+                      ×
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>
           </div>
-          {forYou.length > 0 ? (
+          {recents.length > 0 && forYou.length > 0 ? (
             <div className="search-suggest-section">
               <p className="search-suggest-label">Na podstawie Twojego wyszukiwania „{lastTerm}”</p>
               <ul>
@@ -270,6 +292,22 @@ export function SearchBar({
       {showPanel ? (
         <div className="search-suggest" id={listId} role="listbox">
           {loading && flatCount === 0 ? <p className="search-suggest-empty">Szukam…</p> : null}
+
+          {matchingRecents.length > 0 ? (
+            <div className="search-suggest-section">
+              <p className="search-suggest-label">Ostatnie wyszukiwania</p>
+              <ul>
+                {matchingRecents.map((t) => (
+                  <li key={t}>
+                    <button type="button" onClick={() => goSearch(t)}>
+                      <span aria-hidden>🕘</span>
+                      <span className="search-suggest-main">{t}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {categories.length > 0 ? (
             <div className="search-suggest-section">
@@ -335,7 +373,7 @@ export function SearchBar({
             </div>
           ) : null}
 
-          {!loading && flatCount === 0 ? (
+          {!loading && flatCount === 0 && matchingRecents.length === 0 ? (
             <p className="search-suggest-empty">
               Brak podpowiedzi — Enter szuka „{q.trim()}”
             </p>
