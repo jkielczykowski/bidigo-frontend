@@ -3,6 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
 import { HowItWorks } from '../components/HowItWorks'
 import { SearchBar } from '../components/SearchBar'
+import {
+  clearRecentSearches,
+  getRecentSearches,
+  removeRecentSearch,
+  subscribeRecentSearches,
+} from '../lib/recentSearches'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
@@ -271,6 +277,38 @@ export function LandingPage() {
   const promotionsOn = usePromotionsEnabled()
   const [categories, setCategories] = useState<Category[]>(cachedCategories)
   const [usingDemo, setUsingDemo] = useState(false)
+  const [recents, setRecents] = useState<string[]>(getRecentSearches)
+  const [forYou, setForYou] = useState<Auction[]>([])
+
+  useEffect(() => subscribeRecentSearches(() => setRecents(getRecentSearches())), [])
+
+  // "Based on your searches": active auctions whose title matches one of the last searches
+  const recentKey = recents.slice(0, 3).join('|')
+  useEffect(() => {
+    const terms = recentKey
+      .split('|')
+      .map((t) => t.replace(/[^\p{L}\p{N} ]/gu, ' ').trim())
+      .filter((t) => t.length >= 2)
+    if (terms.length === 0) {
+      setForYou([])
+      return
+    }
+    let cancelled = false
+    void supabase
+      .from('auctions')
+      .select(AUCTION_CARD_COLUMNS)
+      .eq('status', 'active')
+      .eq('moderation_status', 'approved')
+      .or(terms.map((t) => `title.ilike.%${t}%`).join(','))
+      .order('ends_at', { ascending: true })
+      .limit(12)
+      .then(({ data }) => {
+        if (!cancelled) setForYou((data as unknown as Auction[]) ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [recentKey])
 
   useEffect(() => {
     document.body.classList.add('on-home')
@@ -323,18 +361,21 @@ export function LandingPage() {
 
   // Themed rows need enough offers to look different from each other; with a small catalogue show one row
   const rows = useMemo<RailRow[]>(() => {
+    const mine: RailRow[] =
+      forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', icon: '🔎', items: forYou }] : []
     const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', icon: '⏱️', items: featured }
-    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [ending]
+    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [...mine, ending]
     const byBids = [...featured].filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
     const fresh = [...featured].sort((a, b) => b.created_at.localeCompare(a.created_at))
     const buy = featured.filter((a) => a.buyNowOnly || a.buy_now_price != null)
     return [
+      ...mine,
       ending,
       { id: 'popularne', title: 'Popularne', icon: '🔥', items: byBids },
       { id: 'nowosci', title: 'Nowości', icon: '✨', items: fresh },
       { id: 'kup-teraz', title: 'Kup teraz', icon: '🛒', items: buy },
-    ].filter((r, i) => i === 0 || r.items.length >= 3)
-  }, [featured, usingDemo])
+    ].filter((r) => r.id === 'dla-ciebie' || r.id === 'koncza-sie' || r.items.length >= 3)
+  }, [featured, usingDemo, forYou])
 
   // ?demo=1 preview only: simulate new bids so the page shows how it feels with live traffic
   const [bump, setBump] = useState<{ id: string; nonce: number } | null>(null)
@@ -429,6 +470,22 @@ export function LandingPage() {
                 </li>
               ))}
             </ul>
+          )}
+          {recents.length > 0 && (
+            <div className="bg-recent" aria-label="Ostatnio szukane">
+              <span className="bg-recent-label">Ostatnio szukane:</span>
+              {recents.slice(0, 5).map((t) => (
+                <span key={t} className="bg-recent-chip">
+                  <Link to={`/auctions?q=${encodeURIComponent(t)}`}>{t}</Link>
+                  <button type="button" aria-label={`Usuń „${t}” z historii`} onClick={() => removeRecentSearch(t)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+              <button type="button" className="bg-recent-clear" onClick={() => clearRecentSearches()}>
+                Wyczyść
+              </button>
+            </div>
           )}
           {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 

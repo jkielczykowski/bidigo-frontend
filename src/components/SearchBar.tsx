@@ -2,6 +2,13 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent 
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchSuggest, type SuggestAuction, type SuggestCategory } from '../lib/searchApi'
 import { formatPln } from '../lib/format'
+import {
+  addRecentSearch,
+  clearRecentSearches,
+  getRecentSearches,
+  removeRecentSearch,
+  subscribeRecentSearches,
+} from '../lib/recentSearches'
 
 type SearchBarProps = {
   className?: string
@@ -30,6 +37,24 @@ export function SearchBar({
   const [auctions, setAuctions] = useState<SuggestAuction[]>([])
   const [hi, setHi] = useState<Highlight | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const [recents, setRecents] = useState<string[]>(getRecentSearches)
+  const [forYou, setForYou] = useState<SuggestAuction[]>([])
+
+  useEffect(() => subscribeRecentSearches(() => setRecents(getRecentSearches())), [])
+
+  // Auctions matching the latest search, shown under the history ("based on what you looked for")
+  const lastTerm = recents[0]
+  useEffect(() => {
+    if (!lastTerm) {
+      setForYou([])
+      return
+    }
+    const ctrl = new AbortController()
+    void fetchSuggest(lastTerm, ctrl.signal)
+      .then((d) => setForYou((d.auctions || []).slice(0, 3)))
+      .catch(() => setForYou([]))
+    return () => ctrl.abort()
+  }, [lastTerm])
   const listId = useId()
   const mode = variant ?? (compact ? 'nav' : 'default')
 
@@ -77,6 +102,7 @@ export function SearchBar({
   function goSearch(query: string) {
     const next = new URLSearchParams()
     const trimmed = query.trim()
+    addRecentSearch(trimmed)
     if (trimmed) next.set('q', trimmed)
     else if (!params.get('cat') && !params.get('kat')) next.set('all', '1')
     const cat = params.get('cat') || params.get('kat')
@@ -99,6 +125,7 @@ export function SearchBar({
   }
 
   function pickCategory(c: SuggestCategory) {
+    addRecentSearch(c.name)
     setOpen(false)
     setQ('')
     navigate(`/auctions?cat=${encodeURIComponent(c.id)}`)
@@ -111,6 +138,7 @@ export function SearchBar({
 
   const flatCount = categories.length + auctions.length
   const showPanel = open && q.trim().length >= 2 && (loading || flatCount > 0 || !loading)
+  const showRecent = open && q.trim().length < 2 && recents.length > 0
 
   function moveHighlight(dir: 1 | -1) {
     if (!flatCount) return
@@ -160,13 +188,16 @@ export function SearchBar({
             setQ(e.target.value)
             setOpen(true)
           }}
-          onFocus={() => q.trim().length >= 2 && setOpen(true)}
+          onFocus={() => {
+            setRecents(getRecentSearches())
+            setOpen(q.trim().length >= 2 || getRecentSearches().length > 0)
+          }}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label="Szukaj aukcji i kategorii"
           aria-autocomplete="list"
           aria-controls={listId}
-          aria-expanded={showPanel}
+          aria-expanded={showPanel || showRecent}
         />
         {mode === 'hero' ? (
           <button type="submit" className="btn btn-primary search-submit">
@@ -179,6 +210,62 @@ export function SearchBar({
           </button>
         )}
       </form>
+
+      {showRecent ? (
+        <div className="search-suggest" role="region" aria-label="Ostatnie wyszukiwania">
+          <div className="search-suggest-section">
+            <p className="search-suggest-label search-recent-head">
+              Ostatnie wyszukiwania
+              <button type="button" className="search-recent-clear" onClick={() => clearRecentSearches()}>
+                Wyczyść
+              </button>
+            </p>
+            <ul>
+              {recents.map((t) => (
+                <li key={t} className="search-recent-row">
+                  <button type="button" className="search-recent-term" onClick={() => goSearch(t)}>
+                    <span aria-hidden>🕘</span>
+                    <span className="search-suggest-main">{t}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="search-recent-x"
+                    aria-label={`Usuń „${t}” z historii`}
+                    onClick={() => removeRecentSearch(t)}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {forYou.length > 0 ? (
+            <div className="search-suggest-section">
+              <p className="search-suggest-label">Na podstawie Twojego wyszukiwania „{lastTerm}”</p>
+              <ul>
+                {forYou.map((a) => (
+                  <li key={a.id}>
+                    <button type="button" onClick={() => pickAuction(a)}>
+                      {a.image_url ? (
+                        <img src={a.image_url} alt="" className="search-suggest-thumb" />
+                      ) : (
+                        <span className="search-suggest-thumb placeholder" aria-hidden />
+                      )}
+                      <span className="search-suggest-text">
+                        <span className="search-suggest-main">{a.title}</span>
+                        <span className="search-suggest-meta">
+                          {formatPln(a.current_price)}
+                          {a.city ? ` · ${a.city}` : ''}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {showPanel ? (
         <div className="search-suggest" id={listId} role="listbox">
