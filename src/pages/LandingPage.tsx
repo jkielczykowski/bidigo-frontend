@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CategoryMenu } from '../components/CategoryMenu'
 import { HowItWorks } from '../components/HowItWorks'
 import { SearchBar } from '../components/SearchBar'
+import { clearRecentViews, getRecentViews, subscribeRecentViews } from '../lib/recentViews'
 import {
   getInterests,
   removeInterest,
@@ -362,6 +363,36 @@ export function LandingPage() {
 
   useEffect(() => subscribeRecentSearches(() => setRecents(getRecentSearches())), [])
 
+  // "Ostatnio oglądane": auctions opened lately, still active, in the order they were viewed
+  const [viewedIds, setViewedIds] = useState<string[]>(getRecentViews)
+  const [viewed, setViewed] = useState<Auction[]>([])
+
+  useEffect(() => subscribeRecentViews(() => setViewedIds(getRecentViews())), [])
+
+  const viewedKey = viewedIds.join('|')
+  useEffect(() => {
+    if (!viewedKey) {
+      setViewed([])
+      return
+    }
+    const ids = viewedKey.split('|')
+    let cancelled = false
+    void supabase
+      .from('auctions')
+      .select(AUCTION_CARD_COLUMNS)
+      .in('id', ids)
+      .eq('status', 'active')
+      .eq('moderation_status', 'approved')
+      .then(({ data }) => {
+        if (cancelled) return
+        const byId = new Map(((data as unknown as Auction[]) ?? []).map((a) => [a.id, a]))
+        setViewed(ids.map((id) => byId.get(id)).filter(Boolean) as Auction[])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [viewedKey])
+
   // Interest profile (categories you keep looking at) -> "Dla Ciebie" rails that refresh on their own
   const [interests, setInterests] = useState<Interest[]>(getInterests)
   const [mine, setMine] = useState<Record<string, Auction[]>>({})
@@ -520,14 +551,16 @@ export function LandingPage() {
   }, [])
 
   // Rails built from what this visitor looked at / searched for
-  const personalRows = useMemo<RailRow[]>(() => {
-    const byInterest: RailRow[] = topInterests
-      .filter((i) => (mine[i.id]?.length ?? 0) > 0)
-      .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, items: mine[i.id] }))
-    const byTerms: RailRow[] =
-      forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou }] : []
-    return [...byInterest, ...byTerms]
-  }, [forYou, mine, topInterests])
+  const interestRows = useMemo<RailRow[]>(
+    () =>
+      topInterests
+        .filter((i) => (mine[i.id]?.length ?? 0) > 0)
+        .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, items: mine[i.id] })),
+    [mine, topInterests],
+  )
+  const viewedRow: RailRow | null = viewed.length > 0 ? { id: 'ostatnio-ogladane', title: 'Ostatnio oglądane', items: viewed } : null
+  const termsRow: RailRow | null =
+    forYou.length > 0 ? { id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou } : null
 
   // The same loaded auctions cut five ways; a section stays on the page even when it is empty
   const liveRows = useMemo<RailRow[]>(() => {
@@ -641,19 +674,17 @@ export function LandingPage() {
 
       <section className="bg-section bg-live">
         <div className="container">
-          {interests.length > 0 && (
-            <div className="bg-recent" aria-label="Twoje zainteresowania">
-              <span className="bg-recent-label">Twoje zainteresowania:</span>
-              {interests.slice(0, 4).map((i) => (
-                <span key={i.id} className="bg-recent-chip">
-                  <Link to={`/auctions?cat=${encodeURIComponent(i.id)}`}>{i.name}</Link>
-                  <button type="button" aria-label={`Przestań polecać: ${i.name}`} onClick={() => removeInterest(i.id)}>
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
+          {viewedRow && (
+            <>
+              <div className="bg-recent bg-recent--views">
+                <button type="button" className="bg-recent-clear" onClick={() => clearRecentViews()}>
+                  Wyczyść ostatnio oglądane
+                </button>
+              </div>
+              <Rail row={viewedRow} demo={usingDemo} bump={bump} fresh={fresh} />
+            </>
           )}
+
           {recents.length > 0 && (
             <div className="bg-recent" aria-label="Ostatnio szukane">
               <span className="bg-recent-label">Ostatnio szukane:</span>
@@ -670,11 +701,26 @@ export function LandingPage() {
               </button>
             </div>
           )}
-          {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
+          {termsRow && <Rail row={termsRow} demo={usingDemo} bump={bump} fresh={fresh} />}
 
-          {personalRows.map((r) => (
+          {interests.length > 0 && (
+            <div className="bg-recent" aria-label="Twoje zainteresowania">
+              <span className="bg-recent-label">Twoje zainteresowania:</span>
+              {interests.slice(0, 4).map((i) => (
+                <span key={i.id} className="bg-recent-chip">
+                  <Link to={`/auctions?cat=${encodeURIComponent(i.id)}`}>{i.name}</Link>
+                  <button type="button" aria-label={`Przestań polecać: ${i.name}`} onClick={() => removeInterest(i.id)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {interestRows.map((r) => (
             <Rail key={r.id} row={r} demo={usingDemo} bump={bump} fresh={fresh} />
           ))}
+
+          {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 
           <nav className="bg-quick" aria-label="Przejdź do sekcji">
             {LIVE_TABS.map((t) => (

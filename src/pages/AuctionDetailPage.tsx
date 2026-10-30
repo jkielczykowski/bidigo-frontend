@@ -14,6 +14,7 @@ import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
+import { addRecentView } from '../lib/recentViews'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
 const countedViews = new Set<string>()
@@ -75,6 +76,7 @@ export function AuctionDetailPage() {
     setAuction(a as Auction)
     setActiveImage(0)
     const viewed = a as Auction
+    addRecentView(viewed.id)
     if (viewed.category_id && !countedViews.has(viewed.id)) {
       countedViews.add(viewed.id)
       recordInterest(viewed.category_id, viewed.category?.name ?? '', 1.5)
