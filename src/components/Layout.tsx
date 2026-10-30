@@ -193,7 +193,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="footer-links">
             <h4>Bidigo</h4>
-            <a href="/#o-nas">O nas</a>
             <Link to="/auctions">Aukcje</Link>
             <a href="/#jak-dziala">Jak to działa</a>
           </div>
@@ -208,11 +207,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link to="/pomoc">Centrum pomocy</Link>
             <Link to="/terms">Bezpieczny handel</Link>
             <Link to="/privacy">Kontakt</Link>
+            <Link to="/terms">Regulamin</Link>
+            <Link to="/privacy">Polityka prywatności</Link>
+            <Link to="/usun-konto">Usuń konto</Link>
           </div>
         </div>
         <div className="container footer-bottom">
           <p>© {new Date().getFullYear()} Bidigo</p>
           <p className="footer-joke">bidigo.pl — domena w przygotowaniu</p>
+        </div>
+        <div className="container footer-company">
+          <address>
+            Loop Soft sp. z o.o., ul. Herbu Oksza 10/102, 02-495 Warszawa · KRS 0001271402 · NIP 5223386565 ·{' '}
+            <a href="mailto:pomoc@bidigo.pl">pomoc@bidigo.pl</a>
+          </address>
         </div>
       </footer>
     </div>

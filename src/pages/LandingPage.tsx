@@ -294,6 +294,31 @@ function Rail({
   )
 }
 
+const WHY_SELL = [
+  { icon: '⏱️', title: '2 minuty na ofertę', text: 'Zdjęcia, opis, cena. Bez długich formularzy.' },
+  { icon: '🔨', title: 'Cenę ustala rynek', text: 'Nie zgadujesz wartości. Licytacja pokazuje, ile ktoś jest gotów zapłacić.' },
+  { icon: '🧾', title: 'Jasna prowizja', text: 'Koszty widzisz, zanim opublikujesz ofertę.' },
+  { icon: '🤝', title: 'Odbiór bez zbędnego szumu', text: 'Dostawę lub odbiór osobisty ustalasz bezpośrednio z drugą stroną.' },
+]
+
+const FAQ = [
+  [
+    'Czy wystawianie aukcji jest płatne?',
+    'Wystawianie jest bezpłatne. Prowizję naliczamy dopiero po udanej sprzedaży, a jej stawkę widać przy wystawianiu aukcji.',
+  ],
+  [
+    'Czym różni się licytacja od „Kup teraz”?',
+    'W licytacji wygrywa najwyższa oferta po zakończeniu odliczania. „Kup teraz” pozwala kupić od razu po stałej cenie.',
+  ],
+  ['Jak wystawić przedmiot?', 'Kliknij „Wystaw przedmiot”, dodaj zdjęcia i opis, ustal cenę i opublikuj aukcję.'],
+  ['Jak wygląda odbiór lub dostawa?', 'Ustalasz je bezpośrednio ze sprzedającym w wiadomościach.'],
+  [
+    'Skąd mam wiedzieć, jaką cenę ustawić?',
+    'Ustaw niską cenę startową. Licytacja pokaże, ile ktoś naprawdę jest gotów zapłacić.',
+  ],
+  ['Jak usunąć konto?', 'Skorzystaj ze strony „Usuń konto” albo napisz do nas przez Centrum pomocy.'],
+] as const
+
 const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
 const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
 
@@ -685,6 +710,28 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section className="bg-section" aria-labelledby="why-sell">
+        <div className="container">
+          <header className="bg-section-head">
+            <h2 id="why-sell">Dlaczego warto wystawić coś na Bidigo</h2>
+          </header>
+          <div className="bg-why">
+            {WHY_SELL.map((w) => (
+              <article key={w.title} className="bg-why-card">
+                <span className="bg-why-icon" aria-hidden>
+                  {w.icon}
+                </span>
+                <h3>{w.title}</h3>
+                <p>{w.text}</p>
+              </article>
+            ))}
+          </div>
+          <Link to="/sell" className="bg-hero-btn is-primary bg-why-btn">
+            Wystaw przedmiot
+          </Link>
+        </div>
+      </section>
+
       <section className="bg-section" id="jak-dziala">
         <div className="container">
           <header className="bg-section-head row">
@@ -725,6 +772,28 @@ export function LandingPage() {
           <Link to="/sell" className="btn bg-cta-btn">
             Wystaw przedmiot +
           </Link>
+        </div>
+      </section>
+
+      <section className="bg-section" id="faq" aria-labelledby="faq-h">
+        <div className="container bg-faq">
+          <header className="bg-section-head">
+            <h2 id="faq-h">Najczęstsze pytania</h2>
+          </header>
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="bg-faq-item">
+              <summary>{q}</summary>
+              <p>
+                {a}
+                {q === 'Jak usunąć konto?' && (
+                  <>
+                    {' '}
+                    <Link to="/usun-konto">Przejdź do usuwania konta →</Link>
+                  </>
+                )}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
     </div>

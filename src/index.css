@@ -6562,3 +6562,123 @@ a.nav-user:hover {
   color: var(--text);
   font-weight: 700;
 }
+
+/* "Dlaczego warto wystawić coś na Bidigo" */
+.bg-why {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+}
+
+@media (min-width: 700px) {
+  .bg-why {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1000px) {
+  .bg-why {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.bg-why-card {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 1.35rem;
+  border-radius: 18px;
+  background: var(--surface-warm);
+}
+
+.bg-why-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0.4rem;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.bg-why-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.bg-why-card p {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.bg-why-btn {
+  margin-top: 1.5rem;
+}
+
+/* FAQ accordion */
+.bg-faq {
+  max-width: 800px;
+}
+
+.bg-faq-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.bg-faq-item summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 52px;
+  padding: 0.4rem 0.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.bg-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.bg-faq-item summary::after {
+  content: '+';
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--accent-orange);
+}
+
+.bg-faq-item[open] summary::after {
+  content: '–';
+}
+
+.bg-faq-item summary:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.bg-faq-item p {
+  margin: 0 0 1rem;
+  max-width: 64ch;
+  color: var(--text-muted);
+}
+
+.bg-faq-item p a {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.footer-company {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.footer-company address {
+  font-style: normal;
+}
