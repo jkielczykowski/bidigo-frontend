@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CategoryBrowse } from '../components/CategoryBrowse'
+import { CategoryMenu } from '../components/CategoryMenu'
 import { HowItWorks } from '../components/HowItWorks'
 import { SearchBar } from '../components/SearchBar'
 import {
@@ -581,6 +581,8 @@ export function LandingPage() {
 
   return (
     <div className="bidigo-home">
+      <CategoryMenu categories={categories} />
+
       <section className="bg-hero">
         <div className="container bg-hero-inner">
           <h1 className="bg-hero-brand">
@@ -614,15 +616,6 @@ export function LandingPage() {
             <li>Oferta w 2 minuty</li>
             <li>Jasna prowizja</li>
           </ul>
-        </div>
-      </section>
-
-      <section className="bg-section">
-        <div className="container">
-          <header className="bg-section-head center">
-            <h2>Kategorie główne</h2>
-          </header>
-          <CategoryBrowse categories={categories} variant="hub" />
         </div>
       </section>
 
