@@ -5596,6 +5596,34 @@ a.nav-user:hover {
   margin-right: 0.4rem;
 }
 
+.bg-quick {
+  list-style: none;
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.1rem 0.75rem;
+  margin: 0;
+}
+
+.bg-quick a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  padding: 0 1.1rem;
+  min-height: 44px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--border);
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bg-quick a:hover {
+  box-shadow: inset 0 0 0 2px var(--accent-orange);
+}
+
 .bg-rail-section {
   padding: 1.1rem 0;
 }
@@ -5656,6 +5684,12 @@ a.nav-user:hover {
 }
 
 .bg-rail:focus-visible,
+.bg-quick a:focus-visible,
+.hiw button:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
 .hiw-seg {
   display: inline-flex;
   background: var(--surface-warm);
@@ -6478,4 +6512,53 @@ a.nav-user:hover {
 
 .bg-hero-suggest a:hover {
   box-shadow: inset 0 0 0 2px var(--accent-orange);
+}
+
+/* Live auction tabs (Kończą się za chwilę / Popularne / Nowości / Od 1 zł / Kup teraz / W mojej okolicy) */
+.bg-quick {
+  margin-top: 1.25rem;
+  scrollbar-width: thin;
+}
+
+.bg-quick button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  white-space: nowrap;
+  padding: 0 1.1rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--border);
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.bg-quick button:hover {
+  box-shadow: inset 0 0 0 2px var(--accent-orange);
+}
+
+.bg-quick button.is-active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+.bg-quick button:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
+.bg-rail-empty {
+  margin: 1.25rem 0;
+  color: var(--text-muted);
+}
+
+.bg-rail-empty a {
+  color: var(--text);
+  font-weight: 700;
 }

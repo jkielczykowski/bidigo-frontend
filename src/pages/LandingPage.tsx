@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
 import { HowItWorks } from '../components/HowItWorks'
@@ -148,6 +148,7 @@ function mockAuctions(): DemoAuction[] {
       category_id: 'demo',
       title,
       current_price: price,
+      starting_price: price < 100 ? 1 : 50,
       buy_now_price: buy ? price : null,
       buyNowOnly: Boolean(buy),
       city,
@@ -224,6 +225,16 @@ function HomeAuctionCard({
     </article>
   )
 }
+
+type LiveTab = 'end' | 'pop' | 'new' | 'one' | 'buy'
+
+const LIVE_TABS: { id: LiveTab; icon: string; label: string }[] = [
+  { id: 'end', icon: '⏱️', label: 'Kończą się za chwilę' },
+  { id: 'pop', icon: '🔥', label: 'Popularne' },
+  { id: 'new', icon: '✨', label: 'Nowości' },
+  { id: 'one', icon: '🏷️', label: 'Od 1 zł' },
+  { id: 'buy', icon: '🛒', label: 'Kup teraz' },
+]
 
 type RailRow = { id: string; title: string; items: DemoAuction[] }
 
@@ -477,27 +488,49 @@ export function LandingPage() {
       .then(({ data }) => setPromoted((data as unknown as Auction[]) ?? []))
   }, [])
 
-  // Themed rows need enough offers to look different from each other; with a small catalogue show one row
-  const rows = useMemo<RailRow[]>(() => {
+  // Rails built from what this visitor looked at / searched for
+  const personalRows = useMemo<RailRow[]>(() => {
     const byInterest: RailRow[] = topInterests
       .filter((i) => (mine[i.id]?.length ?? 0) > 0)
       .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, items: mine[i.id] }))
     const byTerms: RailRow[] =
       forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou }] : []
-    const personal = [...byInterest, ...byTerms]
-    const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', items: featured }
-    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [...personal, ending]
-    const byBids = [...featured].filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
-    const fresh = [...featured].sort((a, b) => b.created_at.localeCompare(a.created_at))
-    const buy = featured.filter((a) => a.buyNowOnly || a.buy_now_price != null)
-    return [
-      ...personal,
-      ending,
-      { id: 'popularne', title: 'Popularne', items: byBids },
-      { id: 'nowosci', title: 'Nowości', items: fresh },
-      { id: 'kup-teraz', title: 'Kup teraz', items: buy },
-    ].filter((r) => r.id.startsWith('dla-ciebie') || r.id === 'koncza-sie' || r.items.length >= 3)
-  }, [featured, usingDemo, forYou, mine, topInterests])
+    return [...byInterest, ...byTerms]
+  }, [forYou, mine, topInterests])
+
+  // Tabs over the live auctions: each one is a different cut of the same list
+  const [tab, setTab] = useState<LiveTab>('end')
+  const tabItems = useMemo(() => {
+    const list = [...featured]
+    switch (tab) {
+      case 'pop':
+        return list.filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
+      case 'new':
+        return list.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+      case 'one':
+        return list.filter((a) => a.starting_price <= 1)
+      case 'buy':
+        return list.filter((a) => a.buyNowOnly || a.buy_now_price != null)
+      default:
+        return list.sort((a, b) => a.ends_at.localeCompare(b.ends_at))
+    }
+  }, [featured, tab])
+  const tabLabel = LIVE_TABS.find((t) => t.id === tab)?.label ?? ''
+  const navigate = useNavigate()
+
+  // "W mojej okolicy": the auction list around the visitor's position (50 km), or everything if location is refused
+  const showNearby = () => {
+    const all = '/auctions?all=1'
+    if (!navigator.geolocation) {
+      navigate(all)
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => navigate(`${all}&lat=${pos.coords.latitude.toFixed(4)}&lng=${pos.coords.longitude.toFixed(4)}&promien=50`),
+      () => navigate(all),
+      { timeout: 6000 },
+    )
+  }
 
   // ?demo=1 preview only: simulate new bids so the page shows how it feels with live traffic
   const [bump, setBump] = useState<{ id: string; nonce: number } | null>(null)
@@ -621,9 +654,34 @@ export function LandingPage() {
           )}
           {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 
-          {rows.map((r) => (
+          {personalRows.map((r) => (
             <Rail key={r.id} row={r} demo={usingDemo} bump={bump} fresh={fresh} />
           ))}
+
+          <div className="bg-quick" role="tablist" aria-label="Rodzaj aukcji">
+            {LIVE_TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? 'is-active' : ''}
+                onClick={() => setTab(t.id)}
+              >
+                <span aria-hidden>{t.icon}</span> {t.label}
+              </button>
+            ))}
+            <button type="button" onClick={showNearby}>
+              <span aria-hidden>📍</span> W mojej okolicy
+            </button>
+          </div>
+          {tabItems.length > 0 ? (
+            <Rail row={{ id: 'oferty', title: tabLabel, items: tabItems }} demo={usingDemo} bump={bump} fresh={fresh} />
+          ) : (
+            <p className="bg-rail-empty">
+              Na razie brak takich aukcji. <Link to="/auctions?all=1">Zobacz wszystkie aukcje →</Link>
+            </p>
+          )}
         </div>
       </section>
 
