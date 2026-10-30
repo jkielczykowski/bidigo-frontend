@@ -6258,16 +6258,9 @@ a.nav-user:hover {
 
 /* On phones the nav search lives in the burger menu, so the landing hero gets its own */
 .bg-hero-search {
-  display: none;
   max-width: 560px;
   margin: 1.4rem auto 0;
   text-align: left;
-}
-
-@media (max-width: 860px) {
-  .bg-hero-search {
-    display: block;
-  }
 }
 
 /* Recent searches (search dropdown + landing chips) */
@@ -6699,4 +6692,27 @@ a.nav-user:hover {
 
 .bg-rail .bg-rail-empty {
   margin: 0.75rem 0.25rem;
+}
+
+/* Desktop: the hero search is the main entry point, bigger than the one in the header */
+@media (min-width: 861px) {
+  .bg-hero-search {
+    max-width: 700px;
+    margin-top: 1.6rem;
+  }
+
+  .bg-hero-search .search-bar--hero {
+    min-height: 68px;
+    padding-left: 1.4rem;
+  }
+
+  .bg-hero-search .search-bar--hero input {
+    font-size: 1.15rem;
+  }
+
+  .bg-hero-search .search-bar--hero .search-submit {
+    min-height: 54px;
+    padding: 0 1.8rem;
+    font-size: 1.05rem;
+  }
 }
