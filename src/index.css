@@ -6682,3 +6682,21 @@ a.nav-user:hover {
 .footer-company address {
   font-style: normal;
 }
+
+/* Shortcuts above the sections land below the sticky header */
+.bg-rail-section {
+  scroll-margin-top: 90px;
+}
+
+.bg-quick a:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
+.bg-quick a {
+  flex: none;
+}
+
+.bg-rail .bg-rail-empty {
+  margin: 0.75rem 0.25rem;
+}

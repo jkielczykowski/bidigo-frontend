@@ -226,14 +226,15 @@ function HomeAuctionCard({
   )
 }
 
-type LiveTab = 'end' | 'pop' | 'new' | 'one' | 'buy'
+type LiveTab = 'koncza-sie' | 'popularne' | 'nowosci' | 'od-1-zl' | 'kup-teraz'
 
+// Each one is a section of the page and, at the same time, a shortcut above the sections
 const LIVE_TABS: { id: LiveTab; icon: string; label: string }[] = [
-  { id: 'end', icon: '⏱️', label: 'Kończą się za chwilę' },
-  { id: 'pop', icon: '🔥', label: 'Popularne' },
-  { id: 'new', icon: '✨', label: 'Nowości' },
-  { id: 'one', icon: '🏷️', label: 'Od 1 zł' },
-  { id: 'buy', icon: '🛒', label: 'Kup teraz' },
+  { id: 'koncza-sie', icon: '⏱️', label: 'Kończą się za chwilę' },
+  { id: 'popularne', icon: '🔥', label: 'Popularne' },
+  { id: 'nowosci', icon: '✨', label: 'Nowości' },
+  { id: 'od-1-zl', icon: '🏷️', label: 'Od 1 zł' },
+  { id: 'kup-teraz', icon: '🛒', label: 'Kup teraz' },
 ]
 
 type RailRow = { id: string; title: string; items: DemoAuction[] }
@@ -286,6 +287,11 @@ function Rail({
           }
         }}
       >
+        {row.items.length === 0 && (
+          <p className="bg-rail-empty">
+            Na razie brak takich aukcji. <Link to="/sell">Wystaw pierwszą →</Link>
+          </p>
+        )}
         {row.items.map((a) => (
           <HomeAuctionCard key={a.id} auction={a} demo={demo} bumpKey={bump?.id === a.id ? bump.nonce : undefined} isNew={fresh.has(a.id)} />
         ))}
@@ -523,24 +529,18 @@ export function LandingPage() {
     return [...byInterest, ...byTerms]
   }, [forYou, mine, topInterests])
 
-  // Tabs over the live auctions: each one is a different cut of the same list
-  const [tab, setTab] = useState<LiveTab>('end')
-  const tabItems = useMemo(() => {
+  // The same loaded auctions cut five ways; a section stays on the page even when it is empty
+  const liveRows = useMemo<RailRow[]>(() => {
     const list = [...featured]
-    switch (tab) {
-      case 'pop':
-        return list.filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
-      case 'new':
-        return list.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
-      case 'one':
-        return list.filter((a) => a.starting_price <= 1)
-      case 'buy':
-        return list.filter((a) => a.buyNowOnly || a.buy_now_price != null)
-      default:
-        return list.sort((a, b) => a.ends_at.localeCompare(b.ends_at))
+    const cut: Record<LiveTab, DemoAuction[]> = {
+      'koncza-sie': [...list].sort((a, b) => a.ends_at.localeCompare(b.ends_at)),
+      popularne: list.filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count),
+      nowosci: [...list].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')),
+      'od-1-zl': list.filter((a) => a.starting_price <= 1),
+      'kup-teraz': list.filter((a) => a.buyNowOnly || a.buy_now_price != null),
     }
-  }, [featured, tab])
-  const tabLabel = LIVE_TABS.find((t) => t.id === tab)?.label ?? ''
+    return LIVE_TABS.map((t) => ({ id: t.id, title: t.label, items: cut[t.id] }))
+  }, [featured])
   const navigate = useNavigate()
 
   // "W mojej okolicy": the auction list around the visitor's position (50 km), or everything if location is refused
@@ -683,30 +683,19 @@ export function LandingPage() {
             <Rail key={r.id} row={r} demo={usingDemo} bump={bump} fresh={fresh} />
           ))}
 
-          <div className="bg-quick" role="tablist" aria-label="Rodzaj aukcji">
+          <nav className="bg-quick" aria-label="Przejdź do sekcji">
             {LIVE_TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.id}
-                className={tab === t.id ? 'is-active' : ''}
-                onClick={() => setTab(t.id)}
-              >
+              <a key={t.id} href={`#${t.id}`}>
                 <span aria-hidden>{t.icon}</span> {t.label}
-              </button>
+              </a>
             ))}
             <button type="button" onClick={showNearby}>
               <span aria-hidden>📍</span> W mojej okolicy
             </button>
-          </div>
-          {tabItems.length > 0 ? (
-            <Rail row={{ id: 'oferty', title: tabLabel, items: tabItems }} demo={usingDemo} bump={bump} fresh={fresh} />
-          ) : (
-            <p className="bg-rail-empty">
-              Na razie brak takich aukcji. <Link to="/auctions?all=1">Zobacz wszystkie aukcje →</Link>
-            </p>
-          )}
+          </nav>
+          {liveRows.map((r) => (
+            <Rail key={r.id} row={r} demo={usingDemo} bump={bump} fresh={fresh} />
+          ))}
         </div>
       </section>
 
