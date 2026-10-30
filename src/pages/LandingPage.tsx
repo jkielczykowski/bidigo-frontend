@@ -1,19 +1,37 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CategoryBrowse } from '../components/CategoryBrowse'
+import { HowItWorks } from '../components/HowItWorks'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
 
-type LiveFilter = 'all' | 'bid' | 'buy'
-
 type DemoAuction = Auction & { buyNowOnly?: boolean }
 
 function hoursFromNow(h: number) {
   return new Date(Date.now() + h * 3600_000).toISOString()
 }
+
+const images = [
+  'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80',
+  'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=800&q=80',
+  'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80',
+  'https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=800&q=80',
+  'https://images.unsplash.com/photo-1485965120184-e324d70ff711?w=800&q=80',
+  'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&q=80',
+]
+
+// [title, price, bids, hours left, city, image index, category, buy now only]
+const EXTRA_DEMO: [string, number, number, number, string, number, string, boolean][] = [
+  ['Aparat analogowy, w pełni sprawny', 240, 12, 0.6, 'Kraków', 0, 'Foto i optyka', false],
+  ['Zestaw płyt winylowych', 95, 18, 0.9, 'Gdańsk', 3, 'Muzyka i instrumenty', false],
+  ['Kurtka skórzana, rozmiar M', 310, 9, 11, 'Wrocław', 2, 'Odzież i akcesoria', true],
+  ['Biurko drewniane, loft', 220, 3, 22, 'Katowice', 1, 'Dom i mieszkanie', true],
+  ['Rower górski 29"', 780, 7, 26, 'Poznań', 4, 'Sport i wypoczynek', true],
+  ['Konsola do gier z dwoma padami', 650, 11, 4, 'Warszawa', 5, 'Gry i konsole', false],
+]
 
 function mockAuctions(): DemoAuction[] {
   const base = {
@@ -111,10 +129,25 @@ function mockAuctions(): DemoAuction[] {
       image_urls: ['https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&q=80'],
       category: { id: 'gry', name: 'Gry i konsole', icon: null },
     },
+    ...EXTRA_DEMO.map(([title, price, bids, hours, city, img, cat, buy], i) => ({
+      ...base,
+      id: `demo-x${i}`,
+      category_id: 'demo',
+      title,
+      current_price: price,
+      buy_now_price: buy ? price : null,
+      buyNowOnly: Boolean(buy),
+      city,
+      bid_count: bids,
+      ends_at: hoursFromNow(hours),
+      created_at: new Date(Date.now() - i * 3600_000).toISOString(),
+      image_urls: [images[img]],
+      category: { id: 'demo', name: cat, icon: null },
+    })),
   ]
 }
 
-function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boolean }) {
+function HomeAuctionCard({ auction, demo, bumpKey }: { auction: DemoAuction; demo?: boolean; bumpKey?: number }) {
   const promotionsOn = usePromotionsEnabled()
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
@@ -127,7 +160,7 @@ function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boole
   const to = demo ? '/auctions?all=1' : `/auction/${auction.id}`
 
   return (
-    <article className="bg-card">
+    <article className={`bg-card${bumpKey ? ' is-bump' : ''}`} key={bumpKey}>
       <Link to={to} className="bg-card-media">
         {img ? <img src={img} alt="" loading="lazy" /> : <div className="bg-card-ph" />}
         <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>
@@ -144,7 +177,7 @@ function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boole
           <Link to={to}>{auction.title}</Link>
         </h3>
         <div className="bg-card-price-row">
-          <strong>{formatPln(auction.current_price)}</strong>
+          <strong key={bumpKey}>{formatPln(auction.current_price)}</strong>
           <span>{buyNowOnly ? 'cena zakupu' : ofertLabel(auction.bid_count)}</span>
         </div>
         <div className="bg-card-meta">
@@ -168,6 +201,54 @@ function HomeAuctionCard({ auction, demo }: { auction: DemoAuction; demo?: boole
   )
 }
 
+type RailRow = { id: string; title: string; icon: string; items: DemoAuction[] }
+
+function Rail({ row, demo, bump }: { row: RailRow; demo: boolean; bump: { id: string; nonce: number } | null }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const scroll = (dir: number) => {
+    const el = ref.current
+    const card = el?.firstElementChild as HTMLElement | null
+    if (!el || !card) return
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    el.scrollBy({ left: dir * (card.offsetWidth + 16), behavior })
+  }
+  return (
+    <section className="bg-rail-section" id={row.id} aria-labelledby={`${row.id}-h`}>
+      <header className="bg-rail-head">
+        <h3 id={`${row.id}-h`}>{row.title}</h3>
+        <div className="bg-rail-ctl">
+          <Link to="/auctions?all=1" className="bg-link-arrow">
+            Wszystkie →
+          </Link>
+          <button type="button" aria-label={`Poprzednie: ${row.title}`} onClick={() => scroll(-1)}>
+            ‹
+          </button>
+          <button type="button" aria-label={`Następne: ${row.title}`} onClick={() => scroll(1)}>
+            ›
+          </button>
+        </div>
+      </header>
+      <div
+        ref={ref}
+        className="bg-rail"
+        tabIndex={0}
+        role="region"
+        aria-label={`${row.title} – użyj strzałek, aby przewijać`}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+            e.preventDefault()
+            scroll(e.key === 'ArrowRight' ? 1 : -1)
+          }
+        }}
+      >
+        {row.items.map((a) => (
+          <HomeAuctionCard key={a.id} auction={a} demo={demo} bumpKey={bump?.id === a.id ? bump.nonce : undefined} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // Categories barely change: show the last known list at once, refresh it in the background
 const CATEGORIES_CACHE_KEY = 'bidigo:categories:v1'
 
@@ -180,6 +261,8 @@ function cachedCategories(): Category[] {
   }
 }
 
+const DEMO_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1'
+
 export function LandingPage() {
   const [featured, setFeatured] = useState<DemoAuction[]>([])
   // Paid "Strona główna" promotions (bidigo-backend V41), rotating
@@ -187,7 +270,6 @@ export function LandingPage() {
   const promotionsOn = usePromotionsEnabled()
   const [categories, setCategories] = useState<Category[]>(cachedCategories)
   const [usingDemo, setUsingDemo] = useState(false)
-  const [filter, setFilter] = useState<LiveFilter>('all')
 
   useEffect(() => {
     document.body.classList.add('on-home')
@@ -215,13 +297,13 @@ export function LandingPage() {
     void (async () => {
       const { data } = await supabase
         .from('auctions')
-        .select(AUCTION_CARD_COLUMNS)
+        .select(`${AUCTION_CARD_COLUMNS}, created_at`)
         .eq('status', 'active')
         .eq('moderation_status', 'approved')
         .order('ends_at', { ascending: true })
-        .limit(6)
+        .limit(24)
       const live = (data as unknown as Auction[]) ?? []
-      if (live.length > 0) {
+      if (live.length > 0 && !DEMO_MODE) {
         setFeatured(live)
         setUsingDemo(false)
       } else {
@@ -238,13 +320,42 @@ export function LandingPage() {
       .then(({ data }) => setPromoted((data as unknown as Auction[]) ?? []))
   }, [])
 
-  const visible = useMemo(() => {
-    if (filter === 'all') return featured
-    if (filter === 'buy') {
-      return featured.filter((a) => a.buyNowOnly || a.buy_now_price != null)
+  // Themed rows need enough offers to look different from each other; with a small catalogue show one row
+  const rows = useMemo<RailRow[]>(() => {
+    const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', icon: '⏱️', items: featured }
+    if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [ending]
+    const byBids = [...featured].filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
+    const fresh = [...featured].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    const buy = featured.filter((a) => a.buyNowOnly || a.buy_now_price != null)
+    return [
+      ending,
+      { id: 'popularne', title: 'Popularne', icon: '🔥', items: byBids },
+      { id: 'nowosci', title: 'Nowości', icon: '✨', items: fresh },
+      { id: 'kup-teraz', title: 'Kup teraz', icon: '🛒', items: buy },
+    ].filter((r, i) => i === 0 || r.items.length >= 3)
+  }, [featured, usingDemo])
+
+  // ?demo=1 preview only: simulate new bids so the page shows how it feels with live traffic
+  const [bump, setBump] = useState<{ id: string; nonce: number } | null>(null)
+  useEffect(() => {
+    if (!DEMO_MODE || featured.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let t: ReturnType<typeof setTimeout>
+    const tick = () => {
+      const pool = featured.filter((a) => !a.buyNowOnly)
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      if (pick) {
+        const step = pick.current_price < 100 ? 5 : pick.current_price < 500 ? 10 : 20
+        setFeatured((prev) =>
+          prev.map((a) => (a.id === pick.id ? { ...a, current_price: a.current_price + step, bid_count: a.bid_count + 1 } : a)),
+        )
+        setBump({ id: pick.id, nonce: Date.now() })
+      }
+      t = setTimeout(tick, 3800 + Math.random() * 2500)
     }
-    return featured.filter((a) => !a.buyNowOnly)
-  }, [featured, filter])
+    t = setTimeout(tick, 2500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [featured.length])
 
   return (
     <div className="bidigo-home">
@@ -253,10 +364,23 @@ export function LandingPage() {
           <h1 className="bg-hero-brand">
             bidigo<span className="bidigo-dot">.</span>
           </h1>
-          <p className="bg-hero-claim">
-            Bid smarter. <em>Win bigger.</em>
-          </p>
-          <p className="bg-hero-tagline">Global marketplace. Local deals. Live auctions.</p>
+          <h2 className="bg-hero-claim">
+            Licytuj, kupuj, sprzedawaj. <em>Wszystko w jednym miejscu.</em>
+          </h2>
+          <p className="bg-hero-tagline">Aukcje z całej Polski. Lokalne okazje. Licytacje na żywo.</p>
+          <div className="bg-hero-ctas">
+            <Link to="/auctions?all=1" className="bg-hero-btn is-primary">
+              Przeglądaj aukcje
+            </Link>
+            <Link to="/sell" className="bg-hero-btn">
+              Wystaw przedmiot
+            </Link>
+          </div>
+          <ul className="bg-hero-perks">
+            <li>Licytacja albo „Kup teraz”</li>
+            <li>Oferta w 2 minuty</li>
+            <li>Jasna prowizja</li>
+          </ul>
         </div>
       </section>
 
@@ -291,76 +415,22 @@ export function LandingPage() {
 
       <section className="bg-section bg-live">
         <div className="container">
-          <header className="bg-live-head">
-            <div>
-              <p className="bg-eyebrow">
-                <span className="bidigo-dot-inline" /> Warto mieć na oku
-              </p>
-              <h2>Na żywo. Na Twoich zasadach.</h2>
-            </div>
-            <Link to="/auctions?all=1" className="bg-link-arrow">
-              Wszystkie aukcje →
-            </Link>
-          </header>
-
-          <div className="bg-live-tabs">
-            <div className="bg-tabs" role="tablist">
-              {(
-                [
-                  ['all', 'Wszystkie'],
-                  ['bid', 'Licytacje'],
-                  ['buy', 'Kup teraz'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === id}
-                  className={filter === id ? 'is-active' : ''}
-                  onClick={() => setFilter(id)}
-                >
-                  {label}
-                </button>
+          {rows.length > 1 && (
+            <ul className="bg-quick" aria-label="Szybkie filtry">
+              {rows.map((r) => (
+                <li key={r.id}>
+                  <a href={`#${r.id}`}>
+                    <span aria-hidden>{r.icon}</span> {r.title}
+                  </a>
+                </li>
               ))}
-            </div>
-            {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
-          </div>
+            </ul>
+          )}
+          {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 
-          <div className="bg-cards">
-            {visible.map((a) => (
-              <HomeAuctionCard key={a.id} auction={a} demo={usingDemo} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-section bg-about" id="o-nas">
-        <div className="container bg-about-inner">
-          <header className="bg-section-head">
-            <p className="bg-eyebrow muted">O nas</p>
-            <h2>Bo nie wiedzieliśmy, ile to warte</h2>
-          </header>
-          <div className="bg-about-copy">
-            <p>
-              Mieliśmy rzeczy, których już nie potrzebowaliśmy — a ktoś inny pewnie by się
-              ucieszył. Problem w tym, że nie wiedzieliśmy, na ile to wycenić. Na zwykłym
-              ogłoszeniu ustawiasz cenę „na oko”, potem ktoś boi się napisać albo od razu
-              proponuje połowę. Ty tylko chcesz się pozbyć sprzętu, a wychodzi targowanie się
-              o grosze albo cisza w skrzynce.
-            </p>
-            <p>
-              Nie znaleźliśmy aplikacji, która to ogarnia po ludzku: wystawiasz, licytacja sama
-              pokazuje, ile ktoś naprawdę jest gotów zapłacić, a Ty nie musisz zgadywać ceny
-              startowej w ciemno. Dlatego powstało Bidigo — proste aukcje, jasna prowizja,
-              dogadywanie odbioru bez zbędnego szumu.
-            </p>
-            <p>
-              Budujemy to w Polsce, pod realne rzeczy z mieszkania i garażu. Bez obietnic
-              rewolucji — z miejscem, w którym uczciwa oferta ma szansę trafić do kogoś, komu
-              ta rzecz naprawdę się przyda.
-            </p>
-          </div>
+          {rows.map((r) => (
+            <Rail key={r.id} row={r} demo={usingDemo} bump={bump} />
+          ))}
         </div>
       </section>
 
@@ -368,52 +438,28 @@ export function LandingPage() {
         <div className="container">
           <header className="bg-section-head row">
             <div>
-              <p className="bg-eyebrow muted">Prosto od pierwszego kroku</p>
-              <h2>Jak to działa?</h2>
+              <h2>Jak to działa</h2>
             </div>
-            <p className="bg-section-aside">Ty decydujesz. My łączymy.</p>
           </header>
-          <div className="bg-steps">
-            <article className="bg-step">
-              <span className="bg-step-num" aria-hidden>
-                01
-              </span>
-              <span className="bg-step-icon" aria-hidden>
-                +
-              </span>
-              <h3>Wystaw</h3>
-              <p>Zrób zdjęcia, dodaj opis i ustal cenę. Licytacja czy Kup teraz? Wybór należy do Ciebie.</p>
-            </article>
-            <article className="bg-step">
-              <span className="bg-step-num" aria-hidden>
-                02
-              </span>
-              <span className="bg-step-icon" aria-hidden>
-                🔨
-              </span>
-              <h3>Licytuj</h3>
-              <p>Znajdź coś dla siebie i złóż ofertę. Obserwuj licytację lub kup bez czekania.</p>
-            </article>
-            <article className="bg-step">
-              <span className="bg-step-num" aria-hidden>
-                03
-              </span>
-              <span className="bg-step-icon" aria-hidden>
-                💬
-              </span>
-              <h3>Dogadaj odbiór</h3>
-              <p>Ustal ze sprzedającym dostawę lub odbiór osobisty. I daj rzeczom nowy początek.</p>
-            </article>
-          </div>
+          <HowItWorks />
         </div>
       </section>
+
+      {DEMO_MODE && bump && (
+        <div key={bump.nonce} className="bg-toast" aria-hidden>
+          <span className="bg-toast-ic">🔔</span>
+          <span>
+            <b>Nowa oferta: {formatPln(featured.find((a) => a.id === bump.id)?.current_price ?? 0)}</b>
+            {featured.find((a) => a.id === bump.id)?.title}
+          </span>
+        </div>
+      )}
 
       <section className="bg-cta">
         <div className="container bg-cta-inner">
           <div>
-            <p className="bg-eyebrow light">Mniej rzeczy. Więcej możliwości.</p>
-            <h2>Masz coś do sprzedania?</h2>
-            <p>Daj temu drugie życie. Prowizja 3–5% (min. 2 zł).</p>
+            <h2>Sprzedaj w 2 minuty</h2>
+            <p>Nie wiesz, ile to warte? Ustaw niską cenę startową, a licytacja pokaże wartość. Możesz też wybrać „Kup teraz”. Prowizja 3–5% (min. 2 zł).</p>
           </div>
           <Link to="/sell" className="btn bg-cta-btn">
             Wystaw przedmiot +
