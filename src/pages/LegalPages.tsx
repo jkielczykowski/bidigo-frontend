@@ -1,10 +1,10 @@
 /** Uzupełnij po wpisie spółki do KRS. Puste pola nie pokazują się na stronie. */
 export const operator = {
   brand: 'Bidigo',
-  legalName: '',
-  address: '',
-  krs: '',
-  nip: '',
+  legalName: 'Loop Soft sp. z o.o.',
+  address: 'ul. Herbu Oksza 10/102, 02-495 Warszawa',
+  krs: '0001271402',
+  nip: '5223386565',
   email: 'pomoc@bidigo.pl',
 }
 
