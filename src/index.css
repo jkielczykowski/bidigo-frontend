@@ -6397,3 +6397,119 @@ a.nav-user:hover {
   padding: 0.2rem 0.65rem;
   border-radius: 999px;
 }
+
+/* Landing hero on phones: one tidy search pill, buttons side by side, tighter spacing */
+.bg-hero-search .search-bar--hero {
+  flex-wrap: nowrap;
+  border-radius: 999px;
+  padding: 0.3rem 0.3rem 0.3rem 1rem;
+}
+
+.bg-hero-search .search-bar--hero .search-submit {
+  width: auto;
+  flex: none;
+  padding: 0.7rem 1.1rem;
+}
+
+@media (max-width: 860px) {
+  .bg-hero {
+    padding: 2rem 0 1.75rem;
+  }
+
+  .bg-hero-claim {
+    margin-bottom: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .bg-hero-tagline {
+    margin-top: 0.6rem;
+    font-size: 0.88rem;
+  }
+
+  .bg-hero-search {
+    margin-top: 1.1rem;
+  }
+
+  .bg-hero-ctas {
+    flex-wrap: nowrap;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+  }
+
+  .bg-hero-ctas .bg-hero-btn {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 0.75rem;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  .bg-hero-perks {
+    margin-top: 0.9rem;
+    gap: 0.25rem 0.9rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* Hero search: taller pill with a soft glow, orange action button, orange ring on focus */
+.bg-hero-search .search-bar--hero {
+  min-height: 60px;
+  border: 2px solid #fff;
+  box-shadow: 0 12px 32px rgba(26, 39, 68, 0.16);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.bg-hero-search .search-bar--hero:focus-within {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 4px rgba(255, 133, 81, 0.22), 0 12px 32px rgba(26, 39, 68, 0.16);
+}
+
+.bg-hero-search .search-bar--hero .search-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-orange);
+  flex: none;
+}
+
+.bg-hero-search .search-bar--hero input {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.bg-hero-search .search-bar--hero .search-submit {
+  min-height: 48px;
+  background: var(--accent-orange);
+  color: #2a1200;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 133, 81, 0.4);
+}
+
+.bg-hero-search .search-bar--hero .search-submit:hover {
+  filter: brightness(1.06);
+}
+
+.bg-hero-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.8rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.bg-hero-suggest a {
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.bg-hero-suggest a:hover {
+  box-shadow: inset 0 0 0 2px var(--accent-orange);
+}

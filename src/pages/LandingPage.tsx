@@ -283,6 +283,9 @@ function Rail({
   )
 }
 
+const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
+const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
+
 // Categories barely change: show the last known list at once, refresh it in the background
 const CATEGORIES_CACHE_KEY = 'bidigo:categories:v1'
 
@@ -305,6 +308,14 @@ export function LandingPage() {
   const [categories, setCategories] = useState<Category[]>(cachedCategories)
   const [usingDemo, setUsingDemo] = useState(false)
   const [recents, setRecents] = useState<string[]>(getRecentSearches)
+  const [hint, setHint] = useState(0)
+
+  // The search placeholder cycles through example queries (static for reduced motion)
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const t = setInterval(() => setHint((h) => (h + 1) % SEARCH_HINTS.length), 2800)
+    return () => clearInterval(t)
+  }, [])
   const [forYou, setForYou] = useState<Auction[]>([])
 
   useEffect(() => subscribeRecentSearches(() => setRecents(getRecentSearches())), [])
@@ -522,7 +533,15 @@ export function LandingPage() {
           </h2>
           <p className="bg-hero-tagline">Aukcje z całej Polski. Lokalne okazje. Licytacje na żywo.</p>
           <div className="bg-hero-search">
-            <SearchBar variant="hero" placeholder="Czego szukasz? Np. rower, aparat, LEGO" />
+            <SearchBar variant="hero" placeholder={SEARCH_HINTS[hint]} />
+            <p className="bg-hero-suggest">
+              <span>{recents.length > 0 ? 'Ostatnio:' : 'Popularne:'}</span>
+              {(recents.length > 0 ? recents.slice(0, 4) : DEFAULT_SUGGESTIONS).map((t) => (
+                <Link key={t} to={`/auctions?q=${encodeURIComponent(t)}`}>
+                  {t}
+                </Link>
+              ))}
+            </p>
           </div>
           <div className="bg-hero-ctas">
             <Link to="/auctions?all=1" className="bg-hero-btn is-primary">
