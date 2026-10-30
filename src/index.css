@@ -6716,3 +6716,8 @@ a.nav-user:hover {
     font-size: 1.05rem;
   }
 }
+
+/* The landing hero has its own big search, so the small one in the header is redundant there */
+body.on-home .header--bidigo .nav-search.desktop-only {
+  display: none !important;
+}
