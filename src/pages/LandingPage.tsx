@@ -225,7 +225,7 @@ function HomeAuctionCard({
   )
 }
 
-type RailRow = { id: string; title: string; icon: string; items: DemoAuction[] }
+type RailRow = { id: string; title: string; items: DemoAuction[] }
 
 function Rail({
   row,
@@ -481,11 +481,11 @@ export function LandingPage() {
   const rows = useMemo<RailRow[]>(() => {
     const byInterest: RailRow[] = topInterests
       .filter((i) => (mine[i.id]?.length ?? 0) > 0)
-      .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, icon: '✨', items: mine[i.id] }))
+      .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, items: mine[i.id] }))
     const byTerms: RailRow[] =
-      forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', icon: '🔎', items: forYou }] : []
+      forYou.length > 0 ? [{ id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou }] : []
     const personal = [...byInterest, ...byTerms]
-    const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', icon: '⏱️', items: featured }
+    const ending = { id: 'koncza-sie', title: 'Kończą się za chwilę', items: featured }
     if ((usingDemo && !DEMO_MODE) || featured.length < 8) return [...personal, ending]
     const byBids = [...featured].filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count)
     const fresh = [...featured].sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -493,9 +493,9 @@ export function LandingPage() {
     return [
       ...personal,
       ending,
-      { id: 'popularne', title: 'Popularne', icon: '🔥', items: byBids },
-      { id: 'nowosci', title: 'Nowości', icon: '✨', items: fresh },
-      { id: 'kup-teraz', title: 'Kup teraz', icon: '🛒', items: buy },
+      { id: 'popularne', title: 'Popularne', items: byBids },
+      { id: 'nowosci', title: 'Nowości', items: fresh },
+      { id: 'kup-teraz', title: 'Kup teraz', items: buy },
     ].filter((r) => r.id.startsWith('dla-ciebie') || r.id === 'koncza-sie' || r.items.length >= 3)
   }, [featured, usingDemo, forYou, mine, topInterests])
 
@@ -590,17 +590,6 @@ export function LandingPage() {
 
       <section className="bg-section bg-live">
         <div className="container">
-          {rows.length > 1 && (
-            <ul className="bg-quick" aria-label="Szybkie filtry">
-              {rows.map((r) => (
-                <li key={r.id}>
-                  <a href={`#${r.id}`}>
-                    <span aria-hidden>{r.icon}</span> {r.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
           {interests.length > 0 && (
             <div className="bg-recent" aria-label="Twoje zainteresowania">
               <span className="bg-recent-label">Twoje zainteresowania:</span>
