@@ -18,7 +18,7 @@ import {
 import { useCategories } from '../lib/categories'
 import { categoryDiscSources } from '../lib/categoryPhotos'
 import type { Auction, Category } from '../lib/database.types'
-import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
+import { calcSuccessFee, formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
@@ -319,6 +319,74 @@ const FAQ = [
 const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
 const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
 
+/** "Ile dostaniesz?": the real commission rules of the chosen category applied to a price the visitor types. */
+function FeeCalculator({ categories }: { categories: Category[] }) {
+  const tops = useMemo(() => categories.filter((c) => !c.parent_id), [categories])
+  const [price, setPrice] = useState('200')
+  const [catId, setCatId] = useState('')
+  const cat = tops.find((c) => c.id === catId) ?? tops[0]
+  // Same rule as the listing form: own rate, minimum and maximum of the category
+  const percent = Number(cat?.fee_percent ?? 5)
+  const min = cat?.fee_min == null ? 2 : Number(cat.fee_min)
+  const max = cat ? (cat.fee_max == null ? (cat.fee_min == null ? 150 : null) : Number(cat.fee_max)) : 150
+  const p = Number(price)
+  const valid = Number.isFinite(p) && p > 0
+  const fee = valid ? calcSuccessFee(p, percent, min, max) : 0
+  const net = valid ? Math.max(0, p - fee) : 0
+  const share = valid ? Math.min(100, (fee / p) * 100) : 0
+
+  return (
+    <div className="feecalc">
+      <h3>Ile dostaniesz za swoją rzecz?</h3>
+      <div className="feecalc-fields">
+        <label>
+          <span>Cena sprzedaży</span>
+          <span className="feecalc-input">
+            <input
+              type="number"
+              inputMode="decimal"
+              min="1"
+              step="1"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              aria-describedby="feecalc-result"
+            />
+            <b aria-hidden>zł</b>
+          </span>
+        </label>
+        <label>
+          <span>Kategoria</span>
+          <select value={cat?.id ?? ''} onChange={(e) => setCatId(e.target.value)}>
+            {tops.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div id="feecalc-result" className="feecalc-result" aria-live="polite">
+        <span>Dostajesz</span>
+        <strong>{valid ? formatPln(net) : '—'}</strong>
+      </div>
+      <div className="feecalc-bar" aria-hidden>
+        <i style={{ width: `${100 - share}%` }} />
+      </div>
+      <p className="feecalc-line">
+        {valid ? (
+          <>
+            Prowizja Bidigo: <b>{formatPln(fee)}</b> ({percent.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%, min. {formatPln(min)}
+            {max === null ? '' : `, max ${formatPln(max)}`})
+          </>
+        ) : (
+          'Wpisz cenę, żeby zobaczyć prowizję.'
+        )}
+      </p>
+      <p className="feecalc-note">Wystawianie jest bezpłatne. Prowizję naliczamy dopiero po udanej sprzedaży.</p>
+    </div>
+  )
+}
+
 /** Dark band that sells selling: photos of what people have at home, three tiny reasons, one button. */
 function SellTeaser({ categories }: { categories: Category[] }) {
   const ref = useRef<HTMLElement>(null)
@@ -356,6 +424,7 @@ function SellTeaser({ categories }: { categories: Category[] }) {
             )
           })}
         </ul>
+        <FeeCalculator categories={categories} />
         <ul className="sellband-chips">
           <li>⏱️ 2 minuty</li>
           <li>🔨 Cenę ustali licytacja</li>

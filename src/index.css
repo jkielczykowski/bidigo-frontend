@@ -7980,3 +7980,133 @@ body.nav-open .header {
 .bidigo-dot-inline {
   background: var(--logo-fur);
 }
+
+/* Commission calculator in the sell band (idea: the calculator on wise.com) */
+.feecalc {
+  max-width: 520px;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem 1.25rem 1.1rem;
+  border-radius: 22px;
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+}
+
+.feecalc h3 {
+  margin: 0 0 0.9rem;
+  font-size: 1.15rem;
+}
+
+.feecalc-fields {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 520px) {
+  .feecalc-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feecalc label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.feecalc-input {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  background: var(--surface-warm);
+  box-shadow: inset 0 0 0 2px var(--border);
+}
+
+.feecalc-input:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent-ink);
+}
+
+.feecalc input,
+.feecalc select {
+  min-height: 48px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.feecalc select {
+  padding: 0 0.7rem;
+  border-radius: 12px;
+  background: var(--surface-warm);
+  box-shadow: inset 0 0 0 2px var(--border);
+  font-size: 1rem;
+}
+
+.feecalc input:focus-visible {
+  outline: none;
+}
+
+.feecalc select:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+.feecalc-result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.1rem 0 0.5rem;
+}
+
+.feecalc-result span {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.feecalc-result strong {
+  font-size: clamp(1.9rem, 7vw, 2.6rem);
+  letter-spacing: -0.02em;
+  color: var(--accent-ink);
+}
+
+.feecalc-bar {
+  height: 10px;
+  border-radius: 99px;
+  background: #d9dfe9;
+  overflow: hidden;
+}
+
+.feecalc-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent-orange);
+  transition: width 0.35s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+.feecalc-line {
+  margin: 0.6rem 0 0;
+  font-size: 0.92rem;
+}
+
+.feecalc-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feecalc-bar i {
+    transition: none;
+  }
+}
