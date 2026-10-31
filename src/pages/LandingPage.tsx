@@ -16,7 +16,8 @@ import {
   subscribeRecentSearches,
 } from '../lib/recentSearches'
 import { useCategories } from '../lib/categories'
-import type { Auction } from '../lib/database.types'
+import { categoryDiscSources } from '../lib/categoryPhotos'
+import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
@@ -297,13 +298,6 @@ function Rail({
   )
 }
 
-const WHY_SELL = [
-  { icon: '⏱️', title: '2 minuty na ofertę', text: 'Zdjęcia, opis, cena. Bez długich formularzy.' },
-  { icon: '🔨', title: 'Cenę ustala rynek', text: 'Nie zgadujesz wartości. Licytacja pokazuje, ile ktoś jest gotów zapłacić.' },
-  { icon: '🧾', title: 'Jasna prowizja', text: 'Koszty widzisz, zanim opublikujesz ofertę.' },
-  { icon: '🤝', title: 'Odbiór bez zbędnego szumu', text: 'Dostawę lub odbiór osobisty ustalasz bezpośrednio z drugą stroną.' },
-]
-
 const FAQ = [
   [
     'Czy wystawianie aukcji jest płatne?',
@@ -324,6 +318,56 @@ const FAQ = [
 
 const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
 const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
+
+/** Dark band that sells selling: photos of what people have at home, three tiny reasons, one button. */
+function SellTeaser({ categories }: { categories: Category[] }) {
+  const ref = useRef<HTMLElement>(null)
+  const [seen, setSeen] = useState(false)
+  const tops = useMemo(() => categories.filter((c) => !c.parent_id).slice(0, 10), [categories])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setSeen(true)
+      return
+    }
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold: 0.2 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  return (
+    <section ref={ref} className={`sellband${seen ? ' is-seen' : ''}`} aria-labelledby="sell-band-h">
+      <div className="container">
+        <h2 id="sell-band-h">Co masz w domu? Sprzedaj to.</h2>
+        <ul className="sellband-tiles">
+          {tops.map((c, i) => {
+            const src = categoryDiscSources(c.id, c.name)
+            return (
+              <li key={c.id} style={{ ['--i' as string]: i }}>
+                <Link to="/sell">
+                  <picture>
+                    <source srcSet={src.webp} type="image/webp" />
+                    <img src={src.jpg} alt="" width={96} height={96} loading="lazy" />
+                  </picture>
+                  <span>{c.name}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+        <ul className="sellband-chips">
+          <li>⏱️ 2 minuty</li>
+          <li>🔨 Cenę ustali licytacja</li>
+          <li>🧾 Jasna prowizja</li>
+        </ul>
+        <Link to="/sell" className="sellband-cta">
+          Wystaw pierwszą aukcję
+        </Link>
+      </div>
+    </section>
+  )
+}
 
 const DEMO_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1'
 
@@ -704,27 +748,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-section" aria-labelledby="why-sell">
-        <div className="container">
-          <header className="bg-section-head">
-            <h2 id="why-sell">Dlaczego warto wystawić coś na Bidigo</h2>
-          </header>
-          <div className="bg-why">
-            {WHY_SELL.map((w) => (
-              <article key={w.title} className="bg-why-card">
-                <span className="bg-why-icon" aria-hidden>
-                  {w.icon}
-                </span>
-                <h3>{w.title}</h3>
-                <p>{w.text}</p>
-              </article>
-            ))}
-          </div>
-          <Link to="/sell" className="bg-hero-btn is-primary bg-why-btn">
-            Wystaw przedmiot
-          </Link>
-        </div>
-      </section>
+      <SellTeaser categories={categories} />
 
       <section className="bg-section" id="jak-dziala">
         <div className="container">

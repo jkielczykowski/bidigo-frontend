@@ -7770,3 +7770,199 @@ body.nav-open .header {
     animation: none;
   }
 }
+
+/* "Co masz w domu? Sprzedaj to." band */
+.sellband {
+  padding: 3rem 0 3.25rem;
+  background: var(--bg-dark);
+  color: #fff;
+  overflow: hidden;
+}
+
+.sellband h2 {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.8rem, 5.5vw, 3rem);
+  line-height: 1.1;
+  color: #fff;
+}
+
+.sellband-tiles {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  margin: 0 0 1.5rem;
+  padding: 0.25rem 0.1rem 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.sellband-tiles::-webkit-scrollbar {
+  display: none;
+}
+
+.sellband-tiles li {
+  flex: none;
+  scroll-snap-align: start;
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.sellband.is-seen .sellband-tiles li {
+  animation: sellband-in 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+@keyframes sellband-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sellband-tiles a {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  width: 112px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.sellband-tiles img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sellband-tiles a:hover img,
+.sellband-tiles a:focus-visible img {
+  transform: scale(1.07);
+  box-shadow: 0 0 0 3px var(--accent-orange);
+}
+
+.sellband-tiles a:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.sellband-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1.75rem;
+  padding: 0;
+}
+
+.sellband-chips li {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.sellband-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 2rem;
+  border-radius: 999px;
+  background: var(--accent-orange);
+  color: #2a1200;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(255, 133, 81, 0.35);
+}
+
+.sellband-cta:hover {
+  filter: brightness(1.06);
+}
+
+.sellband-cta:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .sellband-cta {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sellband-tiles li {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sellband.is-seen .sellband-tiles li {
+    animation: none;
+  }
+
+  .sellband-tiles img {
+    transition: none;
+  }
+}
+
+/* Cards stand out again: white box with a frame and a soft shadow, photo flush to the top */
+.bg-card,
+.auction-card {
+  background: #fff;
+  border: 1.5px solid #d5dbe6;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(26, 39, 68, 0.1);
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.bg-card:hover,
+.auction-card:hover {
+  border-color: var(--accent-orange);
+  box-shadow: 0 10px 26px rgba(26, 39, 68, 0.16);
+  transform: translateY(-2px);
+}
+
+.bg-card-media,
+.auction-card-media {
+  border-radius: 0;
+}
+
+.bg-card-media {
+  aspect-ratio: 4 / 3;
+}
+
+.bg-card-body {
+  padding: 0.85rem 1rem 1.05rem;
+}
+
+.auction-card-body {
+  padding: 0.85rem 1rem 1.05rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-card,
+  .auction-card {
+    transition: none;
+  }
+
+  .bg-card:hover,
+  .auction-card:hover {
+    transform: none;
+  }
+}
