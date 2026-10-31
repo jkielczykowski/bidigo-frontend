@@ -35,7 +35,6 @@ export function AuctionCard({ auction }: { auction: Auction }) {
           <div className="auction-card-placeholder">Brak zdjęcia</div>
         )}
         <div className="auction-card-media-fade" aria-hidden />
-        <FavoriteButton auctionId={auction.id} className="fav-btn--card" />
         {live ? (
           <span className="live-pill">
             <span className="live-dot" aria-hidden />
@@ -51,7 +50,10 @@ export function AuctionCard({ auction }: { auction: Auction }) {
         </span>
       </div>
       <div className="auction-card-body">
-        <h3>{auction.title}</h3>
+        <div className="auction-card-top">
+          <h3>{auction.title}</h3>
+          <FavoriteButton auctionId={auction.id} className="fav-btn--inline" />
+        </div>
         <p className="meta">
           {auction.city || 'Polska'}
           {auction.category?.name ? ` · ${auction.category.name}` : ''}

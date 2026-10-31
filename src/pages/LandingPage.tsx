@@ -187,40 +187,37 @@ function HomeAuctionCard({
 
   return (
     <article className={`bg-card${bumpKey ? ' is-bump' : ''}`} key={bumpKey}>
-      <Link to={to} className="bg-card-media">
+      <Link to={to} className="bg-card-media" tabIndex={-1} aria-hidden>
         {img ? <img src={img} alt="" loading="lazy" /> : <div className="bg-card-ph" />}
         {isNew && <span className="bg-new">Nowość</span>}
-        <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>
-          {buyNowOnly ? '✓ Kup teraz' : '🔨 Licytacja'}
-        </span>
+        <span className={`bg-badge ${buyNowOnly ? 'is-buy' : 'is-bid'}`}>{buyNowOnly ? 'Kup teraz' : 'Licytacja'}</span>
         {promotionsOn && !demo && isPromoted(auction, now) && <span className="promoted-badge bg-card-promoted">Promowane</span>}
-        <FavoriteButton auctionId={auction.id} className="fav-btn--card" />
       </Link>
       <div className="bg-card-body">
-        <p className="bg-card-cat">{auction.category?.name || 'Aukcja'}</p>
-        <h3>
-          <Link to={to}>{auction.title}</Link>
-        </h3>
+        <div className="bg-card-top">
+          <div className="bg-card-titles">
+            <h3>
+              <Link to={to}>{auction.title}</Link>
+            </h3>
+            <p className="bg-card-cat">{auction.category?.name || 'Aukcja'}</p>
+          </div>
+          <FavoriteButton auctionId={auction.id} className="fav-btn--inline" />
+        </div>
         <div className="bg-card-price-row">
           <strong key={bumpKey}>{formatPln(auction.current_price)}</strong>
-          <span>{buyNowOnly ? 'cena zakupu' : ofertLabel(auction.bid_count)}</span>
+          <span>{buyNowOnly ? 'Kup teraz' : ofertLabel(auction.bid_count)}</span>
         </div>
-        <div className="bg-card-meta">
-          <span className={buyNowOnly ? '' : 'is-urgent'}>
-            {buyNowOnly ? (
-              'Dostępny od ręki'
-            ) : (
-              <>
-                ⏱ {formatCountdown(auction.ends_at, now)}
-                <span className="bg-card-ends"> · do {formatEndsAt(auction.ends_at, now)}</span>
-              </>
-            )}
-          </span>
-          <span>📍 {auction.city || 'Polska'}</span>
-        </div>
-        <Link to={to} className={buyNowOnly ? 'btn bg-card-btn outline' : 'btn bg-card-btn'}>
-          {buyNowOnly ? 'Zobacz ofertę' : '🔨 Licytuj'}
-        </Link>
+        <p className={`bg-card-time${buyNowOnly ? '' : ' is-urgent'}`}>
+          {buyNowOnly ? (
+            'Dostępny od ręki'
+          ) : (
+            <>
+              ⏱ {formatCountdown(auction.ends_at, now)}
+              <span className="bg-card-ends"> · do {formatEndsAt(auction.ends_at, now)}</span>
+            </>
+          )}
+        </p>
+        <p className="bg-card-city">📍 {auction.city || 'Polska'}</p>
       </div>
     </article>
   )

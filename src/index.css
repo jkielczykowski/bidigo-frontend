@@ -7320,3 +7320,145 @@ body.nav-open .header {
     animation: none;
   }
 }
+
+/* Auction cards like ricardo.ch: no box, rounded photo, title with the heart beside it, price, date */
+.bg-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.bg-card-media {
+  border-radius: 16px;
+  aspect-ratio: 4 / 3.3;
+}
+
+.bg-badge {
+  top: auto;
+  bottom: 0.65rem;
+  left: 0.65rem;
+  padding: 0.22rem 0.6rem;
+  border: 0;
+  font-size: 0.74rem;
+}
+
+.bg-badge.is-buy {
+  background: var(--accent-orange);
+  color: #2a1200;
+}
+
+.bg-card-body {
+  padding: 0.7rem 0.1rem 0;
+  gap: 0.2rem;
+}
+
+.bg-card-top,
+.auction-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.bg-card-titles {
+  min-width: 0;
+}
+
+.bg-card-body h3 {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bg-card-body .bg-card-cat {
+  margin: 0.1rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+}
+
+.bg-card-price-row {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.bg-card-price-row strong {
+  font-size: 1.3rem;
+}
+
+.bg-card-price-row span {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.bg-card-time,
+.bg-card-city {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.bg-card-time.is-urgent {
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+
+.bg-card-time .bg-card-ends {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.fav-btn--inline {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px #cfd5df;
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+.fav-btn--inline.is-on {
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+/* list cards (auction-card): same language */
+.auction-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.auction-card:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.auction-card-media {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.auction-card-top h3 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.auction-card-body {
+  padding-left: 0.1rem;
+  padding-right: 0.1rem;
+}
