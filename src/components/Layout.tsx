@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { useCategories } from '../lib/categories'
 import { useNotifications } from '../lib/notifications'
 import { useUnreadMessages } from '../lib/unreadMessages'
 import { BidigoLogo } from './BidigoLogo'
+import { CategoryMenu } from './CategoryMenu'
 import { SearchBar } from './SearchBar'
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -11,6 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const { unread } = useUnreadMessages()
   const { unread: notifUnread } = useNotifications()
+  const categories = useCategories()
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -72,26 +75,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <SearchBar compact variant="nav" placeholder="Czego szukasz?" />
           </div>
 
+          <Link to="/favorites" className="nav-fav-mobile" onClick={closeMenu}>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                d="M12 20.5s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.8a4.3 4.3 0 0 1 7.5 2.7c0 5.4-7.5 10-7.5 10z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span>Ulubione</span>
+          </Link>
+
           <button
             type="button"
             className={`nav-burger ${menuOpen ? 'is-open' : ''}`}
-            aria-label={menuOpen ? 'Zamknij menu' : 'Otwórz menu'}
+            aria-label={menuOpen ? 'Zamknij menu konta' : 'Menu konta'}
             aria-expanded={menuOpen}
             onClick={() => {
               setMenuOpen((v) => !v)
               setProfileOpen(false)
             }}
           >
-            <span />
-            <span />
-            <span />
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+              <circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M5 20c.8-3.8 3.6-5.6 7-5.6s6.2 1.8 7 5.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true" className="nav-burger-caret">
+              <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
           </button>
 
           <div className={`nav-drawer ${menuOpen ? 'is-open' : ''}`}>
-            <div className="nav-search mobile-only">
-              <SearchBar compact variant="nav" placeholder="Czego szukasz?" />
-            </div>
-
             <div className="nav-links">
               <NavLink to="/auctions" onClick={closeMenu}>
                 Aukcje
@@ -187,6 +203,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
       </header>
+      <div className="nav-search-row">
+        <div className="container">
+          <SearchBar compact variant="nav" placeholder="Czego szukasz?" />
+        </div>
+      </div>
+      <CategoryMenu categories={categories} />
       <main className="main">{children}</main>
       <footer className="footer footer--bidigo">
         <div className="container footer-grid">

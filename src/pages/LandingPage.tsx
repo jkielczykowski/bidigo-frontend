@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CategoryMenu } from '../components/CategoryMenu'
 import { HowItWorks } from '../components/HowItWorks'
 import { SearchBar } from '../components/SearchBar'
 import { clearRecentViews, getRecentViews, subscribeRecentViews } from '../lib/recentViews'
@@ -16,7 +15,8 @@ import {
   removeRecentSearch,
   subscribeRecentSearches,
 } from '../lib/recentSearches'
-import type { Auction, Category } from '../lib/database.types'
+import { useCategories } from '../lib/categories'
+import type { Auction } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
@@ -328,18 +328,6 @@ const FAQ = [
 const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
 const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
 
-// Categories barely change: show the last known list at once, refresh it in the background
-const CATEGORIES_CACHE_KEY = 'bidigo:categories:v1'
-
-function cachedCategories(): Category[] {
-  try {
-    const raw = localStorage.getItem(CATEGORIES_CACHE_KEY)
-    return raw ? (JSON.parse(raw) as Category[]) : []
-  } catch {
-    return []
-  }
-}
-
 const DEMO_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1'
 
 export function LandingPage() {
@@ -347,7 +335,7 @@ export function LandingPage() {
   // Paid "Strona główna" promotions (bidigo-backend V41), rotating
   const [promoted, setPromoted] = useState<Auction[]>([])
   const promotionsOn = usePromotionsEnabled()
-  const [categories, setCategories] = useState<Category[]>(cachedCategories)
+  const categories = useCategories()
   const [usingDemo, setUsingDemo] = useState(false)
   const [recents, setRecents] = useState<string[]>(getRecentSearches)
   const [hint, setHint] = useState(0)
@@ -505,22 +493,6 @@ export function LandingPage() {
     return () => document.body.classList.remove('on-home')
   }, [])
 
-  // Independent of the auctions below
-  useEffect(() => {
-    void supabase
-      .from('categories')
-      .select('*')
-      .order('sort_order')
-      .then(({ data }) => {
-        if (!data) return
-        setCategories(data as Category[])
-        try {
-          localStorage.setItem(CATEGORIES_CACHE_KEY, JSON.stringify(data))
-        } catch {
-          // storage full / blocked: the list just loads from the network next time
-        }
-      })
-  }, [])
 
   useEffect(() => {
     void (async () => {
@@ -613,8 +585,6 @@ export function LandingPage() {
 
   return (
     <div className="bidigo-home">
-      <CategoryMenu categories={categories} />
-
       <section className="bg-hero">
         <div className="container bg-hero-inner">
           <h1 className="bg-hero-brand">

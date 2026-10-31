@@ -7008,3 +7008,90 @@ body.catmenu-open {
     transform: none;
   }
 }
+
+/* Header like ricardo.ch: on phones the top row is logo + Ulubione + account, the search sits in its own row */
+.nav-fav-mobile {
+  display: none;
+}
+
+.nav-search-row {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .nav-fav-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+    min-height: 44px;
+    padding: 0 0.5rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .header--bidigo .nav-burger {
+    margin-left: 0;
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 0.5rem;
+    flex-direction: row;
+    gap: 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--text);
+  }
+
+  .nav-burger-caret {
+    transition: transform 0.2s ease;
+  }
+
+  .nav-burger.is-open .nav-burger-caret {
+    transform: rotate(180deg);
+  }
+
+  .header--bidigo .nav-links .nav-fav {
+    display: none !important;
+  }
+
+  .nav-search-row {
+    display: block;
+    padding: 0.5rem 0 0.6rem;
+    background: #fff;
+  }
+
+  .nav-search-row .search-wrap {
+    max-width: none;
+    width: 100%;
+  }
+
+  .nav-search-row .search-bar {
+    min-height: 48px;
+    border: 2px solid var(--border);
+  }
+
+  .nav-search-row .search-bar:focus-within {
+    border-color: var(--accent-orange);
+  }
+
+  /* The landing page has its own big search in the hero */
+  body.on-home .nav-search-row {
+    display: none;
+  }
+}
+
+/* Desktop header: with "Ulubione" added the right-hand cluster is wider, so the search flows after the logo
+   instead of being pinned to the exact centre (where it overlapped the links). */
+@media (min-width: 861px) {
+  .header--bidigo .nav-search.desktop-only {
+    position: static;
+    transform: none;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 28rem;
+    margin-left: 1.5rem;
+  }
+}
