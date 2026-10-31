@@ -10,8 +10,12 @@
   --accent: #1a2744;
   --accent-hover: #0f1a30;
   --accent-soft: #eef2f8;
-  --accent-secondary: #ff8551;
-  --accent-orange: #ff8551;
+  --accent-secondary: #14b8a6;
+  /* Accent colour (the name is historical): teal. --on-accent is the text on it, --accent-ink the darker
+     variant for text, links and focus rings on white. The logo keeps its own --logo-fur. */
+  --accent-orange: #14b8a6;
+  --on-accent: #052e2a;
+  --accent-ink: #0b7a6c;
   --logo-fur: #ff8551;
   --logo-nose: #e07a62;
   --success: #159947;
@@ -867,7 +871,7 @@ fieldset.has-error {
 
 .bidigo-dot,
 .bidigo-dot-inline {
-  color: var(--accent-orange);
+  color: var(--accent-ink);
 }
 
 .bidigo-dot-inline {
@@ -2521,7 +2525,7 @@ select {
 }
 
 .bg-card-meta .is-urgent {
-  color: var(--accent-orange);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 
@@ -5408,7 +5412,7 @@ a.nav-user:hover {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgba(255, 133, 81, 0.35);
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.35);
 }
 
 .promoted-badge::before {
@@ -5423,7 +5427,7 @@ a.nav-user:hover {
 }
 
 .auction-card.is-promoted {
-  border-color: var(--accent-orange);
+  border-color: var(--accent-ink);
   box-shadow: 0 0 0 1px var(--accent-orange), var(--shadow);
 }
 
@@ -5591,7 +5595,7 @@ a.nav-user:hover {
 
 .bg-hero-perks li::before {
   content: '✓';
-  color: var(--accent-orange);
+  color: var(--accent-ink);
   font-weight: 800;
   margin-right: 0.4rem;
 }
@@ -5660,7 +5664,7 @@ a.nav-user:hover {
 }
 
 .bg-rail-ctl button:hover {
-  border-color: var(--accent-orange);
+  border-color: var(--accent-ink);
 }
 
 @media (min-width: 900px) {
@@ -5686,7 +5690,7 @@ a.nav-user:hover {
 .bg-rail:focus-visible,
 .bg-quick a:focus-visible,
 .hiw button:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -5779,7 +5783,7 @@ a.nav-user:hover {
 
 .hiw-step[aria-current='step'] .hiw-n {
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
 }
 
 .hiw-step h3 {
@@ -5991,7 +5995,7 @@ a.nav-user:hover {
   display: grid;
   place-items: center;
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   font-weight: 800;
   border-radius: 999px;
   min-height: 44px;
@@ -6029,7 +6033,7 @@ a.nav-user:hover {
 
 .hiw-bub.r {
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   justify-self: end;
   border-bottom-right-radius: 4px;
 }
@@ -6156,7 +6160,7 @@ a.nav-user:hover {
 @keyframes bg-bump {
   25% {
     transform: scale(1.18);
-    color: var(--accent-orange);
+    color: var(--accent-ink);
   }
 }
 
@@ -6221,7 +6225,7 @@ a.nav-user:hover {
 
 /* Landing hero buttons (match the landing prototype) */
 .bg-hero-claim em {
-  border-bottom-color: var(--accent-orange);
+  border-bottom-color: var(--accent-ink);
 }
 
 .bg-hero-btn {
@@ -6243,7 +6247,7 @@ a.nav-user:hover {
 
 .bg-hero-btn.is-primary {
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   box-shadow: none;
 }
 
@@ -6252,7 +6256,7 @@ a.nav-user:hover {
 }
 
 .bg-hero-btn:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -6384,7 +6388,7 @@ a.nav-user:hover {
   bottom: 0.6rem;
   z-index: 2;
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   font-size: 0.75rem;
   font-weight: 800;
   padding: 0.2rem 0.65rem;
@@ -6454,14 +6458,14 @@ a.nav-user:hover {
 }
 
 .bg-hero-search .search-bar--hero:focus-within {
-  border-color: var(--accent-orange);
-  box-shadow: 0 0 0 4px rgba(255, 133, 81, 0.22), 0 12px 32px rgba(26, 39, 68, 0.16);
+  border-color: var(--accent-ink);
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.22), 0 12px 32px rgba(26, 39, 68, 0.16);
 }
 
 .bg-hero-search .search-bar--hero .search-icon {
   width: 22px;
   height: 22px;
-  color: var(--accent-orange);
+  color: var(--accent-ink);
   flex: none;
 }
 
@@ -6473,9 +6477,9 @@ a.nav-user:hover {
 .bg-hero-search .search-bar--hero .search-submit {
   min-height: 48px;
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   font-weight: 800;
-  box-shadow: 0 4px 12px rgba(255, 133, 81, 0.4);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
 }
 
 .bg-hero-search .search-bar--hero .search-submit:hover {
@@ -6542,7 +6546,7 @@ a.nav-user:hover {
 }
 
 .bg-quick button:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -6642,7 +6646,7 @@ a.nav-user:hover {
   content: '+';
   font-size: 1.5rem;
   line-height: 1;
-  color: var(--accent-orange);
+  color: var(--accent-ink);
 }
 
 .bg-faq-item[open] summary::after {
@@ -6650,7 +6654,7 @@ a.nav-user:hover {
 }
 
 .bg-faq-item summary:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -6682,7 +6686,7 @@ a.nav-user:hover {
 }
 
 .bg-quick a:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -6781,7 +6785,7 @@ body.on-home .header--bidigo .nav-search.desktop-only {
 .catbar a:focus-visible,
 .catmenu button:focus-visible,
 .catmenu a:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -6903,7 +6907,7 @@ body.on-home .header--bidigo .nav-search.desktop-only {
 
 .catmenu-sub a:hover,
 .catmenu-fly a:hover {
-  color: var(--accent-orange);
+  color: var(--accent-ink);
   text-decoration: underline;
 }
 
@@ -6979,7 +6983,7 @@ body.catmenu-open {
 }
 
 .fav-btn:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -7073,7 +7077,7 @@ body.catmenu-open {
   }
 
   .nav-search-row .search-bar:focus-within {
-    border-color: var(--accent-orange);
+    border-color: var(--accent-ink);
   }
 
   /* The landing page has its own big search in the hero */
@@ -7215,7 +7219,7 @@ body.catmenu-open {
     border: 0;
     border-radius: 12px;
     background: var(--accent-orange);
-    color: #2a1200;
+    color: var(--on-accent);
     font-weight: 800;
     font-size: 1.05rem;
   }
@@ -7240,7 +7244,7 @@ body.catmenu-open {
     border: 2px solid var(--accent-orange);
     border-radius: 12px;
     background: #fff;
-    color: #c2410c;
+    color: var(--accent-ink);
     font: inherit;
     font-weight: 800;
     text-decoration: none;
@@ -7251,14 +7255,14 @@ body.catmenu-open {
     min-height: 52px;
     border-radius: 12px;
     background: var(--accent-orange);
-    color: #2a1200;
+    color: var(--on-accent);
     font-weight: 800;
   }
 
   .nav-drawer-close:focus-visible,
   .nav-logout-mobile:focus-visible,
   .nav-account a:focus-visible {
-    outline: 3px solid var(--accent-orange);
+    outline: 3px solid var(--accent-ink);
     outline-offset: -3px;
   }
 }
@@ -7346,7 +7350,7 @@ body.nav-open .header {
 
 .bg-badge.is-buy {
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
 }
 
 .bg-card-body {
@@ -7408,7 +7412,7 @@ body.nav-open .header {
 }
 
 .bg-card-time.is-urgent {
-  color: var(--accent-orange);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 
@@ -7614,7 +7618,7 @@ body.nav-open .header {
   margin: 0;
   padding: 0.9rem 1rem;
   border-radius: 10px;
-  background: #fdf0e8;
+  background: #e6f7f4;
   display: grid;
   gap: 0.35rem;
 }
@@ -7668,13 +7672,13 @@ body.nav-open .header {
 .bidsheet-primary {
   border: 0;
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
 }
 
 .bidsheet-secondary {
   border: 2px solid var(--accent-orange);
   background: #fff;
-  color: #c2410c;
+  color: var(--accent-ink);
 }
 
 .bidsheet-primary:disabled,
@@ -7695,7 +7699,7 @@ body.nav-open .header {
 }
 
 .bidsheet button:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
@@ -7719,7 +7723,7 @@ body.nav-open .header {
     border: 0;
     border-radius: 14px;
     background: var(--accent-orange);
-    color: #2a1200;
+    color: var(--on-accent);
     font: inherit;
     font-weight: 800;
     font-size: 1.1rem;
@@ -7853,7 +7857,7 @@ body.nav-open .header {
 }
 
 .sellband-tiles a:focus-visible {
-  outline: 3px solid var(--accent-orange);
+  outline: 3px solid var(--accent-ink);
   outline-offset: 4px;
   border-radius: 12px;
 }
@@ -7883,11 +7887,11 @@ body.nav-open .header {
   padding: 0 2rem;
   border-radius: 999px;
   background: var(--accent-orange);
-  color: #2a1200;
+  color: var(--on-accent);
   font-weight: 800;
   font-size: 1.1rem;
   text-decoration: none;
-  box-shadow: 0 8px 24px rgba(255, 133, 81, 0.35);
+  box-shadow: 0 8px 24px rgba(20, 184, 166, 0.35);
 }
 
 .sellband-cta:hover {
@@ -7933,7 +7937,7 @@ body.nav-open .header {
 
 .bg-card:hover,
 .auction-card:hover {
-  border-color: var(--accent-orange);
+  border-color: var(--accent-ink);
   box-shadow: 0 10px 26px rgba(26, 39, 68, 0.16);
   transform: translateY(-2px);
 }
@@ -7965,4 +7969,14 @@ body.nav-open .header {
   .auction-card:hover {
     transform: none;
   }
+}
+
+/* The dot in the logo keeps the brand orange, independent of the site accent */
+.bidigo-dot,
+.bidigo-dot-inline {
+  color: var(--logo-fur);
+}
+
+.bidigo-dot-inline {
+  background: var(--logo-fur);
 }
