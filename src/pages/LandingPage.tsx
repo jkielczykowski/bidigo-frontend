@@ -18,6 +18,7 @@ import {
 } from '../lib/recentSearches'
 import type { Auction, Category } from '../lib/database.types'
 import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
+import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
@@ -193,9 +194,7 @@ function HomeAuctionCard({
           {buyNowOnly ? '✓ Kup teraz' : '🔨 Licytacja'}
         </span>
         {promotionsOn && !demo && isPromoted(auction, now) && <span className="promoted-badge bg-card-promoted">Promowane</span>}
-        <span className="bg-heart" aria-hidden>
-          ♡
-        </span>
+        <FavoriteButton auctionId={auction.id} className="fav-btn--card" />
       </Link>
       <div className="bg-card-body">
         <p className="bg-card-cat">{auction.category?.name || 'Aukcja'}</p>

@@ -96,6 +96,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavLink to="/auctions" onClick={closeMenu}>
                 Aukcje
               </NavLink>
+              <NavLink to="/favorites" className="nav-fav" onClick={closeMenu}>
+                <span aria-hidden>♡</span> Ulubione
+              </NavLink>
               <Link to="/sell" className="btn btn-outline btn-sell" onClick={closeMenu}>
                 + Wystaw
               </Link>

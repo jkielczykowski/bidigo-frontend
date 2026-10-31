@@ -4,6 +4,7 @@ import { RedirectAuction, RedirectAuctionEdit, RedirectMessage } from './compone
 import { Layout } from './components/Layout'
 import { ScrollManager } from './components/ScrollManager'
 import { AuthProvider } from './lib/auth'
+import { FavoritesProvider } from './lib/favorites'
 import { FeaturesProvider } from './lib/features'
 import { NotificationsProvider } from './lib/notifications'
 import { UnreadMessagesProvider } from './lib/unreadMessages'
@@ -18,6 +19,7 @@ const AuctionDetailPage = page(() => import('./pages/AuctionDetailPage'), 'Aucti
 const CreateAuctionPage = page(() => import('./pages/CreateAuctionPage'), 'CreateAuctionPage')
 const VerifyPhonePage = page(() => import('./pages/VerifyPhonePage'), 'VerifyPhonePage')
 const EditAuctionPage = page(() => import('./pages/EditAuctionPage'), 'EditAuctionPage')
+const FavoritesPage = page(() => import('./pages/FavoritesPage'), 'FavoritesPage')
 const HomePage = page(() => import('./pages/HomePage'), 'HomePage')
 const MessagesPage = page(() => import('./pages/MessagesPage'), 'MessagesPage')
 const MyActivityPage = page(() => import('./pages/MyActivityPage'), 'MyActivityPage')
@@ -41,6 +43,7 @@ export default function App() {
   return (
     <FeaturesProvider>
       <AuthProvider>
+        <FavoritesProvider>
         <UnreadMessagesProvider>
           <NotificationsProvider>
             <BrowserRouter>
@@ -50,6 +53,8 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/auctions" element={<HomePage />} />
+                  <Route path="/favorites" element={<FavoritesPage />} />
+                  <Route path="/ulubione" element={<Navigate to="/favorites" replace />} />
                   <Route path="/auction/:id" element={<AuctionDetailPage />} />
                   <Route path="/auction/:id/edit" element={<EditAuctionPage />} />
                   <Route path="/sell" element={<CreateAuctionPage />} />
@@ -99,6 +104,7 @@ export default function App() {
             </BrowserRouter>
           </NotificationsProvider>
         </UnreadMessagesProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </FeaturesProvider>
   )

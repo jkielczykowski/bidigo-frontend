@@ -6952,3 +6952,59 @@ body.catmenu-open {
     animation: none;
   }
 }
+
+/* Favourites: heart on cards, empty state */
+.fav-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.fav-btn.is-on {
+  color: var(--danger);
+}
+
+.fav-btn:hover {
+  transform: scale(1.08);
+}
+
+.fav-btn:focus-visible {
+  outline: 3px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
+.fav-btn--card {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+}
+
+.empty-state {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+  margin: 1.5rem 0;
+}
+
+.nav-fav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fav-btn:hover {
+    transform: none;
+  }
+}

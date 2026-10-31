@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { Auction } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining } from '../lib/format'
+import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 
@@ -34,6 +35,7 @@ export function AuctionCard({ auction }: { auction: Auction }) {
           <div className="auction-card-placeholder">Brak zdjęcia</div>
         )}
         <div className="auction-card-media-fade" aria-hidden />
+        <FavoriteButton auctionId={auction.id} className="fav-btn--card" />
         {live ? (
           <span className="live-pill">
             <span className="live-dot" aria-hidden />
