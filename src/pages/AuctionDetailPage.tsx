@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
+import { BidSheet } from '../components/BidSheet'
 import { Modal } from '../components/Modal'
 import { PromoteAuction } from '../components/PromoteAuction'
 import { ReportAuction } from '../components/ReportAuction'
@@ -40,6 +41,7 @@ export function AuctionDetailPage() {
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now())
   const [buyNowOpen, setBuyNowOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [buyNowError, setBuyNowError] = useState<string | null>(null)
   const [activeImage, setActiveImage] = useState(0)
   const [chatBusy, setChatBusy] = useState(false)
@@ -294,6 +296,43 @@ export function AuctionDetailPage() {
     }
   }
 
+  // Phone bidding bar: same checks as the form, then the sheet takes over
+  function openBidSheet() {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    if (!profile?.phone_verified_at) {
+      navigate(`/verify-phone?next=/auction/${id}`)
+      return
+    }
+    setError(null)
+    setSheetOpen(true)
+  }
+
+  async function sendBid(bidAmount: number, max: number | null): Promise<boolean> {
+    if (!id) return false
+    setBusy(true)
+    setError(null)
+    try {
+      const { error: err } = await supabase.rpc('place_bid', {
+        p_auction_id: id,
+        p_amount: bidAmount,
+        p_max_amount: max,
+      })
+      if (err) throw err
+      amountTouched.current = false
+      await load()
+      return true
+    } catch (err) {
+      setError(errorMessage(err, 'Nie udało się złożyć oferty'))
+      if (isFeeBlockError(err)) void reloadFeeBlock()
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function placeBid(e: FormEvent) {
     e.preventDefault()
     if (!user) {
@@ -494,6 +533,12 @@ export function AuctionDetailPage() {
               <PromoteAuction auction={auction} feeBlock={feeBlock} onPaid={() => void load()} />
             </div>
           )}
+          {live && !isSeller && (
+            <a className="next-bid" href="#historia-ofert">
+              <strong>Następna oferta {formatPln(minBid)}</strong>
+              <span>{bidLabel(auction.bid_count)} ⌄</span>
+            </a>
+          )}
           <div className="price-block">
             <span className="label">Aktualna oferta</span>
             <strong className="price huge">{formatPln(auction.current_price)}</strong>
@@ -524,7 +569,7 @@ export function AuctionDetailPage() {
           {live && !isSeller && feeBlock?.blocked && <FeeBlockBanner block={feeBlock} />}
 
           {live && !isSeller && (
-            <div className="bid-form-wrap">
+            <div className="bid-form-wrap bid-form-wrap--desktop">
               {bidCappedByBuyNow ? (
                 <div className="buy-now-only">
                   <p className="hint">
@@ -688,7 +733,7 @@ export function AuctionDetailPage() {
       </section>
 
       <section className="section-block">
-        <h2>Historia ofert</h2>
+        <h2 id="historia-ofert">Historia ofert</h2>
         {bids.length === 0 ? (
           <p className="muted">Brak ofert — bądź pierwszy.</p>
         ) : (
@@ -855,6 +900,38 @@ export function AuctionDetailPage() {
           <LocationMapView lat={Number(auction.lat)} lng={Number(auction.lng)} city={auction.city} />
         </section>
       )}
+
+      {live && !isSeller && (
+        <div className="bid-bar">
+          {bidCappedByBuyNow ? (
+            buyNowPrice != null && (
+              <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBuyNow}>
+                Kup teraz · {formatPln(buyNowPrice)}
+              </button>
+            )
+          ) : (
+            <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBidSheet}>
+              Licytuj
+            </button>
+          )}
+        </div>
+      )}
+
+      <BidSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        minBid={minBid}
+        maxAllowed={maxBidAllowed}
+        step={Number(auction.bid_increment) || 1}
+        buyNowPrice={buyNowPrice}
+        busy={busy}
+        error={sheetOpen ? error : null}
+        onBid={sendBid}
+        onBuyNow={() => {
+          setSheetOpen(false)
+          openBuyNow()
+        }}
+      />
 
       <Modal open={buyNowOpen} title="Kup teraz" onClose={() => !busy && setBuyNowOpen(false)}>
         <div className="buy-now-modal">
