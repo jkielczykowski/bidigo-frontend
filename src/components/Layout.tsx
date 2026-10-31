@@ -8,6 +8,26 @@ import { BidigoLogo } from './BidigoLogo'
 import { CategoryMenu } from './CategoryMenu'
 import { SearchBar } from './SearchBar'
 
+const ICONS: Record<string, string> = {
+  list: 'M5 6h14M5 12h14M5 18h14',
+  gavel: 'M13 4l7 7M8 9l7 7M11 6L6 11l7 7 5-5M4 20l5-5',
+  store: 'M4 9l1-5h14l1 5M4 9v10h16V9M4 9c0 1.7 1.3 2.5 2.7 2.5S9.3 10.7 9.3 9c0 1.7 1.3 2.5 2.7 2.5s2.7-.8 2.7-2.5c0 1.7 1.3 2.5 2.7 2.5S20 10.7 20 9',
+  coins: 'M12 5c4 0 7 1.1 7 2.5S16 10 12 10 5 8.9 5 7.5 8 5 12 5zM5 7.5v4C5 12.9 8 14 12 14s7-1.1 7-2.5v-4M5 11.5v4C5 16.9 8 18 12 18s7-1.1 7-2.5v-4',
+  gear: 'M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8',
+  user: 'M12 5a3.6 3.6 0 1 0 0 7.2A3.6 3.6 0 0 0 12 5zM5 20c.8-3.8 3.6-5.6 7-5.6s6.2 1.8 7 5.6',
+  bell: 'M12 4a5 5 0 0 0-5 5v4l-2 3h14l-2-3V9a5 5 0 0 0-5-5zM10 19a2 2 0 0 0 4 0',
+  chat: 'M4 5h16v11H9l-5 4z',
+  pulse: 'M3 12h4l3-7 4 14 3-7h4',
+}
+
+function NavIcon({ name }: { name: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" className="nav-account-icon">
+      <path d={ICONS[name]} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
@@ -25,6 +45,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.body.classList.toggle('nav-open', menuOpen)
     return () => document.body.classList.remove('nav-open')
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [menuOpen])
 
   useEffect(() => {
@@ -107,7 +136,42 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
 
+          <div className={`nav-backdrop ${menuOpen ? 'is-open' : ''}`} onClick={closeMenu} aria-hidden />
+
           <div className={`nav-drawer ${menuOpen ? 'is-open' : ''}`}>
+            <div className="nav-drawer-head">
+              <strong>Menu</strong>
+              <button type="button" className="nav-drawer-close" aria-label="Zamknij menu" onClick={closeMenu}>
+                ×
+              </button>
+            </div>
+
+            <ul className="nav-account">
+              {[
+                { to: '/auctions', icon: 'list', label: 'Aukcje', badge: null },
+                ...(user ? [{ to: '/my', icon: 'user', label: 'Panel Moje', badge: null }] : []),
+                { to: '/my/bidding', icon: 'gavel', label: 'Licytuję', badge: null },
+                { to: '/my/selling', icon: 'store', label: 'Moje aukcje', badge: null },
+                ...(user
+                  ? [
+                      { to: '/my/activity', icon: 'pulse', label: 'Aktywność', badge: null },
+                      { to: '/notifications', icon: 'bell', label: 'Powiadomienia', badge: notifUnread },
+                      { to: '/messages', icon: 'chat', label: 'Wiadomości', badge: unread },
+                    ]
+                  : []),
+                { to: '/my/fees', icon: 'coins', label: 'Opłaty', badge: null },
+                { to: '/settings', icon: 'gear', label: 'Ustawienia konta', badge: null },
+              ].map((l, i) => (
+                <li key={l.to} style={{ ['--i' as string]: i }}>
+                  <Link to={l.to} onClick={closeMenu}>
+                    <NavIcon name={l.icon} />
+                    <span>{l.label}</span>
+                    {l.badge ? <span className="nav-unread">{l.badge > 99 ? '99+' : l.badge}</span> : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
             <div className="nav-links">
               <NavLink to="/auctions" onClick={closeMenu}>
                 Aukcje
@@ -191,13 +255,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <>
-                  <Link to="/login" className="nav-text-link" onClick={closeMenu}>
+                  <Link to="/login" className="nav-text-link nav-login" onClick={closeMenu}>
                     Zaloguj
                   </Link>
-                  <Link to="/register" className="btn btn-primary" onClick={closeMenu}>
+                  <Link to="/register" className="btn btn-primary nav-register" onClick={closeMenu}>
                     Dołącz
                   </Link>
                 </>
+              )}
+              {user && (
+                <button
+                  type="button"
+                  className="nav-logout-mobile"
+                  onClick={() => {
+                    closeMenu()
+                    void signOut().then(() => navigate('/'))
+                  }}
+                >
+                  Wyloguj
+                </button>
               )}
             </div>
           </div>

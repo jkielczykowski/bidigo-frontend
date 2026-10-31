@@ -7095,3 +7095,228 @@ body.catmenu-open {
     margin-left: 1.5rem;
   }
 }
+
+/* Account menu: a side panel from the right with a dark backdrop (like ricardo.ch) instead of a dropdown bar */
+.nav-drawer-head,
+.nav-account,
+.nav-logout-mobile,
+.nav-backdrop {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1099;
+    background: rgba(10, 20, 40, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .nav-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .header--bidigo .nav-drawer {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: min(88vw, 360px);
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+    background: #fff;
+    border: 0;
+    box-shadow: -10px 0 34px rgba(0, 0, 0, 0.25);
+    z-index: 1100;
+    transform: translateX(100%);
+  }
+
+  .header--bidigo .nav-drawer.is-open {
+    transform: none;
+  }
+
+  .nav-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem 0.5rem 1.25rem;
+    min-height: 3.5rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.05rem;
+  }
+
+  .nav-drawer-close {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .nav-account {
+    display: block;
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0;
+    overflow-y: auto;
+  }
+
+  .nav-account a {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 3.25rem;
+    padding: 0 1.25rem;
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1.02rem;
+  }
+
+  .nav-account a:hover,
+  .nav-account a:focus-visible {
+    background: var(--surface-warm);
+  }
+
+  .nav-account-icon {
+    flex: none;
+    color: var(--text);
+  }
+
+  .nav-account .nav-unread {
+    margin-left: auto;
+  }
+
+  /* only the "+ Wystaw" button remains from the old link list */
+  .header--bidigo .nav-links {
+    margin: 0.75rem 1.25rem 0;
+  }
+
+  .header--bidigo .nav-links a:not(.btn) {
+    display: none;
+  }
+
+  .header--bidigo .nav-links .btn-sell {
+    width: 100%;
+    min-height: 52px;
+    justify-content: center;
+    border: 0;
+    border-radius: 12px;
+    background: var(--accent-orange);
+    color: #2a1200;
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .header--bidigo .nav-actions {
+    margin: auto 1.25rem 0;
+    padding-top: 1rem;
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .header--bidigo .nav-actions .nav-profile {
+    display: none;
+  }
+
+  .header--bidigo .nav-actions .nav-login,
+  .nav-logout-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    border: 2px solid var(--accent-orange);
+    border-radius: 12px;
+    background: #fff;
+    color: #c2410c;
+    font: inherit;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .header--bidigo .nav-actions .nav-register {
+    min-height: 52px;
+    border-radius: 12px;
+    background: var(--accent-orange);
+    color: #2a1200;
+    font-weight: 800;
+  }
+
+  .nav-drawer-close:focus-visible,
+  .nav-logout-mobile:focus-visible,
+  .nav-account a:focus-visible {
+    outline: 3px solid var(--accent-orange);
+    outline-offset: -3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header--bidigo .nav-drawer {
+    transition: none;
+  }
+}
+
+/* backdrop-filter makes the header the containing block of fixed children: drop it while the menu is open */
+body.nav-open .header {
+  backdrop-filter: none;
+}
+
+/* Side panel motion: slides in with a soft ease-out, the backdrop fades, the entries rise one after another.
+   While closed the panel is also visibility:hidden so Tab can't land in it. */
+@media (max-width: 860px) {
+  .header--bidigo .nav-drawer {
+    opacity: 1;
+    visibility: hidden;
+    transition:
+      transform 0.32s cubic-bezier(0.22, 0.8, 0.3, 1),
+      visibility 0s linear 0.32s;
+  }
+
+  .header--bidigo .nav-drawer.is-open {
+    visibility: visible;
+    transition:
+      transform 0.32s cubic-bezier(0.22, 0.8, 0.3, 1),
+      visibility 0s;
+  }
+
+  .header--bidigo .nav-drawer.is-open .nav-account li,
+  .header--bidigo .nav-drawer.is-open .nav-links .btn-sell,
+  .header--bidigo .nav-drawer.is-open .nav-actions > * {
+    animation: nav-item-in 0.35s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+    animation-delay: calc(var(--i, 6) * 40ms + 120ms);
+  }
+}
+
+@keyframes nav-item-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-backdrop,
+  .header--bidigo .nav-drawer,
+  .header--bidigo .nav-drawer.is-open {
+    transition: none;
+  }
+
+  .header--bidigo .nav-drawer.is-open .nav-account li,
+  .header--bidigo .nav-drawer.is-open .nav-links .btn-sell,
+  .header--bidigo .nav-drawer.is-open .nav-actions > * {
+    animation: none;
+  }
+}
