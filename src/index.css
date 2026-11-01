@@ -10,12 +10,12 @@
   --accent: #1a2744;
   --accent-hover: #0f1a30;
   --accent-soft: #eef2f8;
-  --accent-secondary: #14b8a6;
-  /* Accent colour (the name is historical): teal. --on-accent is the text on it, --accent-ink the darker
+  --accent-secondary: #2563eb;
+  /* Accent colour (the name is historical): blue. --on-accent is the text on it, --accent-ink the darker
      variant for text, links and focus rings on white. The logo keeps its own --logo-fur. */
-  --accent-orange: #14b8a6;
-  --on-accent: #052e2a;
-  --accent-ink: #0b7a6c;
+  --accent-orange: #2563eb;
+  --on-accent: #ffffff;
+  --accent-ink: #1d4ed8;
   --logo-fur: #ff8551;
   --logo-nose: #e07a62;
   --success: #159947;
