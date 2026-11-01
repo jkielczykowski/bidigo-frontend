@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuctionCard } from '../components/AuctionCard'
 import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
@@ -33,6 +33,7 @@ export function AuctionDetailPage() {
   const { id } = useParams()
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [auction, setAuction] = useState<Auction | null>(null)
   const [bids, setBids] = useState<Bid[]>([])
   const [amount, setAmount] = useState('')
@@ -529,6 +530,17 @@ export function AuctionDetailPage() {
 
   return (
     <div className="container page detail">
+      <button
+        type="button"
+        className="detail-back"
+        onClick={() => {
+          // Back to wherever the visitor came from; a page opened directly has no history, so go to the list
+          if (location.key !== 'default') navigate(-1)
+          else navigate('/auctions?all=1')
+        }}
+      >
+        <span aria-hidden>←</span> Wróć
+      </button>
       <nav className="crumbs" aria-label="Ścieżka">
         <Link to="/">Bidigo</Link>
         <span aria-hidden>/</span>

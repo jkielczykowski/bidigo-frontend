@@ -8734,3 +8734,29 @@ body.nav-open .header {
   font-size: 0.92rem;
   color: var(--text-muted);
 }
+
+/* Back button on the auction page (phones have no other way back besides the browser gesture) */
+.detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  margin: 0.15rem 0 0;
+  padding: 0 0.9rem 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-warm);
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.detail-back:hover {
+  background: #e6ebf4;
+}
+
+.detail-back:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
