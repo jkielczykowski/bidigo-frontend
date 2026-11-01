@@ -53,6 +53,8 @@ export function AuctionDetailPage() {
   const [similarIsFallback, setSimilarIsFallback] = useState(false)
   const [sellerOther, setSellerOther] = useState<Auction[]>([])
   const [descOpen, setDescOpen] = useState(false)
+  // Own private limit on this auction (null when none); read through my_bid_limit, bids.max_amount is not readable
+  const [myLimit, setMyLimit] = useState<number | null>(null)
   const [chatBusy, setChatBusy] = useState(false)
   const [endOpen, setEndOpen] = useState(false)
   const [endError, setEndError] = useState<string | null>(null)
@@ -158,6 +160,8 @@ export function AuctionDetailPage() {
   const { block: feeBlock, reload: reloadFeeBlock } = useFeeBlock()
   const isAdmin = !!profile?.is_admin
   const isWinner = !!user && auction?.winner_id === user.id
+  // Leader = top bid (amount desc, earliest first), the same order the database uses
+  const isLeading = !!user && bids[0]?.bidder_id === user.id
   const canChat = auction?.status === 'sold' && (isSeller || isWinner)
   const canRateSeller = auction?.status === 'sold' && isWinner && !isSeller
   const pendingReview = auction?.moderation_status === 'pending_review'
@@ -267,6 +271,23 @@ export function AuctionDetailPage() {
   const buyNowPrice = auction?.buy_now_price != null ? Number(auction.buy_now_price) : null
   const bidCappedByBuyNow = buyNowPrice != null && minBid >= buyNowPrice
   const maxBidAllowed = buyNowPrice != null ? Math.max(buyNowPrice - 0.01, 0) : null
+
+  const myUserId = user?.id
+  const bidsSignature = `${bids.length}:${bids[0]?.id ?? ''}`
+  useEffect(() => {
+    if (!myUserId || !auction?.id) {
+      setMyLimit(null)
+      return
+    }
+    let cancelled = false
+    void supabase.rpc('my_bid_limit', { p_auction_id: auction.id }).then(({ data }) => {
+      if (!cancelled) setMyLimit(data == null ? null : Number(data))
+    })
+    return () => {
+      cancelled = true
+    }
+    // refresh whenever the bid list changes (our own bid, auto-bids, someone outbidding)
+  }, [myUserId, auction?.id, bidsSignature])
 
   // Similar auctions (same category, then its siblings) and the seller's other auctions
   const auctionId = auction?.id
@@ -663,6 +684,26 @@ export function AuctionDetailPage() {
             </div>
           )}
           <FavoriteButton auctionId={auction.id} withLabel className="detail-fav" />
+          {live && !isSeller && user && myLimit != null && (
+            <div className={`bid-status${isLeading ? ' is-leading' : ' is-outbid'}`} role="status">
+              {isLeading ? (
+                <>
+                  <strong>✓ Prowadzisz z ofertą {formatPln(Number(auction.current_price))}</strong>
+                  <p>
+                    Twój limit: <b>{formatPln(myLimit)}</b>. Cena nie rośnie do limitu sama: podbijemy ją za Ciebie tylko
+                    wtedy, gdy ktoś Cię przebije, i tylko o tyle, ile trzeba.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <strong>Ktoś Cię przebił</strong>
+                  <p>
+                    Twój limit ({formatPln(myLimit)}) został wyczerpany. Złóż wyższą ofertę, żeby wrócić na prowadzenie.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
           {live && !isSeller && (
             <a className="next-bid" href="#historia-ofert">
               <strong>Następna oferta {formatPln(minBid)}</strong>

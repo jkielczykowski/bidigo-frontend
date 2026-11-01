@@ -8710,3 +8710,27 @@ body.nav-open .header {
     animation: none;
   }
 }
+
+/* "Prowadzisz" / "Ktoś Cię przebił" under the title: makes the private limit visible to its owner */
+.bid-status {
+  margin: 0 0 0.9rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: #eaf8ef;
+  box-shadow: inset 0 0 0 1.5px #86d3a1;
+}
+
+.bid-status.is-outbid {
+  background: #fff4e5;
+  box-shadow: inset 0 0 0 1.5px #f5b85c;
+}
+
+.bid-status strong {
+  display: block;
+}
+
+.bid-status p {
+  margin: 0.3rem 0 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
