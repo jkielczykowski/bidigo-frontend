@@ -8110,3 +8110,76 @@ body.nav-open .header {
     transition: none;
   }
 }
+
+/* "Jak to działa" on phones: the animated scene comes first and stays in view while the steps change;
+   only the active step shows its description (the others collapse to a title). */
+.hiw-step p {
+  overflow: hidden;
+}
+
+@media (max-width: 899px) {
+  .hiw-grid {
+    gap: 1rem;
+  }
+
+  .hiw-stage {
+    order: -1;
+    min-height: 0;
+    padding: 1rem;
+    border-radius: 22px;
+  }
+
+  .hiw-phone {
+    min-height: 232px;
+  }
+
+  .hiw-steps {
+    gap: 0.5rem;
+  }
+
+  .hiw-step {
+    padding: 0.7rem 1rem;
+    align-items: center;
+    transition:
+      opacity 0.25s,
+      background 0.25s,
+      box-shadow 0.25s;
+  }
+
+  .hiw-step[aria-current='step'] {
+    transform: none;
+    padding: 0.9rem 1rem;
+  }
+
+  .hiw-n {
+    grid-row: auto;
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+  }
+
+  .hiw-step h3 {
+    align-self: center;
+  }
+
+  .hiw-step p {
+    grid-column: 2;
+    max-height: 0;
+    opacity: 0;
+    transition:
+      max-height 0.3s ease,
+      opacity 0.25s ease;
+  }
+
+  .hiw-step[aria-current='step'] p {
+    max-height: 6rem;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-step,
+  .hiw-step p {
+    transition: none;
+  }
+}
