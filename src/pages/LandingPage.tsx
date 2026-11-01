@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { HowItWorks } from '../components/HowItWorks'
+import { BidDemo } from '../components/BidDemo'
+import { BrowseLinks } from '../components/BrowseLinks'
 import { SearchBar } from '../components/SearchBar'
 import { clearRecentViews, getRecentViews, subscribeRecentViews } from '../lib/recentViews'
 import {
@@ -16,9 +17,8 @@ import {
   subscribeRecentSearches,
 } from '../lib/recentSearches'
 import { useCategories } from '../lib/categories'
-import { categoryDiscSources } from '../lib/categoryPhotos'
-import type { Auction, Category } from '../lib/database.types'
-import { calcSuccessFee, formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
+import type { Auction } from '../lib/database.types'
+import { formatCountdown, formatEndsAt, formatPln, ofertLabel } from '../lib/format'
 import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
@@ -298,145 +298,8 @@ function Rail({
   )
 }
 
-const FAQ = [
-  [
-    'Czy wystawianie aukcji jest płatne?',
-    'Wystawianie jest bezpłatne. Prowizję naliczamy dopiero po udanej sprzedaży, a jej stawkę widać przy wystawianiu aukcji.',
-  ],
-  [
-    'Czym różni się licytacja od „Kup teraz”?',
-    'W licytacji wygrywa najwyższa oferta po zakończeniu odliczania. „Kup teraz” pozwala kupić od razu po stałej cenie.',
-  ],
-  ['Jak wystawić przedmiot?', 'Kliknij „Wystaw przedmiot”, dodaj zdjęcia i opis, ustal cenę i opublikuj aukcję.'],
-  ['Jak wygląda odbiór lub dostawa?', 'Ustalasz je bezpośrednio ze sprzedającym w wiadomościach.'],
-  [
-    'Skąd mam wiedzieć, jaką cenę ustawić?',
-    'Ustaw niską cenę startową. Licytacja pokaże, ile ktoś naprawdę jest gotów zapłacić.',
-  ],
-  ['Jak usunąć konto?', 'Skorzystaj ze strony „Usuń konto” albo napisz do nas przez Centrum pomocy.'],
-] as const
-
 const SEARCH_HINTS = ['Czego szukasz?', 'Np. rower miejski', 'Np. aparat analogowy', 'Np. klocki LEGO', 'Np. konsola do gier']
 const DEFAULT_SUGGESTIONS = ['LEGO', 'Rower', 'Konsola']
-
-/** "Ile dostaniesz?": the real commission rules of the chosen category applied to a price the visitor types. */
-function FeeCalculator({ categories }: { categories: Category[] }) {
-  const tops = useMemo(() => categories.filter((c) => !c.parent_id), [categories])
-  const [price, setPrice] = useState('200')
-  const [catId, setCatId] = useState('')
-  const cat = tops.find((c) => c.id === catId) ?? tops[0]
-  // Same rule as the listing form: own rate, minimum and maximum of the category
-  const percent = Number(cat?.fee_percent ?? 5)
-  const min = cat?.fee_min == null ? 2 : Number(cat.fee_min)
-  const max = cat ? (cat.fee_max == null ? (cat.fee_min == null ? 150 : null) : Number(cat.fee_max)) : 150
-  const p = Number(price)
-  const valid = Number.isFinite(p) && p > 0
-  const fee = valid ? calcSuccessFee(p, percent, min, max) : 0
-  const net = valid ? Math.max(0, p - fee) : 0
-  const share = valid ? Math.min(100, (fee / p) * 100) : 0
-
-  return (
-    <div className="feecalc">
-      <h3>Ile dostaniesz za swoją rzecz?</h3>
-      <div className="feecalc-fields">
-        <label>
-          <span>Cena sprzedaży</span>
-          <span className="feecalc-input">
-            <input
-              type="number"
-              inputMode="decimal"
-              min="1"
-              step="1"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              aria-describedby="feecalc-result"
-            />
-            <b aria-hidden>zł</b>
-          </span>
-        </label>
-        <label>
-          <span>Kategoria</span>
-          <select value={cat?.id ?? ''} onChange={(e) => setCatId(e.target.value)}>
-            {tops.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div id="feecalc-result" className="feecalc-result" aria-live="polite">
-        <span>Dostajesz</span>
-        <strong>{valid ? formatPln(net) : '—'}</strong>
-      </div>
-      <div className="feecalc-bar" aria-hidden>
-        <i style={{ width: `${100 - share}%` }} />
-      </div>
-      <p className="feecalc-line">
-        {valid ? (
-          <>
-            Prowizja Bidigo: <b>{formatPln(fee)}</b> ({percent.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%, min. {formatPln(min)}
-            {max === null ? '' : `, max ${formatPln(max)}`})
-          </>
-        ) : (
-          'Wpisz cenę, żeby zobaczyć prowizję.'
-        )}
-      </p>
-      <p className="feecalc-note">Wystawianie jest bezpłatne. Prowizję naliczamy dopiero po udanej sprzedaży.</p>
-    </div>
-  )
-}
-
-/** Dark band that sells selling: photos of what people have at home, three tiny reasons, one button. */
-function SellTeaser({ categories }: { categories: Category[] }) {
-  const ref = useRef<HTMLElement>(null)
-  const [seen, setSeen] = useState(false)
-  const tops = useMemo(() => categories.filter((c) => !c.parent_id).slice(0, 10), [categories])
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setSeen(true)
-      return
-    }
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { threshold: 0.2 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
-  return (
-    <section ref={ref} className={`sellband${seen ? ' is-seen' : ''}`} aria-labelledby="sell-band-h">
-      <div className="container">
-        <h2 id="sell-band-h">Co masz w domu? Sprzedaj to.</h2>
-        <ul className="sellband-tiles">
-          {tops.map((c, i) => {
-            const src = categoryDiscSources(c.id, c.name)
-            return (
-              <li key={c.id} style={{ ['--i' as string]: i }}>
-                <Link to="/sell">
-                  <picture>
-                    <source srcSet={src.webp} type="image/webp" />
-                    <img src={src.jpg} alt="" width={96} height={96} loading="lazy" />
-                  </picture>
-                  <span>{c.name}</span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-        <FeeCalculator categories={categories} />
-        <ul className="sellband-chips">
-          <li>⏱️ 2 minuty</li>
-          <li>🔨 Cenę ustali licytacja</li>
-          <li>🧾 Jasna prowizja</li>
-        </ul>
-        <Link to="/sell" className="sellband-cta">
-          Wystaw pierwszą aukcję
-        </Link>
-      </div>
-    </section>
-  )
-}
 
 const DEMO_MODE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1'
 
@@ -817,19 +680,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      <SellTeaser categories={categories} />
-
-      <section className="bg-section" id="jak-dziala">
-        <div className="container">
-          <header className="bg-section-head row">
-            <div>
-              <h2>Jak to działa</h2>
-            </div>
-          </header>
-          <HowItWorks />
-        </div>
-      </section>
-
       {liveToast && !(DEMO_MODE && bump) && (
         <div key={liveToast.key} className="bg-toast" role="status">
           <span className="bg-toast-ic">✨</span>
@@ -850,39 +700,9 @@ export function LandingPage() {
         </div>
       )}
 
-      <section className="bg-cta">
-        <div className="container bg-cta-inner">
-          <div>
-            <h2>Sprzedaj w 2 minuty</h2>
-            <p>Nie wiesz, ile to warte? Ustaw niską cenę startową, a licytacja pokaże wartość. Możesz też wybrać „Kup teraz”. Prowizja 3–5% (min. 2 zł).</p>
-          </div>
-          <Link to="/sell" className="btn bg-cta-btn">
-            Wystaw przedmiot +
-          </Link>
-        </div>
-      </section>
+      <BidDemo />
 
-      <section className="bg-section" id="faq" aria-labelledby="faq-h">
-        <div className="container bg-faq">
-          <header className="bg-section-head">
-            <h2 id="faq-h">Najczęstsze pytania</h2>
-          </header>
-          {FAQ.map(([q, a]) => (
-            <details key={q} className="bg-faq-item">
-              <summary>{q}</summary>
-              <p>
-                {a}
-                {q === 'Jak usunąć konto?' && (
-                  <>
-                    {' '}
-                    <Link to="/usun-konto">Przejdź do usuwania konta →</Link>
-                  </>
-                )}
-              </p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <BrowseLinks categories={categories} />
     </div>
   )
 }

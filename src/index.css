@@ -8183,3 +8183,248 @@ body.nav-open .header {
     transition: none;
   }
 }
+
+/* "Tak działa licytacja": the one explainer on the landing */
+.biddemo {
+  padding: 3rem 0;
+  background: var(--surface-warm);
+  text-align: center;
+}
+
+.biddemo h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+}
+
+.biddemo-card {
+  max-width: 420px;
+  margin: 1.5rem auto 0;
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.85rem;
+  text-align: left;
+  background: #fff;
+  border: 1.5px solid #d5dbe6;
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(26, 39, 68, 0.1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.biddemo-card.is-won {
+  border-color: var(--accent-orange);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent-orange) 30%, transparent);
+}
+
+.biddemo-top {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.biddemo-thumb {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #cfdcff, #1a2744);
+}
+
+.biddemo-top strong {
+  display: block;
+}
+
+.biddemo-top span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.biddemo-price {
+  font-size: 2.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  animation: biddemo-pop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+@keyframes biddemo-pop {
+  from {
+    transform: scale(0.88);
+    opacity: 0.4;
+  }
+}
+
+.biddemo-bids {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  min-height: 10.5rem;
+  align-content: start;
+}
+
+.biddemo-bids li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 10px;
+  background: var(--surface-warm);
+  animation: biddemo-in 0.35s ease both;
+}
+
+.biddemo-bids li.is-you {
+  background: color-mix(in srgb, var(--accent-orange) 14%, #fff);
+  box-shadow: inset 0 0 0 1.5px var(--accent-orange);
+}
+
+.biddemo-bids em {
+  font-size: 0.78rem;
+  font-style: normal;
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.biddemo-bids b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes biddemo-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.biddemo-limit {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  opacity: 0.45;
+  transition: opacity 0.4s ease, border-color 0.4s ease, color 0.4s ease;
+}
+
+.biddemo-limit.is-on {
+  opacity: 1;
+  border-color: var(--accent-orange);
+  color: var(--accent-ink);
+}
+
+.biddemo-win {
+  padding: 0.7rem;
+  border-radius: 12px;
+  background: var(--accent-orange);
+  color: var(--on-accent);
+  text-align: center;
+  font-weight: 800;
+  animation: biddemo-pop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+.biddemo-caption {
+  margin: 1.1rem 0 0;
+  min-height: 1.6em;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.biddemo-sr {
+  position: absolute;
+  left: -9999px;
+}
+
+.biddemo-pause {
+  margin-top: 0.6rem;
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.biddemo-pause:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .biddemo-price,
+  .biddemo-bids li,
+  .biddemo-win {
+    animation: none;
+  }
+
+  .biddemo-card,
+  .biddemo-limit {
+    transition: none;
+  }
+}
+
+/* Quiet link lists under the auctions */
+.browse {
+  padding: 2rem 0 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.browse h2 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 1.1rem;
+}
+
+.browse h2:first-child {
+  margin-top: 0;
+}
+
+.browse-list {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.9;
+  font-size: 0.95rem;
+}
+
+.browse-list a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.browse-list a:hover,
+.browse-list a:focus-visible {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+
+.browse-more,
+.browse-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  margin-top: 0.3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent-ink);
+  cursor: pointer;
+}
+
+.browse-top {
+  display: flex;
+  margin: 1.25rem 0 0 auto;
+}
+
+.browse a:focus-visible,
+.browse button:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
