@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AuctionCard } from '../components/AuctionCard'
 import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { BidSheet } from '../components/BidSheet'
@@ -7,13 +8,15 @@ import { Modal } from '../components/Modal'
 import { PromoteAuction } from '../components/PromoteAuction'
 import { ReportAuction } from '../components/ReportAuction'
 import { useAuth } from '../lib/auth'
+import { useCategories } from '../lib/categories'
+import { FavoriteButton } from '../lib/favorites'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
-import { PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
+import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
 import { addRecentView } from '../lib/recentViews'
 
@@ -44,6 +47,12 @@ export function AuctionDetailPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [buyNowError, setBuyNowError] = useState<string | null>(null)
   const [activeImage, setActiveImage] = useState(0)
+  const carRef = useRef<HTMLDivElement>(null)
+  const categories = useCategories()
+  const [similar, setSimilar] = useState<Auction[]>([])
+  const [similarIsFallback, setSimilarIsFallback] = useState(false)
+  const [sellerOther, setSellerOther] = useState<Auction[]>([])
+  const [descOpen, setDescOpen] = useState(false)
   const [chatBusy, setChatBusy] = useState(false)
   const [endOpen, setEndOpen] = useState(false)
   const [endError, setEndError] = useState<string | null>(null)
@@ -259,6 +268,71 @@ export function AuctionDetailPage() {
   const bidCappedByBuyNow = buyNowPrice != null && minBid >= buyNowPrice
   const maxBidAllowed = buyNowPrice != null ? Math.max(buyNowPrice - 0.01, 0) : null
 
+  // Similar auctions (same category, then its siblings) and the seller's other auctions
+  const auctionId = auction?.id
+  const auctionCategory = auction?.category_id
+  const auctionSeller = auction?.seller_id
+  useEffect(() => {
+    if (!auctionId || !auctionCategory) return
+    let cancelled = false
+    const base = () =>
+      supabase
+        .from('auctions')
+        .select(AUCTION_CARD_COLUMNS)
+        .eq('status', 'active')
+        .eq('moderation_status', 'approved')
+        .neq('id', auctionId)
+        .order('ends_at', { ascending: true })
+        .limit(10)
+    void (async () => {
+      const { data } = await base().eq('category_id', auctionCategory)
+      let list = (data as unknown as Auction[]) ?? []
+      if (list.length < 4) {
+        const parent = categories.find((c) => c.id === auctionCategory)?.parent_id
+        const siblings = parent ? categories.filter((c) => c.parent_id === parent).map((c) => c.id) : []
+        if (siblings.length > 1) {
+          const { data: more } = await base().in('category_id', siblings)
+          const seen = new Set(list.map((a) => a.id))
+          list = [...list, ...(((more as unknown as Auction[]) ?? []).filter((a) => !seen.has(a.id)))].slice(0, 10)
+        }
+      }
+      // A thin catalogue: nothing alike yet, so show what else is live rather than an empty page
+      let fallback = false
+      if (list.length === 0) {
+        const { data: any } = await base()
+        list = (any as unknown as Auction[]) ?? []
+        fallback = list.length > 0
+      }
+      if (!cancelled) {
+        setSimilar(list)
+        setSimilarIsFallback(fallback)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [auctionId, auctionCategory, categories])
+
+  useEffect(() => {
+    if (!auctionId || !auctionSeller) return
+    let cancelled = false
+    void supabase
+      .from('auctions')
+      .select(AUCTION_CARD_COLUMNS)
+      .eq('seller_id', auctionSeller)
+      .eq('status', 'active')
+      .eq('moderation_status', 'approved')
+      .neq('id', auctionId)
+      .order('ends_at', { ascending: true })
+      .limit(10)
+      .then(({ data }) => {
+        if (!cancelled) setSellerOther((data as unknown as Auction[]) ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [auctionId, auctionSeller])
+
   async function confirmEndAuction() {
     if (!id) return
     setBusy(true)
@@ -409,29 +483,80 @@ export function AuctionDetailPage() {
     )
   }
 
+  // Category path for the breadcrumb (category -> parent -> ...)
+  const trail: { id: string; name: string }[] = []
+  for (let id: string | null | undefined = auction.category_id, n = 0; id && n < 4; n++) {
+    const c = categories.find((x) => x.id === id)
+    if (!c) break
+    trail.unshift({ id: c.id, name: c.name })
+    id = c.parent_id
+  }
+
+  function goToImage(i: number, count: number) {
+    const el = carRef.current
+    if (!el || count === 0) return
+    const next = (i + count) % count
+    el.scrollTo({
+      left: next * el.clientWidth,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    })
+    setActiveImage(next)
+  }
+
   const images = auction.image_urls?.filter(Boolean) ?? []
   const img = images[Math.min(activeImage, Math.max(images.length - 1, 0))]
 
   return (
     <div className="container page detail">
-      <Link to="/auctions" className="back">
-        ← Wróć do aukcji
-      </Link>
+      <nav className="crumbs" aria-label="Ścieżka">
+        <Link to="/">Bidigo</Link>
+        <span aria-hidden>/</span>
+        <Link to="/auctions?all=1">Aukcje</Link>
+        {trail.map((c) => (
+          <span key={c.id} className="crumbs-item">
+            <span aria-hidden>/</span>
+            <Link to={`/auctions?cat=${encodeURIComponent(c.id)}`}>{c.name}</Link>
+          </span>
+        ))}
+      </nav>
       <div className="detail-grid">
         <div className="detail-gallery">
-          <div className="detail-media">
-            {img ? (
-              <img src={img} alt={`${auction.title} — zdjęcie ${activeImage + 1}`} />
-            ) : (
-              <div className="auction-card-placeholder">Brak zdjęcia</div>
-            )}
+          <div className="detail-carousel-wrap">
+            <div
+              className="detail-carousel"
+              ref={carRef}
+              tabIndex={0}
+              role="region"
+              aria-label="Zdjęcia aukcji – użyj strzałek, aby przewijać"
+              onScroll={(e) => {
+                const el = e.currentTarget
+                const i = Math.round(el.scrollLeft / Math.max(el.clientWidth, 1))
+                if (i !== activeImage) setActiveImage(i)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') goToImage(activeImage + 1, images.length)
+                if (e.key === 'ArrowLeft') goToImage(activeImage - 1, images.length)
+              }}
+            >
+              {images.length > 0 ? (
+                images.map((url, i) => (
+                  <div className="detail-slide" key={`${url}-${i}`}>
+                    <img src={url} alt={`${auction.title} — zdjęcie ${i + 1}`} loading={i === 0 ? 'eager' : 'lazy'} />
+                  </div>
+                ))
+              ) : (
+                <div className="detail-slide">
+                  <div className="auction-card-placeholder">Brak zdjęcia</div>
+                </div>
+              )}
+            </div>
             {images.length > 1 && (
               <>
                 <button
                   type="button"
                   className="detail-nav detail-nav-prev"
                   aria-label="Poprzednie zdjęcie"
-                  onClick={() => setActiveImage((i) => (i - 1 + images.length) % images.length)}
+                  onClick={() => goToImage(activeImage - 1, images.length)}
                 >
                   ‹
                 </button>
@@ -439,47 +564,51 @@ export function AuctionDetailPage() {
                   type="button"
                   className="detail-nav detail-nav-next"
                   aria-label="Następne zdjęcie"
-                  onClick={() => setActiveImage((i) => (i + 1) % images.length)}
+                  onClick={() => goToImage(activeImage + 1, images.length)}
                 >
                   ›
                 </button>
                 <span className="detail-photo-count">
-                  {activeImage + 1} / {images.length}
+                  {Math.min(activeImage + 1, images.length)} / {images.length}
                 </span>
               </>
             )}
           </div>
           {images.length > 1 && (
-            <div className="detail-thumbs" role="listbox" aria-label="Zdjęcia aukcji">
+            <div className="detail-thumbs" aria-label="Miniatury zdjęć">
               {images.map((url, i) => (
                 <button
                   key={`${url}-${i}`}
                   type="button"
-                  role="option"
-                  aria-selected={i === activeImage}
+                  aria-label={`Pokaż zdjęcie ${i + 1}`}
+                  aria-current={i === activeImage}
                   className={i === activeImage ? 'detail-thumb active' : 'detail-thumb'}
-                  onClick={() => setActiveImage(i)}
+                  onClick={() => goToImage(i, images.length)}
                 >
-                  <img src={url} alt={`Zdjęcie ${i + 1}`} />
+                  <img src={url} alt="" />
                 </button>
               ))}
             </div>
           )}
         </div>
         <div className="detail-panel">
-          <div className="detail-top">
+          {promotionsOn && live && isPromoted(auction, now) && <span className="promoted-badge">Promowane</span>}
+          <h1>{auction.title}</h1>
+          <p className="detail-when">
             {live ? (
-              <span className="live-pill">● Na żywo</span>
+              <>
+                <span className="live-dot" aria-hidden />
+                <span>
+                  Koniec za <strong>{formatRemaining(auction.ends_at, now)}</strong>
+                  <span className="detail-when-date"> · {formatEndsAt(auction.ends_at, now)}</span>
+                </span>
+              </>
             ) : (
               <span className="ended-pill">
                 {auction.status === 'sold' ? 'Sprzedane' : auction.status === 'ended' ? 'Zakończona' : auction.status}
               </span>
             )}
-            {promotionsOn && live && isPromoted(auction, now) && <span className="promoted-badge">Promowane</span>}
-            <span className="timer big">{formatRemaining(auction.ends_at, now)}</span>
-            {live && <span className="timer-ends muted">Koniec: {formatEndsAt(auction.ends_at, now)}</span>}
-          </div>
-          <h1>{auction.title}</h1>
+          </p>
           {pendingAuto && (isSeller || isAdmin) && (
             <div className="mod-banner pending" role="status">
               <strong>Weryfikujemy ogłoszenie…</strong>
@@ -533,6 +662,7 @@ export function AuctionDetailPage() {
               <PromoteAuction auction={auction} feeBlock={feeBlock} onPaid={() => void load()} />
             </div>
           )}
+          <FavoriteButton auctionId={auction.id} withLabel className="detail-fav" />
           {live && !isSeller && (
             <a className="next-bid" href="#historia-ofert">
               <strong>Następna oferta {formatPln(minBid)}</strong>
@@ -708,9 +838,40 @@ export function AuctionDetailPage() {
         </div>
       </div>
 
+      <section className="section-block detail-seller" aria-labelledby="seller-h">
+        <h2 id="seller-h">Sprzedawca</h2>
+        <div className="detail-seller-row">
+          <span className="detail-avatar" aria-hidden>
+            {(auction.seller?.display_name || '?').slice(0, 1).toUpperCase()}
+          </span>
+          <div>
+            <strong>{auction.seller?.display_name || 'Użytkownik'}</strong>
+            <p className="muted">
+              {sellerRatingLabel ?? 'Brak ocen'}
+              {auction.city ? ` · ${auction.city}` : ''}
+            </p>
+          </div>
+        </div>
+        {sellerOther.length > 0 && (
+          <>
+            <h3>Inne aukcje sprzedawcy</h3>
+            <div className="detail-rail">
+              {sellerOther.map((a) => (
+                <AuctionCard key={a.id} auction={a} />
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
       <section className="section-block">
         <h2>Opis</h2>
-        <p className="description">{auction.description || 'Brak opisu.'}</p>
+        <p className={`description${descOpen ? '' : ' is-clamped'}`}>{auction.description || 'Brak opisu.'}</p>
+        {(auction.description?.length ?? 0) > 280 && (
+          <button type="button" className="detail-more" aria-expanded={descOpen} onClick={() => setDescOpen((v) => !v)}>
+            {descOpen ? 'Pokaż mniej' : 'Pokaż cały opis'}
+          </button>
+        )}
         <p className="muted">Dostawa: {auction.shipping_options?.join(', ') || 'do uzgodnienia'}</p>
         {!isSeller && auction.moderation_status === 'approved' && (
           <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
@@ -901,6 +1062,23 @@ export function AuctionDetailPage() {
         </section>
       )}
 
+      {similar.length > 0 && (
+        <section className="section-block detail-similar" aria-labelledby="similar-h">
+          <h2 id="similar-h">{similarIsFallback ? 'Zobacz też' : 'Podobne aukcje'}</h2>
+          <div className="detail-rail">
+            {similar.map((a) => (
+              <AuctionCard key={a.id} auction={a} />
+            ))}
+          </div>
+          <Link
+            to={similarIsFallback ? '/auctions?all=1' : `/auctions?cat=${encodeURIComponent(auction.category_id ?? '')}`}
+            className="detail-more"
+          >
+            {similarIsFallback ? 'Zobacz wszystkie aukcje →' : 'Zobacz więcej w tej kategorii →'}
+          </Link>
+        </section>
+      )}
+
       {live && !isSeller && (
         <div className="bid-bar">
           {bidCappedByBuyNow ? (
@@ -910,9 +1088,15 @@ export function AuctionDetailPage() {
               </button>
             )
           ) : (
-            <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBidSheet}>
-              Licytuj
-            </button>
+            <>
+              <div className="bid-bar-price">
+                <span>Aktualna oferta</span>
+                <strong>{formatPln(auction.current_price)}</strong>
+              </div>
+              <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBidSheet}>
+                Licytuj
+              </button>
+            </>
           )}
         </div>
       )}

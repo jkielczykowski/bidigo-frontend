@@ -68,7 +68,15 @@ export function useFavorites() {
 }
 
 /** Heart on an auction card. Signed-out visitors are sent to the login page. */
-export function FavoriteButton({ auctionId, className = '' }: { auctionId: string; className?: string }) {
+export function FavoriteButton({
+  auctionId,
+  className = '',
+  withLabel = false,
+}: {
+  auctionId: string
+  className?: string
+  withLabel?: boolean
+}) {
   const { ids, signedIn, toggle } = useFavorites()
   const navigate = useNavigate()
   const on = ids.has(auctionId)
@@ -77,7 +85,7 @@ export function FavoriteButton({ auctionId, className = '' }: { auctionId: strin
   return (
     <button
       type="button"
-      className={`fav-btn${on ? ' is-on' : ''} ${className}`}
+      className={`fav-btn${on ? ' is-on' : ''}${withLabel ? ' fav-btn--wide' : ''} ${className}`}
       aria-pressed={on}
       aria-label={on ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
       onClick={(e) => {
@@ -91,6 +99,7 @@ export function FavoriteButton({ auctionId, className = '' }: { auctionId: strin
       }}
     >
       <span aria-hidden>{on ? '♥' : '♡'}</span>
+      {withLabel && <span>{on ? 'W ulubionych' : 'Dodaj do ulubionych'}</span>}
     </button>
   )
 }
