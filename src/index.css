@@ -5412,7 +5412,7 @@ a.nav-user:hover {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.35);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
 
 .promoted-badge::before {
@@ -6459,7 +6459,7 @@ a.nav-user:hover {
 
 .bg-hero-search .search-bar--hero:focus-within {
   border-color: var(--accent-ink);
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.22), 0 12px 32px rgba(26, 39, 68, 0.16);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-orange) 22%, transparent), 0 12px 32px rgba(26, 39, 68, 0.16);
 }
 
 .bg-hero-search .search-bar--hero .search-icon {
@@ -6479,7 +6479,7 @@ a.nav-user:hover {
   background: var(--accent-orange);
   color: var(--on-accent);
   font-weight: 800;
-  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-orange) 40%, transparent);
 }
 
 .bg-hero-search .search-bar--hero .search-submit:hover {
@@ -7891,7 +7891,7 @@ body.nav-open .header {
   font-weight: 800;
   font-size: 1.1rem;
   text-decoration: none;
-  box-shadow: 0 8px 24px rgba(20, 184, 166, 0.35);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
 
 .sellband-cta:hover {
