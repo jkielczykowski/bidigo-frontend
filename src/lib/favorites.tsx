@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from './auth'
 import { supabase } from './supabase'
@@ -80,12 +80,15 @@ export function FavoriteButton({
   const { ids, signedIn, toggle } = useFavorites()
   const navigate = useNavigate()
   const on = ids.has(auctionId)
+  // The pop animation plays only when the visitor toggles the heart, not when favourites load
+  const [pop, setPop] = useState(false)
+  const popTimer = useRef<number | undefined>(undefined)
   // Demo cards have no row in the database
   if (auctionId.startsWith('demo-')) return null
   return (
     <button
       type="button"
-      className={`fav-btn${on ? ' is-on' : ''}${withLabel ? ' fav-btn--wide' : ''} ${className}`}
+      className={`fav-btn${on ? ' is-on' : ''}${pop ? ' is-pop' : ''}${withLabel ? ' fav-btn--wide' : ''} ${className}`}
       aria-pressed={on}
       aria-label={on ? 'Usuń z ulubionych' : 'Dodaj do ulubionych'}
       onClick={(e) => {
@@ -95,10 +98,15 @@ export function FavoriteButton({
           navigate('/login')
           return
         }
+        setPop(true)
+        window.clearTimeout(popTimer.current)
+        popTimer.current = window.setTimeout(() => setPop(false), 450)
         void toggle(auctionId)
       }}
     >
-      <span aria-hidden>{on ? '♥' : '♡'}</span>
+      <svg className="fav-heart" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
       {withLabel && <span>{on ? 'W ulubionych' : 'Dodaj do ulubionych'}</span>}
     </button>
   )
