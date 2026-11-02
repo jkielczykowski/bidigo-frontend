@@ -23,7 +23,8 @@ test('aukcja otwiera się ze strony głównej', async ({ page }) => {
   const card = page.locator('.bg-card-media').first()
   const href = await card.getAttribute('href')
   test.skip(!href?.startsWith('/auction/'), 'brak aktywnych aukcji (strona pokazuje demo)')
-  await card.click()
+  // The whole card is one stretched title link, so the photo link underneath cannot take the click itself
+  await page.locator('.bg-card', { has: card }).locator('h3 a').first().click()
   await expect(page).toHaveURL(/\/auction\/[0-9a-f-]{36}$/)
   await expect(page.getByRole('heading', { name: 'Opis' })).toBeVisible()
 })
