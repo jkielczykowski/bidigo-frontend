@@ -9,6 +9,10 @@ type BidSheetProps = {
   maxAllowed: number | null
   step: number
   buyNowPrice: number | null
+  /** The bidder's current private limit on this auction, null when none (then the sheet edits it) */
+  currentLimit?: number | null
+  /** Current auction price when the bidder leads: a limit may then also be lowered, down to this price */
+  leadingPrice?: number | null
   busy: boolean
   error: string | null
   /** Places the bid; resolves true on success so the sheet can close */
@@ -17,15 +21,17 @@ type BidSheetProps = {
 }
 
 /** Phone bidding flow like ricardo.ch: confirm the next bid, or set an auction limit (auto-bidding up to it). */
-export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice, busy, error, onBid, onBuyNow }: BidSheetProps) {
+export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice, currentLimit = null, leadingPrice = null, busy, error, onBid, onBuyNow }: BidSheetProps) {
   const [mode, setMode] = useState<'confirm' | 'limit'>('confirm')
-  const [limit, setLimit] = useState(String(minBid))
+  // The leader may move the limit either way (down to the current price); otherwise it can only go up
+  const floor = currentLimit != null && leadingPrice != null ? leadingPrice : minBid
+  const [limit, setLimit] = useState(String(floor))
   const sheetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
-    setMode('confirm')
-    setLimit(String(minBid))
+    setMode(currentLimit != null ? 'limit' : 'confirm')
+    setLimit(String(floor))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -47,12 +53,12 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
   if (!open) return null
 
   const lim = Number(limit)
-  const limitOk = Number.isFinite(lim) && lim >= minBid && (maxAllowed == null || lim <= maxAllowed)
-  const clamp = (v: number) => Math.max(minBid, maxAllowed != null ? Math.min(v, maxAllowed) : v)
-  const nudge = (dir: 1 | -1) => setLimit(String(clamp((Number.isFinite(lim) ? lim : minBid) + dir * step)))
+  const limitOk = Number.isFinite(lim) && lim >= floor && (maxAllowed == null || lim <= maxAllowed)
+  const clamp = (v: number) => Math.max(floor, maxAllowed != null ? Math.min(v, maxAllowed) : v)
+  const nudge = (dir: 1 | -1) => setLimit(String(clamp((Number.isFinite(lim) ? lim : floor) + dir * step)))
 
   const amount = mode === 'confirm' ? minBid : lim
-  const title = mode === 'confirm' ? `Potwierdź ofertę ${formatPln(minBid)}` : 'Ustaw limit aukcji'
+  const title = mode === 'confirm' ? `Potwierdź ofertę ${formatPln(minBid)}` : currentLimit != null ? 'Zmień limit aukcji' : 'Ustaw limit aukcji'
   const lead =
     mode === 'confirm'
       ? 'To może być wygrywająca oferta. Pamiętaj, że oferty są wiążące.'
@@ -67,10 +73,15 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
         </button>
         <h2>{title}</h2>
         <p className="bidsheet-lead">{lead}</p>
+        {mode === 'limit' && currentLimit != null && (
+          <p className="bidsheet-lead">
+            Twój obecny limit: <b>{formatPln(currentLimit)}</b>. Zmienisz go w górę lub w dół, najniżej do aktualnej ceny.
+          </p>
+        )}
 
         {mode === 'limit' && (
           <div className="bidsheet-picker">
-            <button type="button" aria-label="Zmniejsz limit" disabled={busy || lim <= minBid} onClick={() => nudge(-1)}>
+            <button type="button" aria-label="Zmniejsz limit" disabled={busy || lim <= floor} onClick={() => nudge(-1)}>
               −
             </button>
             <label>
@@ -78,7 +89,7 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
               <input
                 type="number"
                 inputMode="decimal"
-                min={minBid}
+                min={floor}
                 max={maxAllowed ?? undefined}
                 step="1"
                 value={limit}
@@ -102,7 +113,7 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
             <dt>{mode === 'confirm' ? 'Cena oferty' : 'Twój limit'}</dt>
             <dd>{formatPln(Number.isFinite(amount) ? amount : 0)}</dd>
           </div>
-          {mode === 'limit' && (
+          {mode === 'limit' && leadingPrice == null && (
             <div>
               <dt>Najpierw złożymy</dt>
               <dd>{formatPln(minBid)}</dd>
@@ -117,7 +128,7 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
 
         {mode === 'limit' && !limitOk && (
           <p className="error" role="alert">
-            Limit musi wynosić od {formatPln(minBid)}
+            Limit musi wynosić od {formatPln(floor)}
             {maxAllowed != null ? ` do ${formatPln(maxAllowed)}` : ''}.
           </p>
         )}

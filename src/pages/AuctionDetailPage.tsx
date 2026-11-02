@@ -29,6 +29,8 @@ function formatSellerRating(avg?: number | null, count?: number | null) {
   return `${Number(avg ?? 0).toFixed(1)} ★ (${n})`
 }
 
+type BidHistoryRow = { id: string; amount: number; created_at: string; bidder_mask: string | null; is_mine: boolean }
+
 export function AuctionDetailPage() {
   const { id } = useParams()
   const { user, profile } = useAuth()
@@ -36,11 +38,9 @@ export function AuctionDetailPage() {
   const location = useLocation()
   const [auction, setAuction] = useState<Auction | null>(null)
   const [bids, setBids] = useState<Bid[]>([])
-  const [amount, setAmount] = useState('')
+  // Latest offers with masked bidder e-mails (bidigo-backend V53); other bidders stay anonymous
+  const [history, setHistory] = useState<BidHistoryRow[]>([])
   // Once the user types a bid, reloads (realtime, double effect) must not replace it with the minimum
-  const amountTouched = useRef(false)
-  const [maxAmount, setMaxAmount] = useState('')
-  const [useProxy, setUseProxy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now())
@@ -105,14 +105,8 @@ export function AuctionDetailPage() {
       .limit(30)
     setBids((b as unknown as Bid[]) ?? [])
 
-    const auctionRow = a as Auction
-    const min = minNextBid(
-      Number(auctionRow.current_price),
-      Number(auctionRow.starting_price),
-      Number(auctionRow.bid_increment),
-      Number(auctionRow.bid_count),
-    )
-    if (!amountTouched.current) setAmount(String(min))
+    const { data: h } = await supabase.rpc('auction_bid_history', { p_auction_id: id, p_limit: 3 })
+    setHistory((h as BidHistoryRow[] | null) ?? [])
 
     const { data: ratingRow } = await supabase
       .from('seller_ratings')
@@ -411,57 +405,18 @@ export function AuctionDetailPage() {
     setBusy(true)
     setError(null)
     try {
-      const { error: err } = await supabase.rpc('place_bid', {
-        p_auction_id: id,
-        p_amount: bidAmount,
-        p_max_amount: max,
-      })
+      // Leader lowering their own limit goes through its own function; everything else is a bid
+      const lowering = isLeading && max != null && myLimit != null && max < myLimit
+      const { error: err } = lowering
+        ? await supabase.rpc('lower_bid_limit', { p_auction_id: id, p_limit: max })
+        : await supabase.rpc('place_bid', { p_auction_id: id, p_amount: bidAmount, p_max_amount: max })
       if (err) throw err
-      amountTouched.current = false
       await load()
       return true
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się złożyć oferty'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
       return false
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function placeBid(e: FormEvent) {
-    e.preventDefault()
-    if (!user) {
-      navigate('/login')
-      return
-    }
-    if (!profile?.phone_verified_at) {
-      navigate(`/verify-phone?next=/auction/${id}`)
-      return
-    }
-    if (!id || !auction) return
-
-    const offered = useProxy ? Number(maxAmount) : Number(amount)
-    const buyNow = auction.buy_now_price != null ? Number(auction.buy_now_price) : null
-    if (buyNow != null && offered >= buyNow) {
-      setError(`Nie licytuj po „Kup teraz” ani wyżej (${formatPln(buyNow)}). Użyj przycisku „Kup teraz”.`)
-      return
-    }
-
-    setBusy(true)
-    setError(null)
-    try {
-      const { error: err } = await supabase.rpc('place_bid', {
-        p_auction_id: id,
-        p_amount: Number(amount),
-        p_max_amount: useProxy && maxAmount ? Number(maxAmount) : null,
-      })
-      if (err) throw err
-      amountTouched.current = false // bid placed — show the next minimum again
-      await load()
-    } catch (err) {
-      setError(errorMessage(err, 'Nie udało się złożyć oferty'))
-      if (isFeeBlockError(err)) void reloadFeeBlock()
     } finally {
       setBusy(false)
     }
@@ -669,7 +624,6 @@ export function AuctionDetailPage() {
           <p className="meta">
             {auction.city || 'Polska'}
             {auction.category?.name ? ` · ${auction.category.name}` : ''}
-            {auction.seller?.display_name ? ` · sprzedaje ${auction.seller.display_name}` : ''}
             {sellerRatingLabel ? ` · ${sellerRatingLabel}` : ''}
           </p>
           {isSeller && live && (
@@ -765,49 +719,14 @@ export function AuctionDetailPage() {
                   )}
                 </div>
               ) : (
-                <form className="bid-form" onSubmit={placeBid}>
-                  <label>
-                    Twoja oferta (zł)
-                    <input
-                      type="number"
-                      min={minBid}
-                      max={maxBidAllowed ?? undefined}
-                      step="1"
-                      required={!useProxy}
-                      value={amount}
-                      onChange={(e) => {
-                        amountTouched.current = true
-                        setAmount(e.target.value)
-                      }}
-                      disabled={useProxy}
-                    />
-                  </label>
-                  <label className="checkbox">
-                    <input type="checkbox" checked={useProxy} onChange={(e) => setUseProxy(e.target.checked)} />
-                    Limit maksymalny (auto-bid do Twojego max)
-                  </label>
-                  {useProxy && (
-                    <label>
-                      Max, ile chcesz zapłacić
-                      <input
-                        type="number"
-                        min={minBid}
-                        max={maxBidAllowed ?? undefined}
-                        step="1"
-                        required
-                        value={maxAmount}
-                        onChange={(e) => setMaxAmount(e.target.value)}
-                      />
-                    </label>
-                  )}
+                <div className="bid-form">
                   {buyNowPrice != null && (
                     <p className="hint">
                       Licytuj poniżej {formatPln(buyNowPrice)}. Od tej kwoty w górę tylko „Kup teraz”.
                     </p>
                   )}
-                  {error && <p className="error">{error}</p>}
-                  <button className="btn btn-primary btn-lg" disabled={busy} type="submit">
-                    {busy ? 'Składanie…' : 'Licytuj'}
+                  <button className="btn btn-primary btn-lg" disabled={busy} type="button" onClick={openBidSheet}>
+                    {myLimit != null && isLeading ? 'Zmień limit' : `Licytuj od ${formatPln(minBid)}`}
                   </button>
                   {buyNowPrice != null && (
                     <button className="btn btn-outline btn-lg" type="button" disabled={busy} onClick={openBuyNow}>
@@ -815,7 +734,7 @@ export function AuctionDetailPage() {
                     </button>
                   )}
                   <p className="hint">Oferta w ostatnich 3 minutach przedłuża aukcję o 3 minuty.</p>
-                </form>
+                </div>
               )}
             </div>
           )}
@@ -895,14 +814,11 @@ export function AuctionDetailPage() {
         <h2 id="seller-h">Sprzedawca</h2>
         <div className="detail-seller-row">
           <span className="detail-avatar" aria-hidden>
-            {(auction.seller?.display_name || '?').slice(0, 1).toUpperCase()}
+            ●
           </span>
           <div>
-            <strong>{auction.seller?.display_name || 'Użytkownik'}</strong>
-            <p className="muted">
-              {sellerRatingLabel ?? 'Brak ocen'}
-              {auction.city ? ` · ${auction.city}` : ''}
-            </p>
+            <strong>{sellerRatingLabel ?? 'Brak ocen'}</strong>
+            {auction.city && <p className="muted">{auction.city}</p>}
           </div>
         </div>
         {sellerOther.length > 0 && (
@@ -948,14 +864,14 @@ export function AuctionDetailPage() {
 
       <section className="section-block">
         <h2 id="historia-ofert">Historia ofert</h2>
-        {bids.length === 0 ? (
+        {history.length === 0 ? (
           <p className="muted">Brak ofert — bądź pierwszy.</p>
         ) : (
           <ul className="bid-list">
-            {bids.map((b) => (
+            {history.map((b) => (
               <li key={b.id}>
                 <strong>{formatPln(b.amount)}</strong>
-                <span>{b.bidder?.display_name || 'Użytkownik'}</span>
+                <span>{b.is_mine ? 'Ty' : b.bidder_mask || 'Użytkownik'}</span>
                 <time>{new Date(b.created_at).toLocaleString('pl-PL')}</time>
               </li>
             ))}
@@ -1161,6 +1077,8 @@ export function AuctionDetailPage() {
         maxAllowed={maxBidAllowed}
         step={Number(auction.bid_increment) || 1}
         buyNowPrice={buyNowPrice}
+        currentLimit={myLimit}
+        leadingPrice={isLeading ? Number(auction.current_price) : null}
         busy={busy}
         error={sheetOpen ? error : null}
         onBid={sendBid}
