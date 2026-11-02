@@ -4,6 +4,7 @@ import { AuctionCard } from '../components/AuctionCard'
 import { LocationMapView } from '../components/LocationMap'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { BidSheet } from '../components/BidSheet'
+import { ScrollRail } from '../components/ScrollRail'
 import { Modal } from '../components/Modal'
 import { PromoteAuction } from '../components/PromoteAuction'
 import { ReportAuction } from '../components/ReportAuction'
@@ -824,11 +825,11 @@ export function AuctionDetailPage() {
         {sellerOther.length > 0 && (
           <>
             <h3>Inne aukcje sprzedawcy</h3>
-            <div className="detail-rail">
+            <ScrollRail label="Inne aukcje sprzedawcy">
               {sellerOther.map((a) => (
                 <AuctionCard key={a.id} auction={a} />
               ))}
-            </div>
+            </ScrollRail>
           </>
         )}
       </section>
@@ -1034,11 +1035,11 @@ export function AuctionDetailPage() {
       {similar.length > 0 && (
         <section className="section-block detail-similar" aria-labelledby="similar-h">
           <h2 id="similar-h">{similarIsFallback ? 'Zobacz też' : 'Podobne aukcje'}</h2>
-          <div className="detail-rail">
+          <ScrollRail label={similarIsFallback ? 'Zobacz też' : 'Podobne aukcje'}>
             {similar.map((a) => (
               <AuctionCard key={a.id} auction={a} />
             ))}
-          </div>
+          </ScrollRail>
           <Link
             to={similarIsFallback ? '/auctions?all=1' : `/auctions?cat=${encodeURIComponent(auction.category_id ?? '')}`}
             className="detail-more"

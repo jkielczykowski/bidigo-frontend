@@ -8895,3 +8895,46 @@ body.nav-open .header {
     }
   }
 }
+
+/* Card rows on the auction page: ‹ › buttons for mouse users */
+.detail-rail-wrap {
+  position: relative;
+}
+
+.detail-rail-btn {
+  position: absolute;
+  top: calc(50% - 1rem);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0 0 3px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.detail-rail-btn:hover {
+  border-color: var(--accent-orange);
+  color: var(--accent-ink);
+}
+
+.detail-rail-btn.is-prev {
+  left: -0.6rem;
+}
+
+.detail-rail-btn.is-next {
+  right: -0.6rem;
+}
+
+@media (hover: none) {
+  .detail-rail-btn {
+    display: none;
+  }
+}
