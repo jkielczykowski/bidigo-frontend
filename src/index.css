@@ -8760,3 +8760,15 @@ body.nav-open .header {
   outline: 3px solid var(--accent-ink);
   outline-offset: 2px;
 }
+
+/* Category bar on desktop: one row, categories that do not fit are hidden by CategoryMenu (they are in the menu) */
+@media (min-width: 861px) {
+  .catbar-in {
+    flex-wrap: wrap;
+    overflow: hidden;
+  }
+}
+
+.catbar-in a[hidden] {
+  display: none;
+}

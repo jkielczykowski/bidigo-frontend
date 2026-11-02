@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { categoryDiscSources } from '../lib/categoryPhotos'
 import type { Category } from '../lib/database.types'
 
-const INLINE_TOP = 7
+const INLINE_TOP = 12
 const WIDE = '(min-width: 900px)'
 
 function Disc({ cat }: { cat: Category }) {
@@ -25,6 +25,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
   const openerRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const mq = window.matchMedia(WIDE)
@@ -32,6 +33,24 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
     mq.addEventListener('change', on)
     return () => mq.removeEventListener('change', on)
   }, [])
+
+  // Desktop: show only the categories that fit in one row (the rest live in "Wszystkie kategorie"), recomputed on resize.
+  // Phones keep a horizontally scrolling row.
+  useLayoutEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    const fit = () => {
+      const items = [...el.querySelectorAll<HTMLElement>('[data-cat]')]
+      items.forEach((i) => (i.hidden = false))
+      if (window.matchMedia('(max-width: 860px)').matches || items.length === 0) return
+      const firstRow = items[0].offsetTop
+      items.forEach((i) => (i.hidden = i.offsetTop > firstRow + 4))
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [tops])
 
   const close = () => {
     setOpen(false)
@@ -74,7 +93,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
 
   return (
     <nav className="catbar" aria-label="Kategorie">
-      <div className="container catbar-in">
+      <div className="container catbar-in" ref={barRef}>
         <button
           ref={openerRef}
           type="button"
@@ -86,7 +105,7 @@ export function CategoryMenu({ categories }: { categories: Category[] }) {
           <span aria-hidden>☰</span> Wszystkie kategorie
         </button>
         {tops.slice(0, INLINE_TOP).map((c) => (
-          <Link key={c.id} to={`/auctions?cat=${encodeURIComponent(c.id)}`}>
+          <Link key={c.id} data-cat to={`/auctions?cat=${encodeURIComponent(c.id)}`}>
             {c.name}
           </Link>
         ))}
