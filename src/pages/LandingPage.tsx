@@ -235,6 +235,22 @@ const LIVE_TABS: { id: LiveTab; icon: string; label: string }[] = [
   { id: 'kup-teraz', icon: '🛒', label: 'Kup teraz' },
 ]
 
+// The chosen category plus everything below it
+function categoryWithChildren(categories: { id: string; parent_id?: string | null }[], id: string) {
+  const ids = new Set([id])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const c of categories) {
+      if (c.parent_id && ids.has(c.parent_id) && !ids.has(c.id)) {
+        ids.add(c.id)
+        grew = true
+      }
+    }
+  }
+  return [...ids]
+}
+
 type RailRow = { id: string; title: string; items: DemoAuction[] }
 
 function Rail({
@@ -353,6 +369,32 @@ export function LandingPage() {
     }
   }, [viewedKey])
 
+  // "Dla Ciebie": the category of the auction opened most recently, and more auctions from it
+  const lastCat = viewed[0]?.category ?? null
+  const lastCatId = lastCat?.id ?? ''
+  const [lastCatItems, setLastCatItems] = useState<Auction[]>([])
+  useEffect(() => {
+    if (!lastCatId) {
+      setLastCatItems([])
+      return
+    }
+    let cancelled = false
+    void supabase
+      .from('auctions')
+      .select(AUCTION_CARD_COLUMNS)
+      .eq('status', 'active')
+      .eq('moderation_status', 'approved')
+      .in('category_id', categoryWithChildren(categories, lastCatId))
+      .order('ends_at', { ascending: true })
+      .limit(24)
+      .then(({ data }) => {
+        if (!cancelled) setLastCatItems((data as unknown as Auction[]) ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [lastCatId, categories])
+
   // Interest profile (categories you keep looking at) -> "Dla Ciebie" rails that refresh on their own
   const [interests, setInterests] = useState<Interest[]>(getInterests)
   const [mine, setMine] = useState<Record<string, Auction[]>>({})
@@ -374,21 +416,7 @@ export function LandingPage() {
     let cancelled = false
     let toastTimer: ReturnType<typeof setTimeout> | undefined
 
-    // The chosen category plus everything below it
-    const withChildren = (id: string) => {
-      const ids = new Set([id])
-      let grew = true
-      while (grew) {
-        grew = false
-        for (const c of categories) {
-          if (c.parent_id && ids.has(c.parent_id) && !ids.has(c.id)) {
-            ids.add(c.id)
-            grew = true
-          }
-        }
-      }
-      return [...ids]
-    }
+    const withChildren = (id: string) => categoryWithChildren(categories, id)
 
     const load = async (polling: boolean) => {
       const out: Record<string, Auction[]> = {}
@@ -498,11 +526,16 @@ export function LandingPage() {
   const interestRows = useMemo<RailRow[]>(
     () =>
       topInterests
-        .filter((i) => (mine[i.id]?.length ?? 0) > 0)
+        .filter((i) => i.id !== lastCatId && (mine[i.id]?.length ?? 0) > 0)
         .map((i) => ({ id: `dla-ciebie-${i.id}`, title: `Dla Ciebie: ${i.name}`, items: mine[i.id] })),
-    [mine, topInterests],
+    [mine, topInterests, lastCatId],
   )
   const viewedRow: RailRow | null = viewed.length > 0 ? { id: 'ostatnio-ogladane', title: 'Ostatnio oglądane', items: viewed } : null
+  const lastCatRow = useMemo<RailRow | null>(() => {
+    const seenIds = new Set(viewed.map((a) => a.id))
+    const items = lastCatItems.filter((a) => !seenIds.has(a.id))
+    return lastCat && items.length > 0 ? { id: 'dla-ciebie-kategoria', title: `Więcej z kategorii: ${lastCat.name}`, items } : null
+  }, [lastCat, lastCatItems, viewed])
   const termsRow: RailRow | null =
     forYou.length > 0 ? { id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou } : null
 
@@ -617,14 +650,16 @@ export function LandingPage() {
       <section className="bg-section bg-live">
         <div className="container">
           {viewedRow && (
-            <>
-              <div className="bg-recent bg-recent--views">
+            <section className="bg-foryou" aria-labelledby="dla-ciebie-h">
+              <header className="bg-foryou-head">
+                <h2 id="dla-ciebie-h">Dla Ciebie</h2>
                 <button type="button" className="bg-recent-clear" onClick={() => clearRecentViews()}>
                   Wyczyść ostatnio oglądane
                 </button>
-              </div>
+              </header>
               <Rail row={viewedRow} demo={usingDemo} bump={bump} fresh={fresh} />
-            </>
+              {lastCatRow && <Rail row={lastCatRow} demo={usingDemo} bump={bump} fresh={fresh} />}
+            </section>
           )}
 
           {recents.length > 0 && (

@@ -8938,3 +8938,20 @@ body.nav-open .header {
     display: none;
   }
 }
+
+.bg-foryou {
+  margin: 0 0 32px;
+  padding: 20px 0 4px;
+  border-top: 1px solid var(--border);
+}
+.bg-foryou-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.bg-foryou-head h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
