@@ -2,6 +2,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BidDemo } from '../components/BidDemo'
 import { BrowseLinks } from '../components/BrowseLinks'
+import HeroScene from '../components/HeroScene'
+import { CategoryTiles, SellBanner, TrustStrip } from '../components/HomeSections'
 import { SearchBar } from '../components/SearchBar'
 import { clearRecentViews, getRecentViews, subscribeRecentViews } from '../lib/recentViews'
 import {
@@ -539,9 +541,15 @@ export function LandingPage() {
   const termsRow: RailRow | null =
     forYou.length > 0 ? { id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou } : null
 
-  // The same loaded auctions cut five ways; a section stays on the page even when it is empty
+  // The same loaded auctions cut five ways. With only a few auctions the five cuts would show the same cards over
+  // and over (and empty rails), so they become one honest rail; with many, rails without anything are left out.
+  const FEW = 6
   const liveRows = useMemo<RailRow[]>(() => {
     const list = [...featured]
+    if (list.length < FEW) {
+      const sorted = [...list].sort((a, b) => a.ends_at.localeCompare(b.ends_at))
+      return sorted.length > 0 ? [{ id: 'koncza-sie', title: 'Aktualne aukcje', items: sorted }] : []
+    }
     const cut: Record<LiveTab, DemoAuction[]> = {
       'koncza-sie': [...list].sort((a, b) => a.ends_at.localeCompare(b.ends_at)),
       popularne: list.filter((a) => a.bid_count > 0).sort((a, b) => b.bid_count - a.bid_count),
@@ -549,7 +557,7 @@ export function LandingPage() {
       'od-1-zl': list.filter((a) => a.starting_price <= 1),
       'kup-teraz': list.filter((a) => a.buyNowOnly || a.buy_now_price != null),
     }
-    return LIVE_TABS.map((t) => ({ id: t.id, title: t.label, items: cut[t.id] }))
+    return LIVE_TABS.map((t) => ({ id: t.id, title: t.label, items: cut[t.id] })).filter((r) => r.items.length > 0)
   }, [featured])
   const navigate = useNavigate()
 
@@ -589,6 +597,20 @@ export function LandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [featured.length])
 
+  // Animacja wejścia sekcji przy przewijaniu (wyłączona przy prefers-reduced-motion)
+  useEffect(() => {
+    const root = document.querySelector('.bidigo-home')
+    if (!root || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return
+    root.classList.add('js-reveal')
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target) } }),
+      { threshold: 0, rootMargin: '0px 0px -40px 0px' },
+    )
+    const targets = root.querySelectorAll('.home-sell-inner, .bg-rail-section, .home-cat, .home-trust-grid > li')
+    targets.forEach((el, i) => { if (el.classList.contains('is-in')) return; (el as HTMLElement).style.setProperty('--rv', `${(i % 6) * 60}ms`); io.observe(el) })
+    return () => { io.disconnect() }
+  }, [featured.length, categories.length, liveRows.length])
+
   return (
     <div className="bidigo-home">
       <section className="bg-hero">
@@ -624,6 +646,7 @@ export function LandingPage() {
             <li>Oferta w 2 minuty</li>
             <li>Jasna prowizja</li>
           </ul>
+          <HeroScene />
         </div>
       </section>
 
@@ -700,7 +723,7 @@ export function LandingPage() {
           {usingDemo && <span className="bg-demo-label">Przykładowe oferty</span>}
 
           <nav className="bg-quick" aria-label="Przejdź do sekcji">
-            {LIVE_TABS.map((t) => (
+            {LIVE_TABS.filter((t) => liveRows.some((r) => r.id === t.id) && liveRows.length > 1).map((t) => (
               <a key={t.id} href={`#${t.id}`}>
                 <span aria-hidden>{t.icon}</span> {t.label}
               </a>
@@ -736,6 +759,10 @@ export function LandingPage() {
       )}
 
       <BidDemo />
+
+      <CategoryTiles categories={categories} />
+      <TrustStrip />
+      <SellBanner />
 
       <BrowseLinks categories={categories} />
     </div>
