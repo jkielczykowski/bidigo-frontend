@@ -14,6 +14,7 @@ import { calcSuccessFee, formatPln } from '../lib/format'
 import { newId } from '../lib/id'
 import { supabase } from '../lib/supabase'
 import { allegroOffer, allegroPhoto, type AllegroOfferDetail } from '../lib/allegroApi'
+import { suggestCategory } from '../lib/allegroCategory'
 import { readImportQueue, suggestPrices, writeImportQueue, type ImportQueue } from '../lib/allegroQueue'
 
 const MAX_PHOTOS = 5
@@ -60,6 +61,8 @@ export function CreateAuctionPage() {
   const [importQueue] = useState<ImportQueue | null>(() => (searchParams.get('import') ? readImportQueue() : null))
   const [importNote, setImportNote] = useState<string | null>(null)
   const [importLoading, setImportLoading] = useState(false)
+  const [importOffer, setImportOffer] = useState<AllegroOfferDetail | null>(null)
+  const [categoryGuessed, setCategoryGuessed] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -125,6 +128,7 @@ export function CreateAuctionPage() {
       try {
         const offer: AllegroOfferDetail = await allegroOffer(importQueue.ids[importQueue.pos])
         if (cancelled) return
+        setImportOffer(offer)
         setTitle(offer.title.slice(0, 120))
         setDescription(offer.description || offer.title)
         const { start, buyNow } = suggestPrices(offer.price)
@@ -159,6 +163,16 @@ export function CreateAuctionPage() {
       cancelled = true
     }
   }, [user, importQueue])
+
+  // The Allegro category → a Bidigo leaf, once both the offer and the categories are loaded; the seller's own pick wins
+  useEffect(() => {
+    if (!importOffer || categories.length === 0 || categoryId) return
+    const guess = suggestCategory(importOffer.categoryPath ?? [], importOffer.title, categories)
+    if (guess) {
+      setCategoryId(guess)
+      setCategoryGuessed(true)
+    }
+  }, [importOffer, categories, categoryId])
 
   /** Next offer of the queue (a fresh page, so the form starts clean) or the end of the import */
   function nextImport(afterPublishedId?: string) {
@@ -452,9 +466,14 @@ export function CreateAuctionPage() {
           <span>
             {importLoading
               ? 'Pobieramy dane i zdjęcia…'
-              : 'Sprawdź dane, wybierz kategorię i miasto, a potem wystaw. Cenę startową ustawiliśmy na połowę ceny z Allegro, a „Kup teraz” na pełną cenę.'}
+              : 'Sprawdź dane, wybierz miasto (i kategorię, jeśli nie pasuje), a potem wystaw. Cenę startową ustawiliśmy na połowę ceny z Allegro, a „Kup teraz” na pełną cenę.'}
           </span>
           {importNote && <span className="alg-banner-warn">{importNote}</span>}
+          {categoryGuessed && categoryId && (
+            <span>
+              Kategorię dobraliśmy automatycznie na podstawie kategorii z Allegro — sprawdź, czy pasuje.
+            </span>
+          )}
           <button type="button" className="link-btn" onClick={() => nextImport()}>
             {importQueue.pos + 1 < importQueue.ids.length ? 'Pomiń tę ofertę' : 'Zakończ import'}
           </button>
@@ -507,6 +526,7 @@ export function CreateAuctionPage() {
           value={categoryId}
           onChange={(id) => {
             setCategoryId(id)
+            setCategoryGuessed(false)
             setFieldErrors((er) => ({ ...er, categoryId: undefined }))
           }}
           error={fieldErrors.categoryId}

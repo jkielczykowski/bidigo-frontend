@@ -22,6 +22,8 @@ export type AllegroOfferDetail = {
   currency?: string
   imageUrls: string[]
   categoryId?: string
+  /** Category names, root → leaf */
+  categoryPath?: string[]
   stock?: number
   url: string
 }
