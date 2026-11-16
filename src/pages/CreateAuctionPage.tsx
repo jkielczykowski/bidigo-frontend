@@ -13,6 +13,8 @@ import type { Auction, Category } from '../lib/database.types'
 import { calcSuccessFee, formatPln } from '../lib/format'
 import { newId } from '../lib/id'
 import { supabase } from '../lib/supabase'
+import { allegroOffer, allegroPhoto, type AllegroOfferDetail } from '../lib/allegroApi'
+import { readImportQueue, suggestPrices, writeImportQueue, type ImportQueue } from '../lib/allegroQueue'
 
 const MAX_PHOTOS = 5
 
@@ -54,6 +56,10 @@ export function CreateAuctionPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const relistId = searchParams.get('relist')
+  // Import from Allegro: offers picked on /sell/import are listed one by one in this form
+  const [importQueue] = useState<ImportQueue | null>(() => (searchParams.get('import') ? readImportQueue() : null))
+  const [importNote, setImportNote] = useState<string | null>(null)
+  const [importLoading, setImportLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -110,6 +116,58 @@ export function CreateAuctionPage() {
       setShipping(a.shipping_options?.length ? a.shipping_options : ['odbior'])
     })()
   }, [user, relistId])
+
+  useEffect(() => {
+    if (!user || !importQueue) return
+    let cancelled = false
+    void (async () => {
+      setImportLoading(true)
+      try {
+        const offer: AllegroOfferDetail = await allegroOffer(importQueue.ids[importQueue.pos])
+        if (cancelled) return
+        setTitle(offer.title.slice(0, 120))
+        setDescription(offer.description || offer.title)
+        const { start, buyNow } = suggestPrices(offer.price)
+        setStartingPrice(String(start))
+        setBuyNowPrice(buyNow ? String(buyNow) : '')
+        const files: PhotoItem[] = []
+        for (const [i, url] of offer.imageUrls.slice(0, MAX_PHOTOS).entries()) {
+          try {
+            const file = await allegroPhoto(url, `allegro-${offer.id}-${i + 1}`)
+            files.push({ id: newId(), file, previewUrl: URL.createObjectURL(file) })
+          } catch {
+            /* one photo failing must not stop the listing: the seller can add it by hand */
+          }
+        }
+        if (cancelled) {
+          files.forEach((p) => URL.revokeObjectURL(p.previewUrl))
+          return
+        }
+        setPhotos(files)
+        setImportNote(
+          files.length < Math.min(offer.imageUrls.length, MAX_PHOTOS)
+            ? 'Część zdjęć nie została pobrana — dodaj je ręcznie.'
+            : null,
+        )
+      } catch {
+        if (!cancelled) setImportNote('Nie udało się pobrać tej oferty z Allegro. Wypełnij formularz ręcznie albo ją pomiń.')
+      } finally {
+        if (!cancelled) setImportLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user, importQueue])
+
+  /** Next offer of the queue (a fresh page, so the form starts clean) or the end of the import */
+  function nextImport(afterPublishedId?: string) {
+    if (!importQueue) return
+    const next = { ids: importQueue.ids, pos: importQueue.pos + 1 }
+    writeImportQueue(next)
+    if (next.pos < next.ids.length) window.location.assign('/sell?import=1')
+    else window.location.assign(afterPublishedId ? '/my/selling' : '/my/selling')
+  }
 
   useEffect(() => {
     return () => {
@@ -346,6 +404,11 @@ export function CreateAuctionPage() {
       if (insErr) throw insErr
       // The listing is checked on the server now (pending_auto); its page shows the progress
       const created = data as { id: string }
+      if (importQueue && importQueue.pos + 1 < importQueue.ids.length) {
+        nextImport(created.id)
+        return
+      }
+      if (importQueue) writeImportQueue(null)
       navigate(`/auction/${created.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się wystawić aukcji'))
@@ -381,6 +444,27 @@ export function CreateAuctionPage() {
   return (
     <div className="container narrow page">
       <h1>{relistId ? 'Wystaw ponownie' : 'Wystaw aukcję'}</h1>
+      {importQueue && (
+        <div className="alg-banner" role="status">
+          <b>
+            Import z Allegro: oferta {importQueue.pos + 1} z {importQueue.ids.length}
+          </b>
+          <span>
+            {importLoading
+              ? 'Pobieramy dane i zdjęcia…'
+              : 'Sprawdź dane, wybierz kategorię i miasto, a potem wystaw. Cenę startową ustawiliśmy na połowę ceny z Allegro, a „Kup teraz” na pełną cenę.'}
+          </span>
+          {importNote && <span className="alg-banner-warn">{importNote}</span>}
+          <button type="button" className="link-btn" onClick={() => nextImport()}>
+            {importQueue.pos + 1 < importQueue.ids.length ? 'Pomiń tę ofertę' : 'Zakończ import'}
+          </button>
+        </div>
+      )}
+      {!relistId && !importQueue && (
+        <p className="muted">
+          Masz aukcje na Allegro? <Link to="/sell/import">Zaimportuj je na Bidigo</Link>.
+        </p>
+      )}
       <p className="muted">
         {relistId
           ? 'Skopiowaliśmy dane z poprzedniej aukcji — dodaj zdjęcia i wystaw.'
