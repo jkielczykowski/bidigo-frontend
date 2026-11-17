@@ -213,9 +213,10 @@ export function ImportAllegroPage() {
     setSync('done')
   }
 
-  function start() {
+  /** @param oneByOne the old way: a form per offer; otherwise one table for all of them */
+  function start(oneByOne = false) {
     writeImportQueue({ ids: selectable.filter((o) => picked.has(o.id)).map((o) => o.id), pos: 0 })
-    navigate('/sell?import=1')
+    navigate(oneByOne ? '/sell?import=1' : '/sell/import/review')
   }
 
   if (loading || !user) {
@@ -437,9 +438,14 @@ export function ImportAllegroPage() {
           )}
 
           <div className="alg-cta">
-            <button type="button" className="btn btn-primary" disabled={picked.size === 0} onClick={start}>
-              {picked.size === 0 ? 'Wybierz oferty' : `Importuj wybrane (${picked.size})`}
+            <button type="button" className="btn btn-primary" disabled={picked.size === 0} onClick={() => start()}>
+              {picked.size === 0 ? 'Wybierz oferty' : `Dalej: importuj wybrane (${picked.size})`}
             </button>
+            {picked.size > 0 && (
+              <button type="button" className="link-btn" onClick={() => start(true)}>
+                Wypełnij każdą aukcję osobno
+              </button>
+            )}
           </div>
         </>
       )}

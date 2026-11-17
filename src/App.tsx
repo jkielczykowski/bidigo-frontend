@@ -18,6 +18,7 @@ const page = <K extends string>(load: () => Promise<Record<K, React.ComponentTyp
 const AuctionDetailPage = page(() => import('./pages/AuctionDetailPage'), 'AuctionDetailPage')
 const CreateAuctionPage = page(() => import('./pages/CreateAuctionPage'), 'CreateAuctionPage')
 const ImportAllegroPage = page(() => import('./pages/ImportAllegroPage'), 'ImportAllegroPage')
+const ImportReviewPage = page(() => import('./pages/ImportReviewPage'), 'ImportReviewPage')
 const VerifyPhonePage = page(() => import('./pages/VerifyPhonePage'), 'VerifyPhonePage')
 const EditAuctionPage = page(() => import('./pages/EditAuctionPage'), 'EditAuctionPage')
 const FavoritesPage = page(() => import('./pages/FavoritesPage'), 'FavoritesPage')
@@ -60,6 +61,7 @@ export default function App() {
                   <Route path="/auction/:id/edit" element={<EditAuctionPage />} />
                   <Route path="/sell" element={<CreateAuctionPage />} />
                   <Route path="/sell/import" element={<ImportAllegroPage />} />
+                  <Route path="/sell/import/review" element={<ImportReviewPage />} />
                   <Route path="/verify-phone" element={<VerifyPhonePage />} />
                   <Route path="/my" element={<MyHubPage />} />
                   <Route path="/my/selling" element={<MySellingPage />} />
