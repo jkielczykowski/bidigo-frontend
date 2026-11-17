@@ -86,7 +86,8 @@ export function LockerPicker({ token, environment, value, onChange, initialCode,
     onChange(pointFromCode(raw))
   }
 
-  if (value) {
+  // a code typed by hand keeps its input (it would vanish while still being typed: KRA01M is valid before KRA010M is finished)
+  if (value && map !== 'failed') {
     const line = pointAddressLine(value)
     return (
       <div className="locker-picker">
@@ -124,6 +125,7 @@ export function LockerPicker({ token, environment, value, onChange, initialCode,
           <p id="locker-manual-help" className={manualError ? 'error' : 'hint'} role={manualError ? 'alert' : undefined}>
             {manualError || (token ? 'Mapa Paczkomatów jest chwilowo niedostępna: wpisz kod ze strony inpost.pl.' : 'Wpisz kod Paczkomatu ze strony inpost.pl.')}
           </p>
+          {value && !manualError && <p className="success" role="status" data-testid="locker-typed-ok">✓ Paczkomat {value.code}</p>}
           {token && <button type="button" className="btn btn-outline btn-sm" data-testid="map-retry" onClick={retry}>Spróbuj ponownie załadować mapę</button>}
         </div>
       )}

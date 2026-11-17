@@ -1,6 +1,7 @@
 // The map of parcel lockers, in its own page (iframe of the checkout): Bidigo's styles cannot break InPost's Geowidget v5
 // and the other way round. Talks to the parent with postMessage only (same origin):
-//   → {bidigoLocker: true, id, event: 'ready' | 'point' | 'error', point?}
+//   → {bidigoLocker: true, id, event: 'ready' | 'point' | 'error', point?, reason?}
+// (opened top-level in the app's WebView it uses the channel window.BidigoLocker instead)
 // Query: token (InPost's PUBLIC map token), env (sandbox|production), id (message id), lang.
 import { HOSTS, cropHeight, parsePlaces, pointKind } from './lib.js'
 
@@ -8,7 +9,12 @@ const q = new URLSearchParams(location.search)
 const token = q.get('token') || ''
 const host = HOSTS[q.get('env') === 'production' ? 'production' : 'sandbox']
 const id = q.get('id') || 'locker'
-const send = (event, extra) => parent.postMessage({ bidigoLocker: true, id, event, ...extra }, location.origin)
+// in a browser frame: postMessage to the page; in the mobile app's WebView (top-level page): its JavaScript channel
+const send = (event, extra) => {
+  const msg = { bidigoLocker: true, id, event, ...extra }
+  if (window === parent && window.BidigoLocker) window.BidigoLocker.postMessage(JSON.stringify(msg))
+  else parent.postMessage(msg, location.origin)
+}
 
 function loadAssets() {
   return new Promise((resolve, reject) => {
