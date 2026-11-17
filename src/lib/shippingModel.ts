@@ -66,7 +66,7 @@ export function formatGrosz(grosz: number): string {
 /** KRA010M, WAW123BM, POP-KRA12: the codes InPost uses (case-insensitive, spaces ignored). */
 export function normaliseLocker(raw: string): string | null {
   const code = raw.replace(/\s+/g, '').toUpperCase()
-  return /^([A-Z]{3}\d{2,3}[A-Z]{1,3}|POP-[A-Z0-9-]{2,12})$/.test(code) ? code : null
+  return /^([A-Z]{3}\d{2,3}[A-Z]{1,4}|POP-[A-Z0-9-]{2,12})$/.test(code) ? code : null
 }
 
 /** 9 digits, "+48", spaces and dashes allowed. null when it cannot be a Polish mobile number InPost accepts. */
