@@ -146,6 +146,12 @@ export function MyHubPage() {
       meta: 'Start teraz',
       accent: true,
     },
+    {
+      to: '/sell/import',
+      title: 'Import z Allegro',
+      desc: 'Połącz konto i przenieś swoje oferty na Bidigo',
+      meta: 'Połącz z Allegro',
+    },
   ]
 
   const buyTiles: Tile[] = [

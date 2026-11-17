@@ -98,6 +98,9 @@ export function MySellingPage() {
       <div className="page-head-row">
         <h1>Moje aukcje</h1>
         <div className="page-head-actions">
+          <Link to="/sell/import" className="btn btn-outline">
+            Import z Allegro
+          </Link>
           <Link to="/sell" className="btn btn-primary">
             Wystaw
           </Link>

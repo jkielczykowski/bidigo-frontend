@@ -217,6 +217,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Link to="/my/selling" role="menuitem" onClick={closeMenu}>
                       Moje aukcje
                     </Link>
+                    <Link to="/sell/import" role="menuitem" onClick={closeMenu}>
+                      Import z Allegro
+                    </Link>
                     <Link to="/my/activity" role="menuitem" onClick={closeMenu}>
                       Aktywność
                     </Link>
