@@ -7,6 +7,10 @@ import {
 import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type Order, type OrderAction } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
+import { PAYU_NOTE, PAYU_TEST_NOTE, orderPayState, returnedFromPayu } from '../lib/payuReturn'
+import { fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
+import { PaymentStateBanner } from '../components/PaymentStateBanner'
+import './shipping.css'
 
 const DISPUTE_STATUS: Record<string, string> = {
   open: 'Rozpatrujemy zgłoszenie',
@@ -45,17 +49,22 @@ export function OrderPage() {
     if (user) void load()
   }, [user, load])
 
-  // return from the payment page: the webhook may need a moment
+  const [payu, setPayu] = useState<PayuStatus | null>(null)
   useEffect(() => {
-    if (params.get('paid') !== '1' || !user) return
-    setNotice('Dziękujemy! Potwierdzamy płatność — status zamówienia zaktualizuje się za chwilę.')
+    void fetchPayuStatus().then(setPayu).catch(() => setPayu(null))
+  }, [])
+
+  // return from PayU (?payment=payu): the signed notification may need a moment, so the order is re-read until it settles
+  const returned = returnedFromPayu(params)
+  useEffect(() => {
+    if (!returned || !user) return
     const t = setInterval(() => void load(), 3000)
-    const stop = setTimeout(() => clearInterval(t), 30000)
+    const stop = setTimeout(() => clearInterval(t), 120000)
     return () => {
       clearInterval(t)
       clearTimeout(stop)
     }
-  }, [params, user, load])
+  }, [returned, user, load])
 
   async function run(fn: () => Promise<unknown>, done?: string) {
     setBusy(true)
@@ -122,6 +131,7 @@ export function OrderPage() {
           {order.number} · {order.fulfillment === 'protected' ? 'Kup z Ochroną Bidigo' : 'Transakcja bezpośrednia'}
         </span>
       </p>
+      {returned && order.fulfillment === 'protected' && <PaymentStateBanner state={orderPayState(order.status)} />}
       {notice && <p className="success">{notice}</p>}
       {error && <p className="error">{error}</p>}
 
@@ -170,9 +180,14 @@ export function OrderPage() {
 
       <div className="order-actions">
         {has('pay') && isBuyer && (
-          <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void pay()}>
-            {order.status === 'PAYMENT_PROCESSING' ? 'Wróć do płatności' : `Zapłać ${formatPln(expected ?? order.totalAmount)} z Ochroną Bidigo`}
-          </button>
+          <>
+            <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void pay()}>
+              {order.status === 'PAYMENT_PROCESSING' ? 'Wróć do płatności w PayU' : `Zapłać ${formatPln(expected ?? order.totalAmount)} przez PayU`}
+            </button>
+            <p className="muted ship-note">{PAYU_NOTE}</p>
+            {payu?.testMode && <p className="ship-notice" role="note">{PAYU_TEST_NOTE}</p>}
+            {payu && !payu.ready && <p className="ship-notice" role="note">Płatności PayU nie są jeszcze włączone. Spróbuj później.</p>}
+          </>
         )}
         {has('choose_direct') && (
           <button className="btn btn-outline" disabled={busy} onClick={() => void run(() => chooseDirect(order.id), 'Przechodzisz na transakcję bezpośrednią.')}>

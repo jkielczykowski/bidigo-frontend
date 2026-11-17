@@ -6,6 +6,8 @@ import {
   PROGRESS_LABELS, SHIPPING_SOON, cancelShipment, downloadLabel, formatGrosz, listShipments, nextAction, progressStep,
   getSender, renewShipmentPayment, saveSender, shippingError, useShippingStatus, type SenderForm, type Shipment,
 } from '../lib/shipping'
+import { PAYU_NOTE, returnedFromPayu, shipmentPayState } from '../lib/payuReturn'
+import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import './shipping.css'
 
 function chipClass(s: Shipment) {
@@ -55,7 +57,7 @@ function SenderDataForm({ onSaved }: { onSaved: () => void }) {
   )
 }
 
-function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
+function ShipmentCard({ s, onChange, returned, waitedMs }: { s: Shipment; onChange: () => void; returned: boolean; waitedMs: number }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const step = progressStep(s.status)
@@ -86,6 +88,9 @@ function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
           {PROGRESS_LABELS.map((l, i) => <li key={l} className={i <= step ? 'done' : ''}>{l}</li>)}
         </ol>
       )}
+      {returned && !seller && s.paymentMode === 'STANDALONE' && (
+        <PaymentStateBanner state={shipmentPayState(s.status, !!s.checkoutUrl, waitedMs)} />
+      )}
       <p>{nextAction(s)}</p>
       {seller && s.senderDataNeeded && <SenderDataForm onSaved={onChange} />}
       {s.trackingNumber && (
@@ -95,7 +100,7 @@ function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
         </p>
       )}
       <p className="muted">Dostawa: {formatGrosz(s.priceGrosz)} · gabaryt {s.parcelSize}</p>
-      {!seller && <p className="muted ship-note">{s.paymentNotice}</p>}
+      {!seller && <p className="muted ship-note">{s.paymentNotice}{s.paymentMode === 'STANDALONE' ? ` ${PAYU_NOTE}` : ''}</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <div className="ship-actions">
         {seller && s.labelAvailable && (
@@ -105,11 +110,11 @@ function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
         )}
         {!seller && s.status === 'AWAITING_SHIPPING_PAYMENT' && (
           s.checkoutUrl
-            ? <a className="btn btn-primary" href={s.checkoutUrl}>Zapłać za dostawę</a>
+            ? <a className="btn btn-primary" href={s.checkoutUrl}>Zapłać za dostawę przez PayU</a>
             : s.paymentMode === 'STANDALONE' && (
               <button type="button" className="btn btn-primary" disabled={busy}
                 onClick={() => void run(async () => { const n = await renewShipmentPayment(s.id); if (n.checkoutUrl) window.location.href = n.checkoutUrl })}>
-                Zapłać za dostawę
+                Zapłać za dostawę przez PayU
               </button>
             )
         )}
@@ -142,6 +147,13 @@ export function MyShipmentsPage() {
   const [loadedFor, setLoadedFor] = useState<{ role: string; items: Shipment[] } | null>(null)
   const items = loadedFor?.role === role ? loadedFor.items : null
   const [error, setError] = useState('')
+  const returned = returnedFromPayu(params)
+  const [waitedMs, setWaitedMs] = useState(0)
+  useEffect(() => {
+    if (!returned) return
+    const t = setInterval(() => setWaitedMs((w) => w + 5_000), 5_000)
+    return () => clearInterval(t)
+  }, [returned])
 
   const load = useCallback(() => {
     listShipments(role)
@@ -152,9 +164,9 @@ export function MyShipmentsPage() {
   useEffect(() => {
     if (!user) return
     load()
-    const t = setInterval(load, 30_000)
+    const t = setInterval(load, returned ? 5_000 : 30_000) // after PayU: until the notification arrives
     return () => clearInterval(t)
-  }, [user, load])
+  }, [user, load, returned])
 
   if (!user) return <div className="ship-page"><p><Link to="/login">Zaloguj się</Link>, żeby zobaczyć przesyłki.</p></div>
   // switched off: the page does not exist for anyone (also not via a saved link)
@@ -165,7 +177,6 @@ export function MyShipmentsPage() {
       <h1>Moje przesyłki</h1>
       {status.sandbox && <p className="ship-notice" role="note">Tryb testowy InPost: etykiety są próbne i nie służą do prawdziwych wysyłek.</p>}
       {!status.ready && <p className="ship-notice" role="note">{SHIPPING_SOON} Istniejące przesyłki możesz nadal śledzić; paczkę wyślij samodzielnie i wpisz jej numer w <Link to="/my/orders">zamówieniu</Link>.</p>}
-      {params.get('paid') && <p className="success">Dziękujemy! Potwierdzamy płatność za dostawę, to potrwa chwilę.</p>}
       <div className="ship-tabs">
         <button type="button" className={`btn btn-sm ${role === 'buyer' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setParams({ role: 'buyer' })}>Kupuję</button>
         <button type="button" className={`btn btn-sm ${role === 'seller' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setParams({ role: 'seller' })}>Sprzedaję</button>
@@ -173,7 +184,7 @@ export function MyShipmentsPage() {
       {error && <p className="error" role="alert">{error}</p>}
       {items === null && <p className="muted">Wczytywanie…</p>}
       {items?.length === 0 && !error && <p className="muted">{role === 'seller' ? 'Nie masz jeszcze przesyłek do nadania.' : 'Nie masz jeszcze przesyłek. Dostawę wybierzesz na stronie wygranej aukcji.'}</p>}
-      {items?.map((s) => <ShipmentCard key={s.id} s={s} onChange={load} />)}
+      {items?.map((s) => <ShipmentCard key={s.id} s={s} onChange={load} returned={returned && (!params.get('shipment') || params.get('shipment') === s.id)} waitedMs={waitedMs} />)}
     </div>
   )
 }

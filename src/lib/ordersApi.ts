@@ -3,7 +3,7 @@ import { ApiError } from './bidigoApi'
 import type { Order, Quote } from './ordersLogic'
 
 // Reads and actions go straight to the database functions (rpc): the database owns the rules and the permissions.
-// Only the payment (Stripe Checkout) needs bidigo-api.
+// Only the payment (PayU: redirect to the PayU page) needs bidigo-api.
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args)
@@ -48,4 +48,13 @@ export async function startOrderCheckout(orderId: string, expectedTotal: number)
   if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
   const body = (await res.json()) as { checkoutUrl: string }
   return { status: 'ok', checkoutUrl: body.checkoutUrl }
+}
+
+export type PayuStatus = { provider: 'payu'; ready: boolean; testMode: boolean; reason: string }
+
+/** Whether buyers can pay through PayU right now, and whether it is the sandbox (test money). Public, no secrets. */
+export async function fetchPayuStatus(): Promise<PayuStatus> {
+  const res = await fetch('/api/v1/payments/payu/status')
+  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
+  return (await res.json()) as PayuStatus
 }

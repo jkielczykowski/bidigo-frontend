@@ -25,3 +25,9 @@
 
 .ship-sender { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
 .ship-sender label { display: grid; gap: 4px; font-size: 14px; }
+
+/* Stan płatności PayU po powrocie (oczekuje / udana / nieudana) */
+.pay-banner { border-left: 4px solid var(--accent-secondary); background: var(--accent-soft); padding: 10px 12px; border-radius: var(--radius-sm); margin: 12px 0; }
+.pay-banner p { margin: 4px 0 0; }
+.pay-banner.pay-paid { border-left-color: #1a7f37; }
+.pay-banner.pay-failed { border-left-color: #b42318; }
