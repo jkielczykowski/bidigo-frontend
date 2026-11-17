@@ -215,7 +215,7 @@ export function ProfileSettingsPage() {
             maxLength={500}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Np. sprzedaję z Warszawy, odbiór osobisty lub InPost."
+            placeholder="Np. sprzedaję z Warszawy, odbiór osobisty."
           />
         </label>
 

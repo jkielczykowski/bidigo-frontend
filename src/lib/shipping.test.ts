@@ -43,3 +43,15 @@ test('the seller is told to download the label, the buyer to pay', () => {
   assert.match(nextAction({ status: 'LABEL_READY', role: 'seller', labelAvailable: true }), /Pobierz etykietę/)
   assert.match(nextAction({ status: 'AWAITING_SHIPPING_PAYMENT', role: 'buyer', labelAvailable: false }), /Opłać dostawę/)
 })
+
+import { shippingOptionsText } from './shippingModel.ts'
+
+test('delivery options read in Polish, InPost only while shipping is on', () => {
+  assert.equal(shippingOptionsText(['odbior', 'kurier'], true), 'Odbiór osobisty, Kurier')
+  assert.equal(shippingOptionsText(['odbior', 'inpost'], true), 'Odbiór osobisty, Paczkomat InPost')
+  assert.equal(shippingOptionsText(['odbior', 'inpost'], false), 'Odbiór osobisty')
+  assert.equal(shippingOptionsText(['inpost'], false), 'do uzgodnienia')
+  assert.equal(shippingOptionsText([], true), 'do uzgodnienia')
+  assert.equal(shippingOptionsText(null, true), 'do uzgodnienia')
+  assert.equal(shippingOptionsText(['nowa'], true), 'nowa')
+})

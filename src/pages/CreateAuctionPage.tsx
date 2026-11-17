@@ -1,3 +1,4 @@
+import { useShippingStatus } from '../lib/shipping'
 import { ParcelFields } from '../components/ParcelFields'
 import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -60,6 +61,7 @@ function isLeafCategory(categories: Category[], id: string) {
 
 export function CreateAuctionPage() {
   const { user, profile, loading } = useAuth()
+  const shippingOn = useShippingStatus(!!user).visible
   const { block: feeBlock, reload: reloadFeeBlock } = useFeeBlock()
   const { status: afStatus, reload: reloadAf } = useAntifraud()
   const navigate = useNavigate()
@@ -685,7 +687,7 @@ export function CreateAuctionPage() {
           </legend>
           {[
             ['odbior', 'Odbiór osobisty'],
-            ['inpost', 'InPost'],
+            ...(shippingOn ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([id, label]) => (
             <label key={id} className="checkbox">

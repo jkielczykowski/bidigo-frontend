@@ -1,3 +1,4 @@
+import { shippingOptionsText, SHIPPING_SOON, useShippingStatus } from '../lib/shipping'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuctionCard } from '../components/AuctionCard'
@@ -17,7 +18,7 @@ import { AntifraudBanner } from '../components/AntifraudBanner'
 import { isAccountBlockedError } from '../lib/antifraud'
 import { useAntifraud } from '../lib/useAntifraud'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
-import { shippingLabels, bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
+import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
@@ -40,6 +41,7 @@ type BidHistoryRow = { id: string; amount: number; created_at: string; bidder_ma
 export function AuctionDetailPage() {
   const { id } = useParams()
   const { user, profile } = useAuth()
+  const shipping = useShippingStatus(!!user)
   const navigate = useNavigate()
   const location = useLocation()
   const [auction, setAuction] = useState<Auction | null>(null)
@@ -769,9 +771,16 @@ export function AuctionDetailPage() {
                 </button>
               )}
               {!user && <p className="hint">Zaloguj się, żeby napisać po zakupie.</p>}
-              {(isWinner || isSeller) && (
-                <Link className="btn btn-outline" to={isWinner ? `/shipping/checkout/${auction.id}` : '/my/shipments?role=seller'}>
-                  {isWinner ? 'Wybierz dostawę Paczkomatem InPost' : 'Moje przesyłki'}
+              {shipping.visible && isWinner && (shipping.ready ? (
+                <Link className="btn btn-outline" to={`/shipping/checkout/${auction.id}`}>
+                  Wybierz dostawę Paczkomatem InPost
+                </Link>
+              ) : (
+                <p className="hint">{SHIPPING_SOON}</p>
+              ))}
+              {shipping.visible && isSeller && (
+                <Link className="btn btn-outline" to="/my/shipments?role=seller">
+                  Moje przesyłki
                 </Link>
               )}
 
@@ -864,7 +873,7 @@ export function AuctionDetailPage() {
             {descOpen ? 'Pokaż mniej' : 'Pokaż cały opis'}
           </button>
         )}
-        <p className="muted">Dostawa: {shippingLabels(auction.shipping_options)}</p>
+        <p className="muted">Dostawa: {shippingOptionsText(auction.shipping_options, shipping.visible)}</p>
         {!isSeller && auction.moderation_status === 'approved' && (
           <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
         )}

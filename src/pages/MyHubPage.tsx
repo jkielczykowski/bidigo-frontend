@@ -6,6 +6,7 @@ import { useFeeBlock } from '../lib/feeBlock'
 import { AntifraudBanner } from '../components/AntifraudBanner'
 import { strikeLabel } from '../lib/antifraud'
 import { useAntifraud } from '../lib/useAntifraud'
+import { useShippingStatus } from '../lib/shipping'
 import { useNotifications } from '../lib/notifications'
 import { useUnreadMessages } from '../lib/unreadMessages'
 import { formatPln } from '../lib/format'
@@ -51,6 +52,7 @@ function TileGrid({ tiles }: { tiles: Tile[] }) {
 
 export function MyHubPage() {
   const { user, profile } = useAuth()
+  const shipping = useShippingStatus(!!user)
   const { unread: msgUnread } = useUnreadMessages()
   const { unread: notifUnread } = useNotifications()
   const { block } = useFeeBlock()
@@ -131,12 +133,14 @@ export function MyHubPage() {
       meta: loading ? '…' : stats.activity > 0 ? `${stats.activity} ofert` : 'Brak ofert',
       accent: stats.activity > 0,
     },
-    {
-      to: '/my/shipments',
-      title: 'Moje przesyłki',
-      desc: 'Etykiety, numery i śledzenie paczek InPost',
-      meta: 'Kupuję i sprzedaję',
-    },
+    ...(shipping.visible
+      ? [{
+          to: '/my/shipments',
+          title: 'Moje przesyłki',
+          desc: 'Etykiety, numery i śledzenie paczek InPost',
+          meta: 'Kupuję i sprzedaję',
+        }]
+      : []),
     {
       to: '/my/fees',
       title: 'Opłaty',

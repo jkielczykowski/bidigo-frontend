@@ -1,4 +1,5 @@
 import { ApiError } from './bidigoApi'
+import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import type { ParcelSize, Shipment, ShippingConfig } from './shippingModel.ts'
 
@@ -57,4 +58,38 @@ export function shippingError(err: unknown): string {
     }
   }
   return 'Coś poszło nie tak. Spróbuj ponownie.'
+}
+
+// ---------------------------------------------------------------- one status for the whole UI
+
+let cached: Promise<ShippingConfig> | null = null
+
+/** Read once per page load (the backend decides; a switch flipped in the admin panel shows after a refresh). */
+export function loadShippingConfig(): Promise<ShippingConfig> {
+  cached ??= shippingConfig().catch((e) => {
+    cached = null
+    throw e
+  })
+  return cached
+}
+
+/**
+ * Everything that shows shipments depends on this: `visible` = the switch is on (tile, routes, the "InPost" option),
+ * `ready` = a buyer may pay for a delivery. Until it is known, and when it cannot be read, nothing is shown.
+ */
+export function useShippingStatus(signedIn: boolean) {
+  const [config, setConfig] = useState<ShippingConfig | null>(null)
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    if (!signedIn) return
+    let alive = true
+    loadShippingConfig()
+      .then((c) => alive && setConfig(c))
+      .catch(() => alive && setConfig(null))
+      .finally(() => alive && setLoaded(true))
+    return () => {
+      alive = false
+    }
+  }, [signedIn])
+  return { config, loaded, visible: config?.flagEnabled === true, ready: config?.carrierReady === true, sandbox: config?.sandbox === true }
 }
