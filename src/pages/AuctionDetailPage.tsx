@@ -1,4 +1,4 @@
-import { shippingOptionsText, SHIPPING_SOON, useShippingStatus } from '../lib/shipping'
+import { shippingOptionsText, useShippingStatus } from '../lib/shipping'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AuctionCard } from '../components/AuctionCard'
