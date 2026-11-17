@@ -169,6 +169,9 @@ export function AllegroImportedPage() {
           Porównamy aukcje zaimportowane z Allegro z Twoimi ofertami: zmieniony tytuł i opis zaktualizujemy, a aukcje, których oferty
           już nie ma na Allegro, anulujemy. Aukcji z ofertami (licytacją) nie ruszamy.
         </p>
+        <p className="muted">
+          Aukcje, których oferta zakończyła się na Allegro (np. po sprzedaży), zamykamy też automatycznie, co około 30 minut.
+        </p>
         {!working && (sync === 'idle' || sync === 'done') && (
           <div className="alg-actions">
             <button type="button" className="btn" disabled={activeCount === 0} onClick={() => void checkSync()}>

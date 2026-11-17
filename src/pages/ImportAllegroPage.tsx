@@ -13,6 +13,8 @@ import { formatPln } from '../lib/format'
 /** Offers shown per page of the list */
 const PER_VIEW = 20
 
+type Filter = 'all' | 'new' | 'onBidigo'
+
 /** /sell/import: all the seller's active Allegro offers (fetched with a progress bar), pick some to import. */
 export function ImportAllegroPage() {
   const { user, loading } = useAuth()
@@ -25,6 +27,7 @@ export function ImportAllegroPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState(0)
+  const [filter, setFilter] = useState<Filter>('all')
   const [linked, setLinked] = useState<LinkedListing[]>([])
   // a newer run (refresh, leaving the page) makes the older loop stop
   const runRef = useRef(0)
@@ -108,15 +111,30 @@ export function ImportAllegroPage() {
 
   // offers already on Bidigo (an active or draft listing) are not imported a second time
   const onBidigo = new Set(linked.filter((l) => l.status === 'active' || l.status === 'draft').map((l) => l.offerId))
-  const selectable = offers.filter((o) => !onBidigo.has(o.id))
+  // the filtered list; "select all" and the import work on what is visible, never on offers already on Bidigo
+  const visible = offers.filter((o) => (filter === 'all' ? true : filter === 'new' ? !onBidigo.has(o.id) : onBidigo.has(o.id)))
+  const selectable = visible.filter((o) => !onBidigo.has(o.id))
+  const newCount = offers.length - offers.filter((o) => onBidigo.has(o.id)).length
+  const onCount = offers.length - newCount
 
   function toggleAll() {
-    setPicked((prev) => (prev.size === selectable.length ? new Set() : new Set(selectable.map((o) => o.id))))
+    setPicked((prev) => {
+      const allPicked = selectable.every((o) => prev.has(o.id))
+      const next = new Set(prev)
+      for (const o of selectable) {
+        if (allPicked) next.delete(o.id)
+        else next.add(o.id)
+      }
+      return next
+    })
   }
 
   /** @param oneByOne the old way: a form per offer; otherwise one table for all of them */
   function start(oneByOne = false) {
-    writeImportQueue({ ids: selectable.filter((o) => picked.has(o.id)).map((o) => o.id), pos: 0 })
+    writeImportQueue({
+      ids: offers.filter((o) => picked.has(o.id) && !onBidigo.has(o.id)).map((o) => o.id),
+      pos: 0,
+    })
     navigate(oneByOne ? '/sell?import=1' : '/sell/import/review')
   }
 
@@ -128,9 +146,9 @@ export function ImportAllegroPage() {
     )
   }
 
-  const pages = Math.max(1, Math.ceil(offers.length / PER_VIEW))
+  const pages = Math.max(1, Math.ceil(visible.length / PER_VIEW))
   const current = Math.min(view, pages - 1)
-  const shown = offers.slice(current * PER_VIEW, (current + 1) * PER_VIEW)
+  const shown = visible.slice(current * PER_VIEW, (current + 1) * PER_VIEW)
   const pct = total > 0 ? Math.round((offers.length / total) * 100) : 0
 
   return (
@@ -195,13 +213,41 @@ export function ImportAllegroPage() {
             </div>
           )}
 
+          {!busy && offers.length > 0 && (
+            <div className="alg-filters" role="group" aria-label="Filtr ofert">
+              {(
+                [
+                  ['all', `Wszystkie (${offers.length})`],
+                  ['new', `Jeszcze nie na Bidigo (${newCount})`],
+                  ['onBidigo', `Już na Bidigo (${onCount})`],
+                ] as [Filter, string][]
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`alg-chip${filter === id ? ' is-active' : ''}`}
+                  aria-pressed={filter === id}
+                  onClick={() => {
+                    setFilter(id)
+                    setView(0)
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {selectable.length > 1 && !busy && (
             <button type="button" className="link-btn" onClick={toggleAll}>
-              {picked.size === selectable.length ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${selectable.length})`}
+              {selectable.every((o) => picked.has(o.id)) ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${selectable.length})`}
             </button>
           )}
 
           {!busy && offers.length === 0 && <p className="muted">Nie znaleźliśmy aktywnych ofert na Twoim koncie Allegro.</p>}
+          {!busy && offers.length > 0 && visible.length === 0 && (
+            <p className="muted">{filter === 'onBidigo' ? 'Żadna z ofert nie jest jeszcze na Bidigo.' : 'Wszystkie oferty są już na Bidigo.'}</p>
+          )}
 
           <ul className="alg-list">
             {shown.map((o) => (
