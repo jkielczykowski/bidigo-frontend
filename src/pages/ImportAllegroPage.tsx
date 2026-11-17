@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { ApiError } from '../lib/bidigoApi'
@@ -13,7 +13,12 @@ import {
 import { writeImportQueue } from '../lib/allegroQueue'
 import { formatPln } from '../lib/format'
 
+/** Offers fetched per request (the API allows 100) */
 const PAGE = 50
+/** Offers shown per page of the list */
+const PER_VIEW = 20
+/** Safety cap on one load-everything run */
+const MAX_OFFERS = 2000
 
 /** /sell/import: connect the seller's Allegro account, pick offers, then list them one by one in the usual form. */
 export function ImportAllegroPage() {
@@ -26,27 +31,49 @@ export function ImportAllegroPage() {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState(0)
+  // a newer run (refresh, disconnect, leaving the page) makes the older loop stop
+  const runRef = useRef(0)
 
   useEffect(() => {
     if (!loading && !user) navigate('/login')
   }, [user, loading, navigate])
 
-  const loadOffers = useCallback(async (offset: number) => {
+  /** Fetches every page of offers one after another, showing them (and the progress) as they arrive. */
+  const loadAll = useCallback(async () => {
+    const run = ++runRef.current
     setBusy(true)
     setError(null)
+    setOffers([])
+    setTotal(0)
+    setView(0)
     try {
-      const page = await allegroOffers(offset, PAGE)
-      setOffers((prev) => (offset === 0 ? page.offers : [...prev, ...page.offers]))
-      setTotal(page.total)
+      let offset = 0
+      for (;;) {
+        const page = await allegroOffers(offset, PAGE)
+        if (run !== runRef.current) return
+        setOffers((prev) => (offset === 0 ? page.offers : [...prev, ...page.offers]))
+        setTotal(page.total)
+        offset += page.offers.length
+        if (page.offers.length === 0 || offset >= page.total || offset >= MAX_OFFERS) break
+      }
     } catch (e) {
+      if (run !== runRef.current) return
       if (e instanceof ApiError && e.status === 409) {
         // Allegro revoked the access: connect again
-        setStatus((s) => (s ? { ...s, connected: false } : s))
+        setStatus((st) => (st ? { ...st, connected: false } : st))
       } else {
-        setError('Nie udało się pobrać ofert z Allegro. Spróbuj za chwilę.')
+        setError('Nie udało się pobrać wszystkich ofert z Allegro. Spróbuj odświeżyć listę.')
       }
     } finally {
-      setBusy(false)
+      if (run === runRef.current) setBusy(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const runs = runRef
+    return () => {
+      runs.current += 1
     }
   }, [])
 
@@ -56,12 +83,12 @@ export function ImportAllegroPage() {
       try {
         const s = await allegroStatus()
         setStatus(s)
-        if (s.connected) await loadOffers(0)
+        if (s.connected) await loadAll()
       } catch {
         setError('Nie udało się sprawdzić połączenia z Allegro.')
       }
     })()
-  }, [user, loadOffers])
+  }, [user, loadAll])
 
   async function connect() {
     setBusy(true)
@@ -75,11 +102,13 @@ export function ImportAllegroPage() {
   }
 
   async function disconnect() {
+    runRef.current += 1
     setBusy(true)
     try {
       await allegroDisconnect()
       setStatus((s) => (s ? { ...s, connected: false, login: undefined } : s))
       setOffers([])
+      setTotal(0)
       setPicked(new Set())
       // the ?allegro=connected notice of this visit no longer applies
       setParams({}, { replace: true })
@@ -99,7 +128,7 @@ export function ImportAllegroPage() {
 
   function refresh() {
     setPicked(new Set())
-    void loadOffers(0)
+    void loadAll()
   }
 
   function toggleAll() {
@@ -120,6 +149,10 @@ export function ImportAllegroPage() {
   }
 
   const result = params.get('allegro')
+  const pages = Math.max(1, Math.ceil(offers.length / PER_VIEW))
+  const current = Math.min(view, pages - 1)
+  const shown = offers.slice(current * PER_VIEW, (current + 1) * PER_VIEW)
+  const pct = total > 0 ? Math.round((offers.length / total) * 100) : 0
 
   return (
     <div className="container narrow page alg">
@@ -175,7 +208,16 @@ export function ImportAllegroPage() {
             </span>
           </div>
 
-          {offers.length > 1 && (
+          {busy && (
+            <div className="alg-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+              <div className="alg-progress-track">
+                <div className="alg-progress-fill" style={{ width: `${Math.max(pct, 4)}%` }} />
+              </div>
+              <span>{total > 0 ? `Pobieramy oferty z Allegro… ${offers.length} z ${total}` : 'Pobieramy oferty z Allegro…'}</span>
+            </div>
+          )}
+
+          {offers.length > 1 && !busy && (
             <button type="button" className="link-btn" onClick={toggleAll}>
               {picked.size === offers.length ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${offers.length})`}
             </button>
@@ -184,7 +226,7 @@ export function ImportAllegroPage() {
           {!busy && offers.length === 0 && <p className="muted">Nie znaleźliśmy aktywnych ofert na Twoim koncie Allegro.</p>}
 
           <ul className="alg-list">
-            {offers.map((o) => (
+            {shown.map((o) => (
               <li key={o.id}>
                 <label className={`alg-item${picked.has(o.id) ? ' is-picked' : ''}`}>
                   <input type="checkbox" checked={picked.has(o.id)} onChange={() => toggle(o.id)} />
@@ -196,10 +238,18 @@ export function ImportAllegroPage() {
             ))}
           </ul>
 
-          {offers.length < total && (
-            <button type="button" className="btn" disabled={busy} onClick={() => void loadOffers(offers.length)}>
-              {busy ? 'Ładowanie…' : `Pokaż więcej (${offers.length} z ${total})`}
-            </button>
+          {pages > 1 && (
+            <nav className="alg-pager" aria-label="Strony ofert">
+              <button type="button" className="btn" disabled={current === 0} onClick={() => setView(current - 1)}>
+                ← Poprzednia
+              </button>
+              <span>
+                Strona {current + 1} z {pages}
+              </span>
+              <button type="button" className="btn" disabled={current >= pages - 1} onClick={() => setView(current + 1)}>
+                Następna →
+              </button>
+            </nav>
           )}
 
           <div className="alg-cta">

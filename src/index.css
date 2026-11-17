@@ -9251,3 +9251,8 @@ body.nav-open .header {
 .link-btn:disabled { opacity: .5; cursor: default; }
 
 .alg-bar-actions{display:inline-flex;gap:16px;flex-wrap:wrap}
+.alg-progress{display:grid;gap:6px;margin:0 0 .9rem;font-size:14px;color:var(--text-muted)}
+.alg-progress-track{height:8px;border-radius:999px;background:var(--surface-warm);overflow:hidden}
+.alg-progress-fill{height:100%;border-radius:999px;background:var(--accent-secondary);transition:width .3s ease}
+.alg-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:1rem 0;font-size:14px;color:var(--text-muted)}
+@media (prefers-reduced-motion:reduce){.alg-progress-fill{transition:none}}
