@@ -1,0 +1,103 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { LockerPicker } from '../components/LockerPicker'
+import { useAuth } from '../lib/auth'
+import {
+  formatGrosz, normaliseLocker, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
+  type LockerPoint, type ParcelSize, type ShippingConfig,
+} from '../lib/shipping'
+import './shipping.css'
+
+/**
+ * Delivery for a won auction: pick a parcel locker, see the price BEFORE paying, pay for the delivery.
+ * ?protection=1 (set by the order flow) = the delivery is part of an order with Buyer Protection and is paid with it.
+ */
+export function ShippingCheckoutPage() {
+  const { orderId = '' } = useParams()
+  const { user } = useAuth()
+  const nav = useNavigate()
+  const [params] = useSearchParams()
+  const protection = params.get('protection') === '1'
+  const [cfg, setCfg] = useState<ShippingConfig | null>(null)
+  const [size, setSize] = useState<ParcelSize>('A')
+  const [point, setPoint] = useState<LockerPoint | null>(null)
+  const [manual, setManual] = useState('')
+  const [phone, setPhone] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    void shippingConfig().then(setCfg).catch(() => setError('Nie udało się wczytać cennika dostawy.'))
+    // already opened (page reloaded or the buyer came back from the payment)?
+    void shipmentByOrder(orderId).then(() => nav('/my/shipments', { replace: true })).catch(() => {})
+  }, [orderId, nav])
+
+  if (!user) return <div className="ship-page"><p>Zaloguj się, żeby wybrać dostawę. <Link to="/login">Zaloguj się</Link></p></div>
+  const price = cfg?.sizes.find((s) => s.size === size)?.priceGrosz ?? 0
+  const code = point?.code ?? normaliseLocker(manual)
+  const phoneOk = normalisePhone(phone)
+  const canPay = !!cfg?.enabled && !!code && !!phoneOk && !busy
+
+  async function submit() {
+    if (!code || !phoneOk) return
+    setBusy(true)
+    setError('')
+    try {
+      const s = await openShipment({ orderId, lockerCode: code, lockerName: point?.name, phone: phoneOk, size, protection })
+      if (s.checkoutUrl) window.location.href = s.checkoutUrl
+      else nav('/my/shipments')
+    } catch (e) {
+      setError(shippingError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ship-page">
+      <h1>Dostawa do Paczkomatu InPost</h1>
+      {cfg && !cfg.enabled && <p className="notice">Wysyłka InPost nie jest jeszcze włączona. Dogadaj dostawę ze sprzedającym.</p>}
+      <div className="ship-notice" role="note">
+        {protection ? cfg?.protectionNotice : cfg?.standaloneNotice}
+        {!protection && ' Cenę przedmiotu płacisz sprzedającemu osobno.'}
+      </div>
+
+      <div className="ship-card">
+        <h2>1. Rozmiar paczki</h2>
+        <div className="ship-sizes">
+          {cfg?.sizes.map((s) => (
+            <label key={s.size} className={`ship-size${s.size === size ? ' on' : ''}`}>
+              <input type="radio" name="size" checked={s.size === size} onChange={() => setSize(s.size)} />
+              <strong>Gabaryt {s.size}</strong> · {formatGrosz(s.priceGrosz)}
+              <br /><small>do {s.dimensions}</small>
+            </label>
+          ))}
+        </div>
+
+        <h2>2. Paczkomat odbioru</h2>
+        <LockerPicker token={cfg?.geowidgetToken} environment={cfg?.environment ?? 'sandbox'} value={point} onChange={setPoint} />
+        {!point && (
+          <label>
+            Albo wpisz kod Paczkomatu (np. KRA010M)
+            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="KRA010M" maxLength={20} />
+          </label>
+        )}
+        {!point && manual && !normaliseLocker(manual) && <p className="error">To nie wygląda na kod Paczkomatu.</p>}
+
+        <h2>3. Telefon do powiadomień InPost</h2>
+        <label>
+          Numer komórkowy (9 cyfr)
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="600 100 200" />
+        </label>
+        {phone && !phoneOk && <p className="error">Podaj 9 cyfr, np. 600 100 200.</p>}
+
+        <div className="ship-total"><span>Koszt dostawy</span><span>{formatGrosz(price)}</span></div>
+        {error && <p className="error" role="alert">{error}</p>}
+        <button type="button" className="btn btn-primary" disabled={!canPay} onClick={() => void submit()}>
+          {busy ? 'Przekierowanie…' : protection ? 'Dalej' : `Zapłać ${formatGrosz(price)} za dostawę`}
+        </button>
+        {!protection && <p className="hint">Płacisz tylko za przesyłkę. To nie jest Ochrona Kupującego.</p>}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,24 @@
+.ship-page { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+.ship-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; background: var(--surface); margin-bottom: 14px; box-shadow: var(--shadow); }
+.ship-notice { border-left: 4px solid var(--accent-secondary); background: var(--accent-soft); padding: 10px 12px; border-radius: var(--radius-sm); margin: 12px 0; font-size: 0.95rem; }
+.ship-sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 8px 0 16px; }
+.ship-size { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; cursor: pointer; display: block; }
+.ship-size input { margin-right: 8px; }
+.ship-size.on { border-color: var(--accent-secondary); background: var(--accent-soft); }
+.ship-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; margin: 12px 0; }
+.ship-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.ship-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ship-chip { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 0.85rem; font-weight: 600; }
+.ship-chip.bad { background: #fee2e2; color: var(--danger); }
+.ship-chip.ok { background: #dcfce7; color: var(--success); }
+.ship-progress { display: flex; gap: 4px; margin: 12px 0 4px; padding: 0; list-style: none; }
+.ship-progress li { flex: 1; font-size: 0.7rem; text-align: center; color: var(--text-light); border-top: 4px solid var(--border); padding-top: 4px; }
+.ship-progress li.done { color: var(--text); border-top-color: var(--accent-secondary); }
+.ship-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.ship-history { margin: 10px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--text-muted); }
+.locker-picker { margin: 8px 0 16px; }
+.locker-selected { margin: 8px 0 0; }
+.locker-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
+.locker-sheet { position: absolute; inset: 3vh 3vw; background: var(--surface); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+.locker-sheet-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.locker-map { flex: 1; min-height: 0; }

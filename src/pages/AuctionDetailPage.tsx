@@ -752,6 +752,11 @@ export function AuctionDetailPage() {
                 </button>
               )}
               {!user && <p className="hint">Zaloguj się, żeby napisać po zakupie.</p>}
+              {(isWinner || isSeller) && (
+                <Link className="btn btn-outline" to={isWinner ? `/shipping/checkout/${auction.id}` : '/my/shipments?role=seller'}>
+                  {isWinner ? 'Wybierz dostawę Paczkomatem InPost' : 'Moje przesyłki'}
+                </Link>
+              )}
 
               {canRateSeller && (
                 <div className="seller-rate-box">

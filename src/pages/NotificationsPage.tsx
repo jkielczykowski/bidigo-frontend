@@ -22,6 +22,7 @@ export type AppNotification = {
     | 'fee_due'
     | 'fee_overdue'
     | 'fee_settlement'
+    | 'shipping'
   title: string
   body: string
   auction_id: string | null
@@ -70,6 +71,8 @@ function typeLabel(type: AppNotification['type']) {
       return 'Blokada'
     case 'fee_settlement':
       return 'Rozliczenie'
+    case 'shipping':
+      return 'Przesyłka'
     default:
       return 'Info'
   }
@@ -256,6 +259,17 @@ export function NotificationsPage() {
                       }}
                     >
                       Zapłać prowizję
+                    </Link>
+                  )}
+                  {n.type === 'shipping' && (
+                    <Link
+                      to="/my/shipments"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        if (!n.read_at) void markOne(n.id)
+                      }}
+                    >
+                      Moje przesyłki
                     </Link>
                   )}
                   {n.auction_id && (
