@@ -2,15 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import {
-  cancelOrder, chooseDirect, confirmReceipt, fetchOrder, markShipped, reportProblem, respondDispute, startOrderCheckout,
+  cancelOrder, chooseDirect, confirmReceipt, fetchCheckoutState, fetchOrder, markShipped, reportProblem, respondDispute, type CheckoutState,
 } from '../lib/ordersApi'
 import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type Order, type OrderAction } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
-import { PAYU_NOTE, PAYU_TEST_NOTE, orderPayState, returnedFromPayu } from '../lib/payuReturn'
-import { fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
+import { orderPayState, returnedFromPayu } from '../lib/payuReturn'
+import { DIRECT_CONSEQUENCES, countdown, whatNow } from '../lib/checkout'
+import { shipmentByOrder, type Shipment } from '../lib/shipping'
+import { OrderTimeline } from '../components/OrderTimeline'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import './shipping.css'
+import '../components/checkout.css'
 
 const DISPUTE_STATUS: Record<string, string> = {
   open: 'Rozpatrujemy zgłoszenie',
@@ -31,14 +34,20 @@ export function OrderPage() {
   const [panel, setPanel] = useState<'problem' | 'cancel' | 'ship' | 'respond' | null>(null)
   const [text, setText] = useState('')
   const [kind, setKind] = useState('not_as_described')
-  const [expected, setExpected] = useState<number | null>(null)
+  const [co, setCo] = useState<CheckoutState | null>(null)
+  const [shipment, setShipment] = useState<Shipment | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  const [confirmDirect, setConfirmDirect] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
     try {
       const o = await fetchOrder(id)
       setOrder(o)
-      setExpected((prev) => prev ?? o.totalAmount)
+      void fetchCheckoutState(o.id).then(setCo).catch(() => {})
+      if (o.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(o.status)) {
+        void shipmentByOrder(o.auctionId).then(setShipment).catch(() => setShipment(null))
+      }
       setError(null)
     } catch (e) {
       setError(errorMessage(e, 'Nie znaleziono zamówienia'))
@@ -49,9 +58,9 @@ export function OrderPage() {
     if (user) void load()
   }, [user, load])
 
-  const [payu, setPayu] = useState<PayuStatus | null>(null)
   useEffect(() => {
-    void fetchPayuStatus().then(setPayu).catch(() => setPayu(null))
+    const t = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(t)
   }, [])
 
   // return from PayU (?payment=payu): the signed notification may need a moment, so the order is re-read until it settles
@@ -77,27 +86,6 @@ export function OrderPage() {
       await load()
     } catch (e) {
       setError(errorMessage(e, 'Nie udało się wykonać operacji'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function pay() {
-    if (!order || expected == null) return
-    setBusy(true)
-    setError(null)
-    try {
-      const r = await startOrderCheckout(order.id, expected)
-      if (r.status === 'total_changed') {
-        setExpected(r.total)
-        setNotice(`Koszt zamówienia się zmienił. Nowa kwota do zapłaty: ${formatPln(r.total)}. Sprawdź i potwierdź jeszcze raz.`)
-        await load()
-      } else {
-        window.location.assign(r.checkoutUrl)
-        return
-      }
-    } catch (e) {
-      setError(errorMessage(e, 'Nie udało się rozpocząć płatności'))
     } finally {
       setBusy(false)
     }
@@ -132,6 +120,25 @@ export function OrderPage() {
         </span>
       </p>
       {returned && order.fulfillment === 'protected' && <PaymentStateBanner state={orderPayState(order.status)} />}
+      {order.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(order.status) && (
+        <section className="order-card" data-testid="order-progress">
+          <OrderTimeline status={order.status} payoutStatus={co?.payout?.status ?? null} />
+          <p><strong>{whatNow(order, order.role, co?.reportWindowHours ?? null, co?.payout?.status ?? null)}</strong></p>
+          {isBuyer && ['SHIPPED', 'DELIVERED'].includes(order.status) && order.reportUntil && (() => {
+            const c = countdown(order.reportUntil, now)
+            return c && <p className="order-countdown" data-testid="report-countdown">Okno na zgłoszenie problemu: {c.text} (do {new Date(order.reportUntil).toLocaleString('pl-PL')}).</p>
+          })()}
+          {co?.delivery && <p className="muted">Paczkomat: <strong>{co.delivery.lockerCode}</strong>{co.delivery.lockerName ? ` · ${co.delivery.lockerName}` : ''}</p>}
+          {(shipment?.trackingNumber ?? order.trackingNumber) && (
+            <p>Numer przesyłki: <strong>{shipment?.trackingNumber ?? order.trackingNumber}</strong>{' '}
+              {shipment?.trackingUrl && <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer">Śledź w InPost</a>}</p>
+          )}
+          {order.role === 'seller' && ['PAID', 'AWAITING_SHIPMENT'].includes(order.status) && (
+            <p><Link className="btn btn-primary" to="/my/shipments?role=seller">Nadaj paczkę i pobierz etykietę</Link></p>
+          )}
+          {order.role === 'seller' && <p className="hint">Pieniądze za przedmiot ({formatPln(order.itemAmount)}) czekają u operatora płatności i trafią do Ciebie po potwierdzeniu odbioru przez kupującego albo po upływie terminu bez zgłoszenia.</p>}
+        </section>
+      )}
       {notice && <p className="success">{notice}</p>}
       {error && <p className="error">{error}</p>}
 
@@ -181,26 +188,29 @@ export function OrderPage() {
       <div className="order-actions">
         {has('pay') && isBuyer && (
           <>
-            <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => void pay()}>
-              {order.status === 'PAYMENT_PROCESSING' ? 'Wróć do płatności w PayU' : `Zapłać ${formatPln(expected ?? order.totalAmount)} przez PayU`}
-            </button>
-            <p className="muted ship-note">{PAYU_NOTE}</p>
-            {payu?.testMode && <p className="ship-notice" role="note">{PAYU_TEST_NOTE}</p>}
-            {payu && !payu.ready && <p className="ship-notice" role="note">Płatności PayU nie są jeszcze włączone. Spróbuj później.</p>}
+            <Link className="btn btn-primary btn-lg" to={`/my/orders/${order.id}/checkout`}>
+              {order.status === 'PAYMENT_PROCESSING' ? 'Wróć do płatności w PayU' : 'Przejdź do kasy: dostawa i płatność przez PayU'}
+            </Link>
+            <p className="muted ship-note">Najpierw wybierzesz Paczkomat i zobaczysz pełne podsumowanie kosztów, a dopiero potem zapłacisz.</p>
           </>
         )}
-        {has('choose_direct') && (
-          <button className="btn btn-outline" disabled={busy} onClick={() => void run(() => chooseDirect(order.id), 'Przechodzisz na transakcję bezpośrednią.')}>
-            Kupuję bez ochrony
-          </button>
+        {has('choose_direct') && !confirmDirect && (
+          <button className="btn btn-outline" disabled={busy} onClick={() => setConfirmDirect(true)}>Kup bezpośrednio od sprzedającego (bez Ochrony)</button>
         )}
-        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && (
-          <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost</Link>
+        {has('choose_direct') && confirmDirect && (
+          <div className="order-card" role="alertdialog" aria-label="Zakup bezpośredni">
+            <p>{DIRECT_CONSEQUENCES}</p>
+            <button className="btn btn-outline" disabled={busy} onClick={() => void run(() => chooseDirect(order.id), 'Przechodzisz na transakcję bezpośrednią.')}>Rozumiem, kupuję bezpośrednio</button>{' '}
+            <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirmDirect(false)}>Wróć</button>
+          </div>
+        )}
+        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && !shipment && (
+          <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost (nie otworzył się automatycznie)</Link>
         )}
         {has('ship') && <button className="btn btn-primary" disabled={busy} onClick={() => setPanel('ship')}>Oznacz jako nadane</button>}
         {has('confirm_receipt') && (
-          <button className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReceipt(order.id), 'Dziękujemy! Transakcja zakończona.')}>
-            {order.fulfillment === 'protected' ? 'Potwierdzam odbiór' : 'Transakcja zrealizowana'}
+          <button className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReceipt(order.id), 'Dziękujemy! Transakcja zakończona, sprzedający dostaje pieniądze.')}>
+            {order.fulfillment === 'protected' ? 'Wszystko w porządku' : 'Transakcja zrealizowana'}
           </button>
         )}
         {has('report_problem') && <button className="btn btn-outline" disabled={busy} onClick={() => setPanel('problem')}>Zgłoś problem</button>}

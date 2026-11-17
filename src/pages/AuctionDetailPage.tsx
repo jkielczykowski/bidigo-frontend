@@ -23,8 +23,9 @@ import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
-import { ProtectionQuote } from '../components/ProtectionQuote'
-import { fetchOrderForAuction } from '../lib/ordersApi'
+import { BuyNowChoices } from '../components/BuyNowChoices'
+import { WinnerOrderCta } from '../components/WinnerOrderCta'
+import { chooseDirect, fetchOrderForAuction } from '../lib/ordersApi'
 import { addRecentView } from '../lib/recentViews'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
@@ -445,7 +446,8 @@ export function AuctionDetailPage() {
     setBuyNowOpen(true)
   }
 
-  async function confirmBuyNow() {
+  /** Both choices buy the item (the auction ends); the choice decides what happens next: checkout with Ochrona or a direct deal. */
+  async function confirmBuyNow(mode: 'protected' | 'direct') {
     if (!id || !auction?.buy_now_price) return
     setBusy(true)
     setBuyNowError(null)
@@ -456,7 +458,13 @@ export function AuctionDetailPage() {
       await load()
       // the sale created an order: take the buyer to it (pay with the protection or arrange it directly)
       const order = await fetchOrderForAuction(id).catch(() => null)
-      if (order) navigate(`/my/orders/${order.id}`)
+      if (!order) return
+      if (mode === 'protected' && order.fulfillment === 'protected') {
+        navigate(`/my/orders/${order.id}/checkout`)
+      } else {
+        if (mode === 'direct' && order.fulfillment === 'protected') await chooseDirect(order.id).catch(() => {})
+        navigate(`/my/orders/${order.id}`)
+      }
     } catch (err) {
       setBuyNowError(errorMessage(err, 'Nie udało się kupić'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
@@ -771,13 +779,7 @@ export function AuctionDetailPage() {
                 </button>
               )}
               {!user && <p className="hint">Zaloguj się, żeby napisać po zakupie.</p>}
-              {shipping.visible && isWinner && (shipping.ready ? (
-                <Link className="btn btn-outline" to={`/shipping/checkout/${auction.id}`}>
-                  Wybierz dostawę Paczkomatem InPost
-                </Link>
-              ) : (
-                <p className="hint">{SHIPPING_SOON}</p>
-              ))}
+              {isWinner && id && <WinnerOrderCta auctionId={id} shippingReady={shipping.visible && shipping.ready} />}
               {shipping.visible && isSeller && (
                 <Link className="btn btn-outline" to="/my/shipments?role=seller">
                   Moje przesyłki
@@ -1134,16 +1136,11 @@ export function AuctionDetailPage() {
               <span className="label">Cena przedmiotu</span>
               <strong>{formatPln(auction.buy_now_price)}</strong>
             </div>
-            {id && auction.buy_now_price != null && <ProtectionQuote auctionId={id} price={Number(auction.buy_now_price)} />}
             {buyNowError && <p className="error">{buyNowError}</p>}
-            <div className="modal-actions">
-              <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setBuyNowOpen(false)}>
-                Anuluj
-              </button>
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void confirmBuyNow()}>
-                {busy ? 'Kupowanie…' : `Potwierdź · ${formatPln(auction.buy_now_price)}`}
-              </button>
-            </div>
+            {id && auction.buy_now_price != null && (
+              <BuyNowChoices auctionId={id} price={Number(auction.buy_now_price)} busy={busy}
+                onProtected={() => void confirmBuyNow('protected')} onDirect={() => void confirmBuyNow('direct')} onCancel={() => setBuyNowOpen(false)} />
+            )}
           </div>
         </div>
       </Modal>

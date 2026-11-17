@@ -70,3 +70,20 @@ export async function connectPayuSandbox(): Promise<{ status: string }> {
   if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
   return (await res.json()) as { status: string }
 }
+
+export type CheckoutState = {
+  role: 'buyer' | 'seller' | 'admin'
+  delivery: { lockerCode: string; lockerName: string | null; phone?: string | null } | null
+  termsAcceptedAt: string | null
+  termsVersion: string
+  reportWindowHours: number | null
+  paymentWindowHours: number | null
+  payout: { status: string; amount: number; completedAt: string | null } | null
+  sellerReceives: number
+  parcelSize: string | null
+}
+
+export const fetchCheckoutState = (orderId: string) => rpc<CheckoutState>('order_checkout_state', { p_order_id: orderId })
+export const setOrderDelivery = (orderId: string, code: string, name: string | null, phone: string) =>
+  rpc<{ lockerCode: string }>('order_set_delivery', { p_order_id: orderId, p_locker_code: code, p_locker_name: name, p_phone: phone })
+export const acceptOrderTerms = (orderId: string, version: string) => rpc<{ acceptedAt: string }>('order_accept_terms', { p_order_id: orderId, p_version: version })

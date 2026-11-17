@@ -31,6 +31,7 @@ const MyActivityPage = page(() => import('./pages/MyActivityPage'), 'MyActivityP
 const MyBiddingPage = page(() => import('./pages/MyBiddingPage'), 'MyBiddingPage')
 const MyOrdersPage = page(() => import('./pages/MyOrdersPage'), 'MyOrdersPage')
 const OrderPage = page(() => import('./pages/OrderPage'), 'OrderPage')
+const OrderCheckoutPage = page(() => import('./pages/OrderCheckoutPage'), 'OrderCheckoutPage')
 const ProtectionTermsPage = page(() => import('./pages/ProtectionTermsPage'), 'ProtectionTermsPage')
 const MyFeesPage = page(() => import('./pages/MyFeesPage'), 'MyFeesPage')
 const MyShipmentsPage = page(() => import('./pages/MyShipmentsPage'), 'MyShipmentsPage')
@@ -80,6 +81,7 @@ export default function App() {
                   <Route path="/my/fees" element={<MyFeesPage />} />
                   <Route path="/my/orders" element={<MyOrdersPage />} />
                   <Route path="/my/orders/:id" element={<OrderPage />} />
+                  <Route path="/my/orders/:id/checkout" element={<OrderCheckoutPage />} />
                   <Route path="/ochrona-kupujacego" element={<ProtectionTermsPage />} />
                   <Route path="/my/shipments" element={<MyShipmentsPage />} />
                   <Route path="/shipping/checkout/:orderId" element={<ShippingCheckoutPage />} />
