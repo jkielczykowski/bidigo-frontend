@@ -644,7 +644,7 @@ export function LandingPage() {
           <ul className="bg-hero-perks">
             <li>Licytacja albo „Kup teraz”</li>
             <li>Oferta w 2 minuty</li>
-            <li>Jasna prowizja</li>
+            <li>Bez prowizji</li>
           </ul>
           <HeroScene />
         </div>

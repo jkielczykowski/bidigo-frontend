@@ -248,7 +248,7 @@ export function TermsPage() {
         <h2>4. Opłaty</h2>
         <ol>
           <li>Wystawianie aukcji jest bezpłatne.</li>
-          <li>Po udanej sprzedaży naliczamy prowizję platformy zgodnie ze stawką kategorii obowiązującą w chwili sprzedaży (procent ceny z kwotą minimalną i maksymalną; stawkę widać przy wystawianiu aukcji). Zmiana stawek nie dotyczy prowizji już naliczonych.</li>
+          <li>Od sprzedaży zawartych po zmianie modelu nie pobieramy prowizji. Prowizje naliczone przed zmianą (sprzedaże z wcześniejszych aukcji) pozostają należne na dotychczasowych zasadach i są widoczne w sekcji „Opłaty”. [SZKIC — wymaga weryfikacji prawnej przed publikacją]</li>
           <li>Status opłat widać w sekcji „Opłaty”.</li>
         </ol>
 

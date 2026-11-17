@@ -10,7 +10,6 @@ import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
 import type { Auction, Category } from '../lib/database.types'
-import { calcSuccessFee, formatPln } from '../lib/format'
 import { newId } from '../lib/id'
 import { supabase } from '../lib/supabase'
 import { allegroOffer, allegroPhoto, type AllegroOfferDetail } from '../lib/allegroApi'
@@ -256,31 +255,6 @@ export function CreateAuctionPage() {
       return next
     })
   }
-
-  // Rate of the chosen category: set per category in the admin panel, subcategories inherit it
-  const feeRate = useMemo(() => {
-    const cat = categories.find((c) => c.id === categoryId)
-    return {
-      percent: Number(cat?.fee_percent ?? 5),
-      min: cat?.fee_min == null ? 2 : Number(cat.fee_min),
-      max: cat ? (cat.fee_max == null ? (cat.fee_min == null ? 150 : null) : Number(cat.fee_max)) : 150,
-    }
-  }, [categories, categoryId])
-  const feePercent = feeRate.percent
-
-  const feePreviewPrice = useMemo(() => {
-    const buy = buyNowPrice ? Number(buyNowPrice) : NaN
-    const start = Number(startingPrice)
-    const reserve = reservePrice ? Number(reservePrice) : NaN
-    if (!Number.isNaN(buy) && buy > 0) return buy
-    if (!Number.isNaN(reserve) && reserve > 0) return reserve
-    return start > 0 ? start : 0
-  }, [buyNowPrice, startingPrice, reservePrice])
-
-  const feeAmount = useMemo(
-    () => (feePreviewPrice > 0 ? calcSuccessFee(feePreviewPrice, feeRate.percent, feeRate.min, feeRate.max) : 0),
-    [feePreviewPrice, feeRate],
-  )
 
   function validate(): FieldErrors {
     const errs: FieldErrors = {}
@@ -713,25 +687,10 @@ export function CreateAuctionPage() {
         </div>
 
         <div className="fee-box">
-          <h3>Prowizja od sprzedaży</h3>
+          <h3>Bez prowizji</h3>
           <p>
-            Wystawianie jest <strong>darmowe</strong>. Opłata nalicza się dopiero gdy ktoś kupi.
+            Wystawianie i licytowanie jest <strong>darmowe</strong>, a Bidigo nie pobiera prowizji od sprzedaży.
           </p>
-          <ul>
-            <li>
-              Stawka dla {categoryId ? 'wybranej kategorii' : 'kategorii'}:{' '}
-              <strong>{feePercent.toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%</strong>
-            </li>
-            <li>
-              Min. {formatPln(feeRate.min)}
-              {feeRate.max === null ? ' · bez górnego limitu' : <> · max {formatPln(feeRate.max)}</>}
-            </li>
-            {feePreviewPrice > 0 && (
-              <li>
-                Przy cenie {formatPln(feePreviewPrice)} zapłacisz ok. <strong>{formatPln(feeAmount)}</strong>
-              </li>
-            )}
-          </ul>
         </div>
 
         {error && <p className="error">{error}</p>}

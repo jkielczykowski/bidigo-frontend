@@ -63,7 +63,7 @@ export function SellBanner() {
       <div className="container home-sell-inner">
         <div>
           <h2 id="home-sell-h">Sprzedaj w 2 minuty</h2>
-          <p>Masz coś, czego już nie używasz? Wystaw to na Bidigo: licytacja albo „Kup teraz”, jasna prowizja od sprzedaży.</p>
+          <p>Masz coś, czego już nie używasz? Wystaw to na Bidigo: licytacja albo „Kup teraz”, bez prowizji od sprzedaży.</p>
           <ol className="home-sell-steps">
             {STEPS.map((s, i) => (
               <li key={s}>

@@ -130,7 +130,7 @@ export function MyHubPage() {
     {
       to: '/my/fees',
       title: 'Opłaty',
-      desc: 'Prowizje od sprzedaży',
+      desc: 'Rozliczenia z wcześniejszych sprzedaży',
       meta: loading
         ? '…'
         : stats.pendingFeeCount > 0
@@ -202,7 +202,7 @@ export function MyHubPage() {
       <section className="my-hub-section">
         <header className="my-hub-section-head">
           <h2>Sprzedaż</h2>
-          <p className="muted">Twoje oferty, aktywność i prowizje</p>
+          <p className="muted">Twoje oferty i aktywność</p>
         </header>
         <TileGrid tiles={sellTiles} />
       </section>
