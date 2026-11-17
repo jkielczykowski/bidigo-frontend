@@ -6,7 +6,7 @@ import './checkout.css'
 export function OrderTimeline({ status, payoutStatus }: { status: OrderStatus; payoutStatus?: string | null }) {
   const steps = orderTimeline({ status }, payoutStatus)
   return (
-    <ol className="order-timeline" aria-label="Postęp zamówienia" data-testid="order-timeline">
+    <ol className="order-steps" aria-label="Postęp zamówienia" data-testid="order-steps">
       {steps.map((s) => (
         <li key={s.key} className={`tl-${s.state}`} aria-current={s.state === 'current' ? 'step' : undefined}>
           <span className="tl-dot" aria-hidden="true">{s.state === 'done' ? '✓' : s.state === 'blocked' ? '!' : ''}</span>
