@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
+import { checkoutErrorText, COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
 import type { Quote } from './ordersLogic.ts'
 
 const eligible: Quote = { eligible: true, reason: null, itemPrice: 100, shippingPrice: 12.99, protectionFee: 4, total: 116.99, notEligibleText: null }
@@ -111,4 +111,14 @@ test('termin płatności: odliczanie i skutek zależny od źródła zamówienia'
   assert.equal(paymentDeadline({ ...base, source: 'auction', paymentDueAt: '2026-11-17T09:00:00Z' }, now)!.title, 'Czas na płatność z Ochroną minął')
   assert.equal(paymentDeadline({ ...base, status: 'PAID' }, now), null)
   assert.equal(paymentDeadline({ ...base, fulfillment: 'direct' }, now), null)
+})
+
+test('błąd startu płatności: czytelny komunikat, nigdy surowy kod HTTP', () => {
+  for (const status of [400, 401, 403, 404, 409, 500, 502, 503, 504]) {
+    const text = checkoutErrorText(status)
+    assert.doesNotMatch(text, /\b50[0-9]\b|\b40[0-9]\b|Bad Gateway/, String(status))
+    assert.ok(text.endsWith('.'), String(status))
+  }
+  assert.equal(checkoutErrorText(502), 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.')
+  assert.equal(checkoutErrorText(500), 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.')
 })

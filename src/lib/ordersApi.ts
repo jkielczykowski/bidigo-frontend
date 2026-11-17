@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { ApiError } from './bidigoApi'
 import { useEffect, useState } from 'react'
 import type { LockerMap, Order, Quote } from './ordersLogic'
+import { checkoutErrorText } from './checkout'
 
 // Reads and actions go straight to the database functions (rpc): the database owns the rules and the permissions.
 // Only the payment (PayU: redirect to the PayU page) needs bidigo-api.
@@ -45,8 +46,7 @@ export async function startOrderCheckout(orderId: string, expectedTotal: number)
     if (body.status === 'total_changed' && typeof body.total === 'number') return { status: 'total_changed', total: body.total }
     throw new ApiError(409, 'Ochrona nie jest już dostępna dla tego zamówienia')
   }
-  if (res.status === 503) throw new ApiError(503, 'Płatności są chwilowo niedostępne')
-  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
+  if (!res.ok) throw new ApiError(res.status, checkoutErrorText(res.status))
   const body = (await res.json()) as { checkoutUrl: string }
   return { status: 'ok', checkoutUrl: body.checkoutUrl }
 }

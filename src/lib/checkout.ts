@@ -189,3 +189,15 @@ export function paymentDeadline(order: { status: string; fulfillment: string; so
     : 'Po tym terminie Ochrona zniknie i zostanie transakcja bezpośrednia ze sprzedającym, bez Ochrony Kupującego.'
   return { title: c.expired ? 'Czas na płatność z Ochroną minął' : `Czas na płatność z Ochroną: ${c.text} (do ${new Date(order.paymentDueAt as string).toLocaleString('pl-PL')})`, consequence }
 }
+
+/** Tekst błędu startu płatności: nigdy surowy kod HTTP w kasie (status 502 i inne zostają w API). */
+export function checkoutErrorText(status: number): string {
+  switch (status) {
+    case 401: return 'Zaloguj się ponownie, żeby zapłacić.'
+    case 403:
+    case 404: return 'Tego zamówienia nie możesz opłacić.'
+    case 409: return 'Ochrona nie jest już dostępna dla tego zamówienia albo brakuje dostawy lub zgody. Odśwież stronę.'
+    case 503: return 'Płatności są chwilowo niedostępne. Spróbuj później.'
+    default: return 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.'
+  }
+}
