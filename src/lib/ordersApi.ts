@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { ApiError } from './bidigoApi'
-import type { Order, Quote } from './ordersLogic'
+import { useEffect, useState } from 'react'
+import type { LockerMap, Order, Quote } from './ordersLogic'
 
 // Reads and actions go straight to the database functions (rpc): the database owns the rules and the permissions.
 // Only the payment (PayU: redirect to the PayU page) needs bidigo-api.
@@ -87,3 +88,31 @@ export const fetchCheckoutState = (orderId: string) => rpc<CheckoutState>('order
 export const setOrderDelivery = (orderId: string, code: string, name: string | null, phone: string) =>
   rpc<{ lockerCode: string }>('order_set_delivery', { p_order_id: orderId, p_locker_code: code, p_locker_name: name, p_phone: phone })
 export const acceptOrderTerms = (orderId: string, version: string) => rpc<{ acceptedAt: string }>('order_accept_terms', { p_order_id: orderId, p_version: version })
+
+let lockerMapPromise: Promise<LockerMap> | null = null
+
+/** Mapa „kategoria → czy dopuszcza Paczkomat” (po dziedziczeniu), z backendu; jedno pobranie na wczytanie strony. */
+export function loadLockerMap(): Promise<LockerMap> {
+  if (!lockerMapPromise) {
+    lockerMapPromise = rpc<LockerMap>('categories_locker_map').catch((e) => {
+      lockerMapPromise = null
+      throw e
+    })
+  }
+  return lockerMapPromise
+}
+
+/** null while loading (or when it cannot be loaded): callers then show no Paczkomat buttons — the backend refuses them anyway. */
+export function useLockerMap(): LockerMap | null {
+  const [map, setMap] = useState<LockerMap | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadLockerMap().then((m) => alive && setMap(m)).catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  return map
+}
+
+export const fetchAuctionLockerAllowed = (auctionId: string) => rpc<boolean>('auction_locker_allowed', { p_auction_id: auctionId })

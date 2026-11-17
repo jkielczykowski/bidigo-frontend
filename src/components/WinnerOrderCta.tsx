@@ -10,7 +10,7 @@ import './checkout.css'
  * Ekran wygranej / zakupu: kupujący widzi dwa wyraźne wybory (kasa z Ochroną albo zakup bezpośredni), a nie jeden niejasny przycisk.
  * Co jest dostępne, mówi backend (rodzaj zamówienia i jego status); bez Ochrony zostaje tylko transakcja bezpośrednia.
  */
-export function WinnerOrderCta({ auctionId, shippingReady }: { auctionId: string; shippingReady: boolean }) {
+export function WinnerOrderCta({ auctionId, shippingReady, lockerOk = true }: { auctionId: string; shippingReady: boolean; lockerOk?: boolean }) {
   const [order, setOrder] = useState<Order | null | undefined>(undefined)
   useEffect(() => {
     let off = false
@@ -19,11 +19,12 @@ export function WinnerOrderCta({ auctionId, shippingReady }: { auctionId: string
   }, [auctionId])
   if (order === undefined) return null
   if (!order) {
+    if (!lockerOk) return null // kategoria nie dopuszcza Paczkomatu (V110): żadnych przycisków dostawy ani Ochrony
     return shippingReady
       ? <Link className="btn btn-outline" to={`/shipping/checkout/${auctionId}`}>Wybierz dostawę Paczkomatem InPost</Link>
       : <p className="hint">{SHIPPING_SOON}</p>
   }
-  if (order.fulfillment === 'protected' && order.status === 'AWAITING_PAYMENT') {
+  if (lockerOk && order.fulfillment === 'protected' && order.status === 'AWAITING_PAYMENT') {
     return (
       <div className="buy-choices" data-testid="winner-choices">
         <section className="buy-choice on">

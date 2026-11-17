@@ -26,6 +26,8 @@ import { recordInterest } from '../lib/interests'
 import { BuyNowChoices } from '../components/BuyNowChoices'
 import { WinnerOrderCta } from '../components/WinnerOrderCta'
 import { chooseDirect, fetchOrderForAuction } from '../lib/ordersApi'
+import { useLockerMap } from '../lib/ordersApi'
+import { lockerAllowedFor } from '../lib/ordersLogic'
 import { addRecentView } from '../lib/recentViews'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
@@ -43,6 +45,8 @@ export function AuctionDetailPage() {
   const { id } = useParams()
   const { user, profile } = useAuth()
   const shipping = useShippingStatus(!!user)
+  // Category excludes the parcel locker (V110) → no "Wybierz dostawę Paczkomatem InPost", no "Moje przesyłki" here
+  const lockerMap = useLockerMap()
   const navigate = useNavigate()
   const location = useLocation()
   const [auction, setAuction] = useState<Auction | null>(null)
@@ -482,6 +486,9 @@ export function AuctionDetailPage() {
     )
   }
 
+  // true only when the backend's map says this category allows a parcel locker (unknown / still loading = no button)
+  const lockerOk = lockerAllowedFor(lockerMap, auction.category_id) === true
+
   // Category path for the breadcrumb (category -> parent -> ...)
   const trail: { id: string; name: string }[] = []
   for (let id: string | null | undefined = auction.category_id, n = 0; id && n < 4; n++) {
@@ -779,8 +786,8 @@ export function AuctionDetailPage() {
                 </button>
               )}
               {!user && <p className="hint">Zaloguj się, żeby napisać po zakupie.</p>}
-              {isWinner && id && <WinnerOrderCta auctionId={id} shippingReady={shipping.visible && shipping.ready} />}
-              {shipping.visible && isSeller && (
+              {isWinner && id && <WinnerOrderCta auctionId={id} shippingReady={shipping.visible && shipping.ready && lockerOk} lockerOk={lockerOk} />}
+              {shipping.visible && lockerOk && isSeller && (
                 <Link className="btn btn-outline" to="/my/shipments?role=seller">
                   Moje przesyłki
                 </Link>
@@ -875,7 +882,7 @@ export function AuctionDetailPage() {
             {descOpen ? 'Pokaż mniej' : 'Pokaż cały opis'}
           </button>
         )}
-        <p className="muted">Dostawa: {shippingOptionsText(auction.shipping_options, shipping.visible)}</p>
+        <p className="muted">Dostawa: {shippingOptionsText(auction.shipping_options, shipping.visible && lockerOk)}</p>
         {!isSeller && auction.moderation_status === 'approved' && (
           <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
         )}
@@ -1138,7 +1145,7 @@ export function AuctionDetailPage() {
             </div>
             {buyNowError && <p className="error">{buyNowError}</p>}
             {id && auction.buy_now_price != null && (
-              <BuyNowChoices auctionId={id} price={Number(auction.buy_now_price)} busy={busy}
+              <BuyNowChoices auctionId={id} price={Number(auction.buy_now_price)} busy={busy} lockerOk={lockerOk}
                 onProtected={() => void confirmBuyNow('protected')} onDirect={() => void confirmBuyNow('direct')} onCancel={() => setBuyNowOpen(false)} />
             )}
           </div>

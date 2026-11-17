@@ -11,6 +11,7 @@ import { orderPayState, returnedFromPayu } from '../lib/payuReturn'
 import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib/checkout'
 import { shipmentByOrder, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
+import { fetchAuctionLockerAllowed } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import './shipping.css'
 import '../components/checkout.css'
@@ -28,6 +29,7 @@ export function OrderPage() {
   const { user } = useAuth()
   const [params] = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
+  const [lockerOk, setLockerOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -44,6 +46,8 @@ export function OrderPage() {
     try {
       const o = await fetchOrder(id)
       setOrder(o)
+      // the category of the item must allow a parcel locker before any Paczkomat button is offered (V110)
+      void fetchAuctionLockerAllowed(o.auctionId).then(setLockerOk).catch(() => setLockerOk(false))
       void fetchCheckoutState(o.id).then(setCo).catch(() => {})
       if (o.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(o.status)) {
         void shipmentByOrder(o.auctionId).then(setShipment).catch(() => setShipment(null))
@@ -205,7 +209,7 @@ export function OrderPage() {
             <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirmDirect(false)}>Wróć</button>
           </div>
         )}
-        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && !shipment && (
+        {isBuyer && lockerOk && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && !shipment && (
           <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost (nie otworzył się automatycznie)</Link>
         )}
         {has('ship') && <button className="btn btn-primary" disabled={busy} onClick={() => setPanel('ship')}>Oznacz jako nadane</button>}

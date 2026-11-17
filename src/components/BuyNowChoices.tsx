@@ -9,8 +9,10 @@ import './checkout.css'
  * „Kup teraz”: dwa wyraźne wybory zamiast jednego przycisku. Kwalifikację i kwoty zwraca backend (order_quote), gotowość płatności PayU:
  * /payments/payu/status. Gdy Ochrona jest niedostępna, jedno zdanie mówi dlaczego. Nic nie jest zaznaczone domyślnie.
  */
-export function BuyNowChoices({ auctionId, price, busy, onProtected, onDirect, onCancel }: {
+export function BuyNowChoices({ auctionId, price, busy, lockerOk = true, onProtected, onDirect, onCancel }: {
   auctionId: string
+  /** kategoria dopuszcza Paczkomat (V110); false = w ogóle nie pokazujemy Ochrony ani dostawy */
+  lockerOk?: boolean
   price: number
   busy: boolean
   onProtected: () => void
@@ -34,7 +36,7 @@ export function BuyNowChoices({ auctionId, price, busy, onProtected, onDirect, o
 
   return (
     <div className="buy-choices">
-      <section className={`buy-choice${c.protection.available ? ' on' : ' off'}`} data-testid="choice-protected">
+      {lockerOk && <section className={`buy-choice${c.protection.available ? ' on' : ' off'}`} data-testid="choice-protected">
         <h4>Kup z dostawą i Ochroną Bidigo</h4>
         {c.protection.available && cost ? (
           <>
@@ -48,7 +50,7 @@ export function BuyNowChoices({ auctionId, price, busy, onProtected, onDirect, o
         ) : (
           <p className="buy-choice-why" role="note">{c.protection.reason}</p>
         )}
-      </section>
+      </section>}
 
       <section className="buy-choice" data-testid="choice-direct">
         <h4>Kup bezpośrednio od sprzedającego</h4>
