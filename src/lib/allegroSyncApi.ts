@@ -16,6 +16,7 @@ type Row = {
   auction_id: string
   offer_id: string
   created_at: string
+  allegro_ended_at: string | null
   auctions: {
     id: string
     title: string
@@ -31,7 +32,7 @@ type Row = {
 export async function myLinkedListings(): Promise<LinkedListing[]> {
   const { data, error } = await supabase
     .from('allegro_listings')
-    .select('auction_id, offer_id, created_at, auctions!inner(id, title, description, status, bid_count, current_price, ends_at, image_urls)')
+    .select('auction_id, offer_id, created_at, allegro_ended_at, auctions!inner(id, title, description, status, bid_count, current_price, ends_at, image_urls)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as unknown as Row[])
@@ -47,6 +48,7 @@ export async function myLinkedListings(): Promise<LinkedListing[]> {
       endsAt: r.auctions!.ends_at,
       imageUrl: r.auctions!.image_urls?.[0] ?? null,
       importedAt: r.created_at,
+      endedOnAllegro: !!r.allegro_ended_at,
     }))
 }
 

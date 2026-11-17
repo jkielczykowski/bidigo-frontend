@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AllegroTabs } from '../components/AllegroTabs'
 import { useAuth } from '../lib/auth'
-import { allegroConnectUrl, allegroDisconnect, allegroStatus, type AllegroStatus } from '../lib/allegroApi'
+import { allegroConnectUrl, allegroDisconnect, allegroSetEndOnSale, allegroStatus, type AllegroStatus } from '../lib/allegroApi'
 
 /** /sell/import/connection: connect or disconnect the seller's Allegro account. */
 export function AllegroConnectionPage() {
@@ -32,6 +32,18 @@ export function AllegroConnectionPage() {
       window.location.assign(await allegroConnectUrl())
     } catch {
       setError('Nie udało się połączyć z Allegro.')
+      setBusy(false)
+    }
+  }
+
+  async function toggleEndOnSale(on: boolean) {
+    setBusy(true)
+    setError(null)
+    try {
+      setStatus(await allegroSetEndOnSale(on))
+    } catch {
+      setError(on ? 'Nie udało się włączyć opcji. Połącz konto z Allegro ponownie, żeby przyznać uprawnienie.' : 'Nie udało się zmienić ustawienia.')
+    } finally {
       setBusy(false)
     }
   }
@@ -105,10 +117,36 @@ export function AllegroConnectionPage() {
             )}
           </p>
           <ul className="alg-points">
-            <li>Mamy dostęp tylko do odczytu Twoich aktywnych ofert.</li>
-            <li>Niczego nie zmieniamy na Allegro i nie widzimy Twojego hasła.</li>
+            <li>Domyślnie mamy dostęp tylko do odczytu Twoich aktywnych ofert.</li>
+            <li>Niczego nie zmieniamy na Allegro, chyba że sam włączysz opcję kończenia ofert po sprzedaży (poniżej).</li>
+            <li>Nie widzimy Twojego hasła.</li>
             <li>Po odłączeniu usuwamy zapisany dostęp. Już zaimportowane aukcje zostają na Bidigo.</li>
           </ul>
+          <section className="alg-endsale">
+            <h3>Kończenie ofert na Allegro po sprzedaży</h3>
+            <p className="muted">
+              Gdy aukcja zaimportowana z Allegro sprzeda się na Bidigo, zakończymy też jej ofertę na Allegro, żeby nikt nie kupił
+              tego samego przedmiotu drugi raz. Dotyczy tylko sprzedaży po włączeniu opcji, sprawdzamy co kilka minut.
+            </p>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={!!status.endOnSale}
+                disabled={busy || (!status.canEndOffers && !status.endOnSale)}
+                onChange={(e) => void toggleEndOnSale(e.target.checked)}
+              />
+              Kończ oferty na Allegro po sprzedaży na Bidigo
+            </label>
+            {!status.canEndOffers && (
+              <p className="alg-warn">
+                Allegro nie przyznało jeszcze uprawnienia do kończenia ofert. Połącz konto ponownie i zaakceptuj je na ekranie
+                Allegro.
+                <button type="button" className="link-btn" disabled={busy} onClick={() => void connect()}>
+                  Połącz ponownie
+                </button>
+              </p>
+            )}
+          </section>
           <div className="alg-actions">
             <Link className="btn btn-primary" to="/sell/import">
               Wybierz oferty do importu

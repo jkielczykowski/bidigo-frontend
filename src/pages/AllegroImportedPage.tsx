@@ -325,6 +325,7 @@ export function AllegroImportedPage() {
                     </td>
                     <td>
                       <span className={`imp-status is-${l.status}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
+                      {l.endedOnAllegro && <span className="imp-note">oferta na Allegro zakończona</span>}
                     </td>
                     <td className="num">{l.bidCount}</td>
                     <td className="num">{l.currentPrice != null ? formatPln(l.currentPrice) : '—'}</td>

@@ -12,6 +12,8 @@ export type LinkedListing = {
   endsAt?: string | null
   imageUrl?: string | null
   importedAt?: string
+  /** The Allegro offer was ended because the auction sold on Bidigo */
+  endedOnAllegro?: boolean
 }
 
 export type OfferTexts = { title: string; description: string }

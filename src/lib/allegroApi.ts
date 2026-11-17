@@ -3,7 +3,15 @@ import { supabase } from './supabase'
 
 // Import of the seller's own offers from Allegro: bidigo-api /api/v1/allegro (OAuth and Allegro's API live on the server).
 
-export type AllegroStatus = { configured: boolean; connected: boolean; login?: string }
+export type AllegroStatus = {
+  configured: boolean
+  connected: boolean
+  login?: string
+  /** The seller's switch: end the Allegro offer when its auction sells on Bidigo */
+  endOnSale?: boolean
+  /** Allegro granted the permission to end offers (the seller has to connect again after it was added to the app) */
+  canEndOffers?: boolean
+}
 export type AllegroOffer = {
   id: string
   title: string
@@ -28,18 +36,24 @@ export type AllegroOfferDetail = {
   url: string
 }
 
-async function call(method: string, path: string): Promise<Response> {
+async function call(method: string, path: string, body?: unknown): Promise<Response> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   const res = await fetch(`/api/v1/allegro${path}`, {
     method,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
   return res
 }
 
 export const allegroStatus = async () => (await call('GET', '/status')).json() as Promise<AllegroStatus>
+export const allegroSetEndOnSale = async (endOnSale: boolean) =>
+  (await call('PUT', '/settings', { endOnSale })).json() as Promise<AllegroStatus>
 export const allegroConnectUrl = async () => ((await (await call('POST', '/connect')).json()) as { url: string }).url
 export const allegroDisconnect = async () => void (await call('DELETE', '/connection'))
 export const allegroOffers = async (offset = 0, limit = 50) =>

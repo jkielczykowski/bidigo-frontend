@@ -79,7 +79,9 @@ a{color:var(--accent)}
   <section id="import-allegro">
     <h2>Import ofert z Allegro</h2>
     <p>Aplikacja Bidigo korzysta z oficjalnego REST API Allegro i autoryzacji OAuth2 (authorization code). Użytkownik łączy własne konto Allegro i widzi tylko własne aktywne oferty.</p>
-    <p>Integracja działa wyłącznie w trybie odczytu. Bidigo niczego nie tworzy, nie zmienia i nie usuwa na koncie Allegro.</p>
+    <p>Domyślnie integracja działa wyłącznie w trybie odczytu: Bidigo niczego nie tworzy, nie zmienia i nie usuwa na koncie Allegro.</p>
+    <p>Jedyny wyjątek to opcja, którą sprzedawca włącza sam i która jest domyślnie wyłączona: <b>zakończenie oferty na Allegro po sprzedaży aukcji na Bidigo</b>, żeby ten sam przedmiot nie został sprzedany dwa razy. Wtedy Bidigo wysyła do Allegro polecenie zakończenia tej jednej oferty (<code>PUT /sale/offer-publication-commands</code>, akcja <code>END</code>) i nic poza tym. Dotyczy tylko aukcji sprzedanych po włączeniu opcji.</p>
+    <p>W drugą stronę: co około 30 minut Bidigo odczytuje listę aktywnych ofert sprzedawcy i, gdy oferta zakończyła się na Allegro (np. została sprzedana), anuluje odpowiadającą jej aukcję na Bidigo. Aukcji, na której są już oferty licytujących, nie anulujemy.</p>
   </section>
 
   <section id="kroki">
@@ -101,8 +103,9 @@ a{color:var(--accent)}
       <tbody>
         <tr><td><code>allegro:api:sale:offers:read</code></td><td>Odczyt listy i szczegółów własnych ofert użytkownika</td><td><span class="tag yes">używane</span></td></tr>
         <tr><td>Tytuł, opis, zdjęcia, cena, ścieżka kategorii oferty</td><td>Wypełnienie formularza aukcji na Bidigo</td><td><span class="tag yes">używane</span></td></tr>
+        <tr><td><code>allegro:api:sale:offers:write</code></td><td>Tylko po włączeniu opcji przez sprzedawcę: zakończenie oferty, której aukcja sprzedała się na Bidigo</td><td><span class="tag yes">opcjonalne</span></td></tr>
         <tr><td>Zamówienia, płatności, finanse, wiadomości, dane osobowe</td><td>Aplikacja o nie nie prosi</td><td><span class="tag no">brak dostępu</span></td></tr>
-        <tr><td>Uprawnienia zapisu (tworzenie, edycja, zamykanie ofert)</td><td>Aplikacja o nie nie prosi</td><td><span class="tag no">brak dostępu</span></td></tr>
+        <tr><td>Tworzenie i edycja ofert (zmiana opisu, ceny, zdjęć)</td><td>Bidigo tego nie robi</td><td><span class="tag no">nie używane</span></td></tr>
       </tbody>
     </table>
     </div>
@@ -122,7 +125,7 @@ a{color:var(--accent)}
 
   <section id="odlaczenie">
     <h2>Odłączenie konta</h2>
-    <p>Użytkownik może w każdej chwili odłączyć Allegro na stronie importu. Bidigo usuwa wtedy zapisane tokeny. Zgodę można też cofnąć w ustawieniach konta Allegro w sekcji aplikacji połączonych z kontem.</p>
+    <p>Użytkownik może w każdej chwili odłączyć Allegro na ekranie „Połączenie” w imporcie. Bidigo usuwa wtedy zapisane tokeny. Zgodę można też cofnąć w ustawieniach konta Allegro w sekcji aplikacji połączonych z kontem.</p>
   </section>
 
   <section id="operator">
