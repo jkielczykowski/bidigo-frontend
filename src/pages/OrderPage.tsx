@@ -179,6 +179,9 @@ export function OrderPage() {
             Kupuję bez ochrony
           </button>
         )}
+        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && (
+          <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost</Link>
+        )}
         {has('ship') && <button className="btn btn-primary" disabled={busy} onClick={() => setPanel('ship')}>Oznacz jako nadane</button>}
         {has('confirm_receipt') && (
           <button className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReceipt(order.id), 'Dziękujemy! Transakcja zakończona.')}>
