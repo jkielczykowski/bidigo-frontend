@@ -15,13 +15,24 @@ export async function linkListing(auctionId: string, offerId: string): Promise<v
 type Row = {
   auction_id: string
   offer_id: string
-  auctions: { id: string; title: string; description: string | null; status: string; bid_count: number } | null
+  created_at: string
+  auctions: {
+    id: string
+    title: string
+    description: string | null
+    status: string
+    bid_count: number
+    current_price: number | null
+    ends_at: string | null
+    image_urls: string[] | null
+  } | null
 }
 
 export async function myLinkedListings(): Promise<LinkedListing[]> {
   const { data, error } = await supabase
     .from('allegro_listings')
-    .select('auction_id, offer_id, auctions!inner(id, title, description, status, bid_count)')
+    .select('auction_id, offer_id, created_at, auctions!inner(id, title, description, status, bid_count, current_price, ends_at, image_urls)')
+    .order('created_at', { ascending: false })
   if (error) throw error
   return ((data ?? []) as unknown as Row[])
     .filter((r) => r.auctions)
@@ -32,6 +43,10 @@ export async function myLinkedListings(): Promise<LinkedListing[]> {
       description: r.auctions!.description ?? '',
       status: r.auctions!.status,
       bidCount: r.auctions!.bid_count,
+      currentPrice: r.auctions!.current_price ?? undefined,
+      endsAt: r.auctions!.ends_at,
+      imageUrl: r.auctions!.image_urls?.[0] ?? null,
+      importedAt: r.created_at,
     }))
 }
 

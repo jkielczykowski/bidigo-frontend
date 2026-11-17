@@ -375,9 +375,14 @@ export function ImportReviewPage() {
           </button>
         )}
         {phase === 'done' && doneCount > 0 && (
-          <Link className="btn" to="/my/selling">
-            Moje aukcje
-          </Link>
+          <>
+            <Link className="btn" to="/sell/import/imported">
+              Zaimportowane
+            </Link>
+            <Link className="btn" to="/my/selling">
+              Moje aukcje
+            </Link>
+          </>
         )}
         {phase === 'edit' && !ready && (
           <span className="muted">

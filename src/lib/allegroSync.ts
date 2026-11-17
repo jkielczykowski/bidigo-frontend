@@ -7,6 +7,11 @@ export type LinkedListing = {
   description: string
   status: string
   bidCount: number
+  // shown in the table of imported listings
+  currentPrice?: number
+  endsAt?: string | null
+  imageUrl?: string | null
+  importedAt?: string
 }
 
 export type OfferTexts = { title: string; description: string }
