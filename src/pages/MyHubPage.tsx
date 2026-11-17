@@ -128,6 +128,12 @@ export function MyHubPage() {
       accent: stats.activity > 0,
     },
     {
+      to: '/my/shipments',
+      title: 'Moje przesyłki',
+      desc: 'Etykiety, numery i śledzenie paczek InPost',
+      meta: 'Kupuję i sprzedaję',
+    },
+    {
       to: '/my/fees',
       title: 'Opłaty',
       desc: 'Rozliczenia z wcześniejszych sprzedaży',
