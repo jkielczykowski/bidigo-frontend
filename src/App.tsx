@@ -35,6 +35,7 @@ const MyFeesPage = page(() => import('./pages/MyFeesPage'), 'MyFeesPage')
 const MyShipmentsPage = page(() => import('./pages/MyShipmentsPage'), 'MyShipmentsPage')
 const ShippingCheckoutPage = page(() => import('./pages/ShippingCheckoutPage'), 'ShippingCheckoutPage')
 const MyHubPage = page(() => import('./pages/MyHubPage'), 'MyHubPage')
+const MySecurityPage = page(() => import('./pages/MySecurityPage'), 'MySecurityPage')
 const MySellingPage = page(() => import('./pages/MySellingPage'), 'MySellingPage')
 const NotificationsPage = page(() => import('./pages/NotificationsPage'), 'NotificationsPage')
 const ProfileSettingsPage = page(() => import('./pages/ProfileSettingsPage'), 'ProfileSettingsPage')
@@ -82,6 +83,7 @@ export default function App() {
                   <Route path="/my/shipments" element={<MyShipmentsPage />} />
                   <Route path="/shipping/checkout/:orderId" element={<ShippingCheckoutPage />} />
                   <Route path="/my/activity" element={<MyActivityPage />} />
+                  <Route path="/my/security" element={<MySecurityPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/settings" element={<ProfileSettingsPage />} />
                   <Route path="/messages" element={<MessagesPage />} />

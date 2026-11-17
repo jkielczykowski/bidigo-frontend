@@ -11,6 +11,9 @@ import { ImageCropDialog } from '../components/ImageCropDialog'
 import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
+import { AntifraudBanner } from '../components/AntifraudBanner'
+import { isAccountBlockedError } from '../lib/antifraud'
+import { useAntifraud } from '../lib/useAntifraud'
 import type { Auction, Category } from '../lib/database.types'
 import { newId } from '../lib/id'
 import { supabase } from '../lib/supabase'
@@ -58,6 +61,7 @@ function isLeafCategory(categories: Category[], id: string) {
 export function CreateAuctionPage() {
   const { user, profile, loading } = useAuth()
   const { block: feeBlock, reload: reloadFeeBlock } = useFeeBlock()
+  const { status: afStatus, reload: reloadAf } = useAntifraud()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const relistId = searchParams.get('relist')
@@ -415,6 +419,7 @@ export function CreateAuctionPage() {
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się wystawić aukcji'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
+      if (isAccountBlockedError(err)) void reloadAf()
     } finally {
       setBusy(false)
     }
@@ -478,6 +483,7 @@ export function CreateAuctionPage() {
           : 'Wymagane: tytuł, opis, kategoria, miasto, min. 1 zdjęcie (max 5), ceny i dostawa.'}
       </p>
       <FeeBlockBanner block={feeBlock} />
+      <AntifraudBanner status={afStatus} blockOnly />
       <form className="card-form" onSubmit={onSubmit} noValidate>
         <label className={fieldErrors.title ? 'has-error' : ''}>
           <span className="label-text">
