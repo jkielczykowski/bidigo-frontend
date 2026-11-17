@@ -25,6 +25,9 @@ import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
+import { forYouTitle, forYouView } from '../lib/forYou'
+import { loadForYou } from '../lib/forYouApi'
 
 type DemoAuction = Auction & { buyNowOnly?: boolean }
 
@@ -371,31 +374,35 @@ export function LandingPage() {
     }
   }, [viewedKey])
 
-  // "Dla Ciebie": the category of the auction opened most recently, and more auctions from it
-  const lastCat = viewed[0]?.category ?? null
-  const lastCatId = lastCat?.id ?? ''
-  const [lastCatItems, setLastCatItems] = useState<Auction[]>([])
+  const lastCatId = viewed[0]?.category?.id ?? ''
+
+  // „Dla Ciebie”: jedna lista z łańcuchem zapasowym (RPC for_you_auctions), niepusta, gdy w serwisie są aukcje
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+  const [fyItems, setFyItems] = useState<Auction[]>([])
+  const [fyLoading, setFyLoading] = useState(true)
+  const [fyError, setFyError] = useState(false)
+  const [fyRetry, setFyRetry] = useState(0)
   useEffect(() => {
-    if (!lastCatId) {
-      setLastCatItems([])
-      return
-    }
     let cancelled = false
-    void supabase
-      .from('auctions')
-      .select(AUCTION_CARD_COLUMNS)
-      .eq('status', 'active')
-      .eq('moderation_status', 'approved')
-      .in('category_id', categoryWithChildren(categories, lastCatId))
-      .order('ends_at', { ascending: true })
-      .limit(24)
-      .then(({ data }) => {
-        if (!cancelled) setLastCatItems((data as unknown as Auction[]) ?? [])
+    setFyLoading(true)
+    setFyError(false)
+    loadForYou(viewedKey ? viewedKey.split('|') : [], userId, categories)
+      .then((list) => {
+        if (!cancelled) setFyItems(list)
+      })
+      .catch(() => {
+        if (!cancelled) setFyError(true)
+      })
+      .finally(() => {
+        if (!cancelled) setFyLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [lastCatId, categories])
+    // the category tree is only read by the fallback path; do not refetch when it arrives
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewedKey, userId, fyRetry])
 
   // Interest profile (categories you keep looking at) -> "Dla Ciebie" rails that refresh on their own
   const [interests, setInterests] = useState<Interest[]>(getInterests)
@@ -533,11 +540,12 @@ export function LandingPage() {
     [mine, topInterests, lastCatId],
   )
   const viewedRow: RailRow | null = viewed.length > 0 ? { id: 'ostatnio-ogladane', title: 'Ostatnio oglądane', items: viewed } : null
-  const lastCatRow = useMemo<RailRow | null>(() => {
+  const forYouRow = useMemo<RailRow | null>(() => {
     const seenIds = new Set(viewed.map((a) => a.id))
-    const items = lastCatItems.filter((a) => !seenIds.has(a.id))
-    return lastCat && items.length > 0 ? { id: 'dla-ciebie-kategoria', title: `Więcej z kategorii: ${lastCat.name}`, items } : null
-  }, [lastCat, lastCatItems, viewed])
+    const items = fyItems.filter((a) => !seenIds.has(a.id))
+    return items.length > 0 ? { id: 'dla-ciebie-lista', title: forYouTitle(viewed.length > 0, userId != null), items } : null
+  }, [fyItems, viewed, userId])
+  const forYouState = forYouView({ loading: fyLoading, error: fyError, count: (viewedRow?.items.length ?? 0) + (forYouRow?.items.length ?? 0) })
   const termsRow: RailRow | null =
     forYou.length > 0 ? { id: 'dla-ciebie', title: 'Na podstawie Twoich wyszukiwań', items: forYou } : null
 
@@ -609,7 +617,7 @@ export function LandingPage() {
     const targets = root.querySelectorAll('.home-sell-inner, .bg-rail-section, .home-cat, .home-trust-grid > li')
     targets.forEach((el, i) => { if (el.classList.contains('is-in')) return; (el as HTMLElement).style.setProperty('--rv', `${(i % 6) * 60}ms`); io.observe(el) })
     return () => { io.disconnect() }
-  }, [featured.length, categories.length, liveRows.length])
+  })
 
   return (
     <div className="bidigo-home">
@@ -672,18 +680,50 @@ export function LandingPage() {
 
       <section className="bg-section bg-live">
         <div className="container">
-          {viewedRow && (
-            <section className="bg-foryou" aria-labelledby="dla-ciebie-h">
-              <header className="bg-foryou-head">
-                <h2 id="dla-ciebie-h">Dla Ciebie</h2>
+          <section className="bg-foryou" aria-labelledby="dla-ciebie-h">
+            <header className="bg-foryou-head">
+              <h2 id="dla-ciebie-h">Dla Ciebie</h2>
+              {viewedIds.length > 0 && (
                 <button type="button" className="bg-recent-clear" onClick={() => clearRecentViews()}>
                   Wyczyść ostatnio oglądane
                 </button>
-              </header>
-              <Rail row={viewedRow} demo={usingDemo} bump={bump} fresh={fresh} />
-              {lastCatRow && <Rail row={lastCatRow} demo={usingDemo} bump={bump} fresh={fresh} />}
-            </section>
-          )}
+              )}
+            </header>
+            {forYouState === 'loading' && (
+              <div className="bg-rail bg-foryou-skel" aria-busy="true" aria-label="Wczytywanie aukcji">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-card bg-skel" aria-hidden />
+                ))}
+              </div>
+            )}
+            {forYouState === 'error' && (
+              <div className="bg-foryou-msg" role="alert">
+                <p>Nie udało się wczytać polecanych aukcji.</p>
+                <button type="button" className="bg-foryou-btn" onClick={() => setFyRetry((n) => n + 1)}>
+                  Spróbuj ponownie
+                </button>
+              </div>
+            )}
+            {forYouState === 'empty' && (
+              <div className="bg-foryou-msg">
+                <p>Na razie nie ma tu żadnych aukcji. Zacznij od siebie albo zajrzyj do kategorii.</p>
+                <div className="bg-foryou-actions">
+                  <Link to="/sell" className="bg-foryou-btn">
+                    Wystaw pierwszy przedmiot
+                  </Link>
+                  <Link to="/auctions?all=1" className="bg-link-arrow">
+                    Odkrywaj kategorie →
+                  </Link>
+                </div>
+              </div>
+            )}
+            {forYouState === 'items' && (
+              <>
+                {viewedRow && <Rail row={viewedRow} demo={usingDemo} bump={bump} fresh={fresh} />}
+                {forYouRow && <Rail row={forYouRow} demo={usingDemo} bump={bump} fresh={fresh} />}
+              </>
+            )}
+          </section>
 
           {recents.length > 0 && (
             <div className="bg-recent" aria-label="Ostatnio szukane">
