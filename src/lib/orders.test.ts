@@ -76,3 +76,13 @@ test('only the actions the server allows are shown, in a stable order', () => {
   assert.deepEqual(visibleActions({ actions: ['cancel', 'pay', 'choose_direct'] }), ['pay', 'choose_direct', 'cancel'])
   assert.deepEqual(visibleActions({ actions: [] }), [])
 })
+
+test('category map: unknown while loading, excluded only when the backend says false, no category = allowed', async () => {
+  const { lockerAllowedFor, LOCKER_EXCLUDED_TEXT } = await import('./ordersLogic.ts')
+  assert.equal(lockerAllowedFor(null, 'auta-sedan'), null)            // loading: no button yet
+  assert.equal(lockerAllowedFor({ 'auta-sedan': false, 'czesci-silnik': true }, 'auta-sedan'), false)
+  assert.equal(lockerAllowedFor({ 'auta-sedan': false, 'czesci-silnik': true }, 'czesci-silnik'), true)
+  assert.equal(lockerAllowedFor({}, 'nieznana'), true)                // not in the map: the backend still decides
+  assert.equal(lockerAllowedFor(null, ''), true)
+  assert.equal(LOCKER_EXCLUDED_TEXT, 'Przedmioty z tej kategorii nie mogą być wysyłane Paczkomatem InPost.')
+})

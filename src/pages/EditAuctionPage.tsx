@@ -1,4 +1,6 @@
 import { useShippingStatus } from '../lib/shipping'
+import { lockerAllowedFor } from '../lib/ordersLogic'
+import { useLockerMap } from '../lib/ordersApi'
 import { ParcelFields } from '../components/ParcelFields'
 import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -25,6 +27,10 @@ export function EditAuctionPage() {
   const [shipping, setShipping] = useState<string[]>(['odbior'])
   const [parcel, setParcel] = useState<ParcelInput>(parcelInputFrom(null))
   const [parcelErrors, setParcelErrors] = useState<Partial<Record<keyof ParcelInput, string>>>({})
+  const lockerMap = useLockerMap()
+  const lockerOk = lockerAllowedFor(lockerMap, auction?.category_id) !== false
+  const effParcel: ParcelInput = lockerOk ? parcel : { ...parcel, locker: 'no' }
+  const effShipping = lockerOk ? shipping : shipping.filter((o) => o !== 'inpost')
   const [note, setNote] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
@@ -88,7 +94,7 @@ export function EditAuctionPage() {
     e.preventDefault()
     if (!user || !id || !auction) return
     const errs: FieldErrors = {}
-    if (shipping.length < 1) errs.shipping = 'Wybierz co najmniej jedną opcję dostawy'
+    if (effShipping.length < 1) errs.shipping = 'Wybierz co najmniej jedną opcję dostawy'
     if (buyNowPrice.trim()) {
       const b = Number(buyNowPrice)
       const floor = Math.max(Number(auction.current_price), Number(auction.starting_price))
@@ -101,7 +107,7 @@ export function EditAuctionPage() {
       setError(Object.values(errs)[0] || 'Uzupełnij pola')
       return
     }
-    const pc = parcelColumns(parcel)
+    const pc = parcelColumns(effParcel)
     setParcelErrors(pc.errors)
     if (Object.keys(pc.errors).length > 0) {
       setError('Uzupełnij dane paczki')
@@ -114,9 +120,9 @@ export function EditAuctionPage() {
       const { data, error: updErr } = await supabase
         .from('auctions')
         .update({
-          shipping_options: shipping,
+          shipping_options: effShipping,
           buy_now_price: buyNowPrice.trim() ? Number(buyNowPrice) : null,
-          ...parcelColumns(parcel).columns,
+          ...parcelColumns(effParcel).columns,
         })
         .eq('id', id)
         .eq('seller_id', user.id)
@@ -272,7 +278,7 @@ export function EditAuctionPage() {
           </legend>
           {[
             ['odbior', 'Odbiór osobisty'],
-            ...(shippingOn ? [['inpost', 'Paczkomat InPost']] : []),
+            ...(shippingOn && lockerOk ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([sid, label]) => (
             <label key={sid} className="checkbox">
@@ -283,7 +289,7 @@ export function EditAuctionPage() {
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
 
-        <ParcelFields value={parcel} onChange={setParcel} errors={parcelErrors} />
+        <ParcelFields value={effParcel} onChange={setParcel} errors={parcelErrors} categoryAllowed={lockerOk} />
 
         {error && <p className="error">{error}</p>}
         {notice && <p className="success">{notice}</p>}

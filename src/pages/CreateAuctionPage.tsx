@@ -1,4 +1,6 @@
 import { useShippingStatus } from '../lib/shipping'
+import { lockerAllowedFor } from '../lib/ordersLogic'
+import { useLockerMap } from '../lib/ordersApi'
 import { ParcelFields } from '../components/ParcelFields'
 import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -89,6 +91,11 @@ export function CreateAuctionPage() {
   const [shipping, setShipping] = useState<string[]>(['odbior'])
   const [parcel, setParcel] = useState<ParcelInput>(parcelInputFrom(null))
   const [parcelErrors, setParcelErrors] = useState<Partial<Record<keyof ParcelInput, string>>>({})
+  // A category that cannot go by parcel locker (V110): no question, no "Paczkomat InPost" option; the backend refuses it too
+  const lockerMap = useLockerMap()
+  const lockerOk = lockerAllowedFor(lockerMap, categoryId) !== false
+  const effParcel: ParcelInput = lockerOk ? parcel : { ...parcel, locker: 'no' }
+  const effShipping = lockerOk ? shipping : shipping.filter((o) => o !== 'inpost')
   const endsOn = useMemo(() => isoDay(durationDays), [durationDays])
   const [photos, setPhotos] = useState<PhotoItem[]>([])
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -308,13 +315,13 @@ export function CreateAuctionPage() {
         errs.buyNowPrice = 'Kup teraz musi być wyższe od ceny startowej'
       }
     }
-    if (shipping.length < 1) {
+    if (effShipping.length < 1) {
       errs.shipping = 'Wybierz co najmniej jedną opcję dostawy'
     }
     if (durationDays !== 7 && durationDays !== 14) {
       errs.durationDays = 'Wybierz 7 albo 14 dni'
     }
-    const pc = parcelColumns(parcel)
+    const pc = parcelColumns(effParcel)
     setParcelErrors(pc.errors)
     if (Object.keys(pc.errors).length > 0) errs.parcel = 'Uzupełnij dane paczki'
     return errs
@@ -384,8 +391,8 @@ export function CreateAuctionPage() {
         starts_at: new Date().toISOString(),
         ends_at: endsAt,
         city: city.trim(),
-        shipping_options: shipping,
-        ...parcelColumns(parcel).columns,
+        shipping_options: effShipping,
+        ...parcelColumns(effParcel).columns,
         duration_days: durationDays,
         auto_renew: autoRenew,
       }
@@ -687,7 +694,7 @@ export function CreateAuctionPage() {
           </legend>
           {[
             ['odbior', 'Odbiór osobisty'],
-            ...(shippingOn ? [['inpost', 'Paczkomat InPost']] : []),
+            ...(shippingOn && lockerOk ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([id, label]) => (
             <label key={id} className="checkbox">
@@ -698,7 +705,7 @@ export function CreateAuctionPage() {
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
 
-        <ParcelFields value={parcel} onChange={setParcel} errors={parcelErrors} />
+        <ParcelFields value={effParcel} onChange={setParcel} errors={parcelErrors} categoryAllowed={lockerOk} />
 
         <div className="location-block">
           <h3>Lokalizacja na mapie</h3>

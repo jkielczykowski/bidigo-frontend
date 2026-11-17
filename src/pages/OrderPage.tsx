@@ -8,7 +8,7 @@ import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
 import { PAYU_NOTE, PAYU_TEST_NOTE, orderPayState, returnedFromPayu } from '../lib/payuReturn'
-import { fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
+import { fetchAuctionLockerAllowed, fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import './shipping.css'
 
@@ -25,6 +25,7 @@ export function OrderPage() {
   const { user } = useAuth()
   const [params] = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
+  const [lockerOk, setLockerOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -38,6 +39,8 @@ export function OrderPage() {
     try {
       const o = await fetchOrder(id)
       setOrder(o)
+      // the category of the item must allow a parcel locker before any Paczkomat button is offered (V110)
+      void fetchAuctionLockerAllowed(o.auctionId).then(setLockerOk).catch(() => setLockerOk(false))
       setExpected((prev) => prev ?? o.totalAmount)
       setError(null)
     } catch (e) {
@@ -194,7 +197,7 @@ export function OrderPage() {
             Kupuję bez ochrony
           </button>
         )}
-        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && (
+        {isBuyer && lockerOk && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && (
           <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost</Link>
         )}
         {has('ship') && <button className="btn btn-primary" disabled={busy} onClick={() => setPanel('ship')}>Oznacz jako nadane</button>}

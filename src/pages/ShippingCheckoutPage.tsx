@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { LockerPicker } from '../components/LockerPicker'
+import { fetchAuctionLockerAllowed } from '../lib/ordersApi'
+import { LOCKER_EXCLUDED_TEXT } from '../lib/ordersLogic'
 import { useAuth } from '../lib/auth'
 import {
   SHIPPING_SOON, useShippingStatus, formatGrosz, normaliseLocker, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
@@ -26,8 +28,10 @@ export function ShippingCheckoutPage() {
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [lockerOk, setLockerOk] = useState<boolean | null>(null)
 
   useEffect(() => {
+    void fetchAuctionLockerAllowed(orderId).then(setLockerOk).catch(() => setLockerOk(false))
     void shippingConfig().then(setCfg).catch(() => setError('Nie udało się wczytać cennika dostawy.'))
     // already opened (page reloaded or the buyer came back from the payment)?
     void shipmentByOrder(orderId).then(() => nav('/my/shipments', { replace: true })).catch(() => {})
@@ -35,7 +39,23 @@ export function ShippingCheckoutPage() {
 
   if (!user) return <div className="ship-page"><p>Zaloguj się, żeby wybrać dostawę. <Link to="/login">Zaloguj się</Link></p></div>
   if (status.loaded && !status.visible) return <Navigate to="/my" replace />
-  if (!status.loaded) return <div className="ship-page"><p className="muted">Wczytywanie…</p></div>
+  if (!status.loaded || lockerOk === null) return <div className="ship-page"><p className="muted">Wczytywanie…</p></div>
+  if (!lockerOk) {
+    // direct link to the checkout of an item whose category cannot go by parcel locker
+    return (
+      <div className="ship-page">
+        <h1>Dostawa</h1>
+        <div className="ship-notice" role="status">
+          <strong>{LOCKER_EXCLUDED_TEXT}</strong>
+          <p>Umów się ze sprzedającym na odbiór osobisty lub transport w czacie.</p>
+        </div>
+        <div className="ship-actions">
+          <Link className="btn btn-primary" to="/my/orders">Zamówienia</Link>
+          <Link className="btn btn-outline" to="/messages">Wiadomości</Link>
+        </div>
+      </div>
+    )
+  }
   // The backend says a delivery cannot be paid for now (no InPost credentials, no payment gateway, sandbox with real money):
   // no form, no payment button, and nothing is ever charged.
   if (!status.ready && !protection) {
