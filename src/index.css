@@ -9296,7 +9296,6 @@ body.nav-open .header {
 .alg-tab:hover{color:var(--text)}
 .alg-tab.is-active{color:var(--accent-ink);border-bottom-color:var(--accent-secondary)}
 .alg-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:1rem}
-.imp{max-width:1040px}
 .imp-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:1.6rem 0 .6rem}
 .imp-head h2{margin:0;font-size:1.15rem}
 .imp-filter{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--text-muted)}
@@ -9312,3 +9311,9 @@ body.nav-open .header {
 .imp-status.is-active{background:#e9f9ef;color:#0f6b33}
 .imp-status.is-sold{background:#eef4ff;color:var(--accent-ink)}
 .imp-status.is-cancelled{background:#fdeceb;color:#a3231a}
+.alg-wide{max-width:960px}
+.imp-head .imp-filter{display:inline-flex;flex-direction:row;align-items:center;gap:8px}
+.imp-head .imp-filter select{width:auto}
+.bulk-pct{display:grid;gap:4px;font-size:14px}
+.bulk-pct-in{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
+.bulk-pct-in input{width:84px}

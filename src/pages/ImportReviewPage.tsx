@@ -240,18 +240,21 @@ export function ImportReviewPage() {
           </label>
           <div className="bulk-field">
             <span className="label-text">Ceny z Allegro</span>
-            <label>
-              Cena startowa
-              <input
-                type="number"
-                min={10}
-                max={100}
-                step={5}
-                value={d.startPercent}
-                onChange={(e) => setD((p) => ({ ...p, startPercent: Number(e.target.value) || 50 }))}
-              />{' '}
-              % ceny
-            </label>
+            <div className="bulk-pct">
+              <span>Cena startowa</span>
+              <span className="bulk-pct-in">
+                <input
+                  type="number"
+                  min={10}
+                  max={100}
+                  step={5}
+                  aria-label="Cena startowa jako procent ceny z Allegro"
+                  value={d.startPercent}
+                  onChange={(e) => setD((p) => ({ ...p, startPercent: Number(e.target.value) || 50 }))}
+                />
+                <span>% ceny z Allegro</span>
+              </span>
+            </div>
             <label className="checkbox">
               <input type="checkbox" checked={d.withBuyNow} onChange={(e) => setD((p) => ({ ...p, withBuyNow: e.target.checked }))} />
               „Kup teraz” = cena z Allegro

@@ -60,7 +60,7 @@ export function AllegroConnectionPage() {
   }
 
   return (
-    <div className="container narrow page alg">
+    <div className="container page alg alg-wide">
       <h1>Import z Allegro</h1>
       <AllegroTabs />
 

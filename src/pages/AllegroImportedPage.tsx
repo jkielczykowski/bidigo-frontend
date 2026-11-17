@@ -157,7 +157,7 @@ export function AllegroImportedPage() {
   const pct = progress.total > 0 ? Math.max(4, Math.round((progress.done / progress.total) * 100)) : 4
 
   return (
-    <div className="container page alg imp">
+    <div className="container page alg alg-wide imp">
       <h1>Import z Allegro</h1>
       <AllegroTabs />
 

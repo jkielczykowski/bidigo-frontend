@@ -134,7 +134,7 @@ export function ImportAllegroPage() {
   const pct = total > 0 ? Math.round((offers.length / total) * 100) : 0
 
   return (
-    <div className="container narrow page alg">
+    <div className="container page alg alg-wide">
       <h1>Import z Allegro</h1>
       <AllegroTabs />
       <p className="muted">
