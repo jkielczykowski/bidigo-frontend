@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PAYU_WAIT_MS, PAY_MESSAGES, orderPayState, returnedFromPayu, shipmentPayState } from './payuReturn.ts'
+import { PAYU_WAIT_MS, PAY_MESSAGES, orderPayState, returnedFromPayu, sellerPayuMessage, shipmentPayState } from './payuReturn.ts'
 
 test('powrót z PayU rozpoznajemy po ?payment=payu, stary ?paid=1 nic nie znaczy', () => {
   assert.equal(returnedFromPayu(new URLSearchParams('payment=payu')), true)
@@ -29,4 +29,15 @@ test('komunikaty są po polsku, wspominają PayU i nie obiecują pieniędzy prze
   for (const k of ['pending', 'paid', 'failed'] as const) assert.match(PAY_MESSAGES[k].title + PAY_MESSAGES[k].body, /PayU|płatno/i)
   assert.match(PAY_MESSAGES.pending.body, /Nic nie zostanie wysłane/)
   assert.doesNotMatch(JSON.stringify(PAY_MESSAGES), /Stripe/)
+})
+
+test('sprzedający: „konto PayU do połączenia”, dopóki nie ma zweryfikowanego konta i umowy marketplace', () => {
+  assert.equal(sellerPayuMessage({ status: 'verified', marketplaceReady: true }), null)
+  assert.match(sellerPayuMessage({ status: 'not_connected', marketplaceReady: true })!.title, /Konto PayU do połączenia/)
+  assert.match(sellerPayuMessage({ status: 'pending', marketplaceReady: true })!.title, /weryfikacji/)
+  assert.match(sellerPayuMessage({ status: 'rejected', marketplaceReady: true })!.title, /odrzucone/)
+  assert.match(sellerPayuMessage({ status: 'locked', marketplaceReady: true })!.title, /zablokowane/)
+  // bez umowy marketplace nawet zweryfikowany sprzedający nie sprzedaje z Ochroną
+  assert.match(sellerPayuMessage({ status: 'verified', marketplaceReady: false })!.title, /niedostępna/)
+  assert.match(sellerPayuMessage({ status: 'not_connected', marketplaceReady: true })!.body, /nie do Bidigo/)
 })

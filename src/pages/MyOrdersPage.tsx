@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { fetchMyOrders } from '../lib/ordersApi'
+import { fetchMyOrders, fetchMyPayuAccount } from '../lib/ordersApi'
+import { sellerPayuMessage, type SellerPayuAccount } from '../lib/payuReturn'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
+import './shipping.css'
 
 export function MyOrdersPage() {
   const { user } = useAuth()
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [account, setAccount] = useState<SellerPayuAccount | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -23,6 +26,12 @@ export function MyOrdersPage() {
       cancelled = true
     }
   }, [user, role])
+
+  useEffect(() => {
+    if (user && role === 'seller') void fetchMyPayuAccount().then(setAccount).catch(() => setAccount(null))
+  }, [user, role])
+
+  const sellerNotice = role === 'seller' && account ? sellerPayuMessage(account) : null
 
   if (!user) {
     return (
@@ -45,6 +54,12 @@ export function MyOrdersPage() {
           Moje sprzedaże
         </button>
       </div>
+      {sellerNotice && (
+        <div className="pay-banner" role="note" data-testid="seller-payu">
+          <strong>{sellerNotice.title}</strong>
+          <p>{sellerNotice.body}</p>
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
       {orders === null && !error && <p className="muted">Ładowanie…</p>}
       {orders?.length === 0 && <p className="muted">{role === 'buyer' ? 'Nie masz jeszcze zakupów.' : 'Nie masz jeszcze sprzedaży.'}</p>}

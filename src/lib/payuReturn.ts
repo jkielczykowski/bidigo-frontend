@@ -53,3 +53,32 @@ export const PAY_MESSAGES: Record<PayState, { title: string; body: string }> = {
 
 export const PAYU_NOTE = 'Płatność obsługuje PayU. Zostaniesz przekierowany na stronę PayU, a po płatności wrócisz do Bidigo.'
 export const PAYU_TEST_NOTE = 'Tryb testowy PayU (sandbox): płatności są próbne, żadne prawdziwe pieniądze nie są pobierane.'
+
+export type SellerPayuAccount = { status: 'not_connected' | 'pending' | 'verified' | 'rejected' | 'locked'; marketplaceReady: boolean }
+
+/**
+ * Stan konta PayU sprzedającego. Pieniądze za towar trafiają od kupującego prosto na konto sprzedającego w PayU (nie do Bidigo),
+ * więc bez połączonego i zweryfikowanego konta nie ma sprzedaży z Ochroną Bidigo. null = wszystko w porządku, nic nie pokazujemy.
+ */
+export function sellerPayuMessage(a: SellerPayuAccount): { title: string; body: string } | null {
+  if (a.status === 'verified' && a.marketplaceReady) return null
+  if (!a.marketplaceReady) {
+    return {
+      title: 'Sprzedaż z Ochroną Bidigo jeszcze niedostępna',
+      body: 'Ochrona Kupującego ruszy, gdy uruchomimy płatności PayU Marketplace. Do tego czasu sprzedajesz bezpośrednio, a kupujący może zapłacić tylko za dostawę przez Bidigo.',
+    }
+  }
+  switch (a.status) {
+    case 'pending':
+      return { title: 'Konto PayU w trakcie weryfikacji', body: 'Gdy PayU zweryfikuje Twoje konto, włączymy sprzedaż z Ochroną Bidigo. Do tego czasu sprzedajesz bezpośrednio.' }
+    case 'rejected':
+      return { title: 'Konto PayU odrzucone', body: 'PayU nie zweryfikował Twojego konta, więc nie możesz sprzedawać z Ochroną Bidigo. Skontaktuj się z nami, żebyśmy pomogli to wyjaśnić.' }
+    case 'locked':
+      return { title: 'Konto PayU zablokowane', body: 'Sprzedaż z Ochroną Bidigo jest wstrzymana. Skontaktuj się z nami.' }
+    default:
+      return {
+        title: 'Konto PayU do połączenia',
+        body: 'Żeby sprzedawać z Ochroną Bidigo, połącz konto PayU. Pieniądze za towar trafią prosto na Twoje konto w PayU (nie do Bidigo), po potwierdzeniu odbioru przez kupującego. Do tego czasu sprzedajesz bezpośrednio.',
+      }
+  }
+}

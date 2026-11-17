@@ -58,3 +58,6 @@ export async function fetchPayuStatus(): Promise<PayuStatus> {
   if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
   return (await res.json()) as PayuStatus
 }
+
+/** The seller's own PayU account state ("konto PayU do połączenia"), from the database function. */
+export const fetchMyPayuAccount = () => rpc<import('./payuReturn').SellerPayuAccount>('my_payu_account')
