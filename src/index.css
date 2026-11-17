@@ -9256,3 +9256,11 @@ body.nav-open .header {
 .alg-progress-fill{height:100%;border-radius:999px;background:var(--accent-secondary);transition:width .3s ease}
 .alg-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:1rem 0;font-size:14px;color:var(--text-muted)}
 @media (prefers-reduced-motion:reduce){.alg-progress-fill{transition:none}}
+.alg-item.is-done{opacity:.6;cursor:default}
+.alg-badge{display:inline-block;margin-left:8px;font-style:normal;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink)}
+.alg-sync{margin:1.4rem 0;padding:1rem 1.1rem;border:1px solid var(--border);border-radius:12px;display:grid;gap:.7rem}
+.alg-sync h2{margin:0;font-size:1.1rem}
+.alg-plan h3{margin:.9rem 0 .3rem;font-size:.95rem}
+.alg-plan ul{margin:0;padding-left:1.2rem}
+.alg-plan-actions{display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;margin-top:1rem}
+.alg-warn{margin:0;font-weight:600;color:#a3231a;flex-basis:100%}

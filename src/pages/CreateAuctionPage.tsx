@@ -14,6 +14,8 @@ import { calcSuccessFee, formatPln } from '../lib/format'
 import { newId } from '../lib/id'
 import { supabase } from '../lib/supabase'
 import { allegroOffer, allegroPhoto, type AllegroOfferDetail } from '../lib/allegroApi'
+import { importedTexts } from '../lib/allegroSync'
+import { linkListing } from '../lib/allegroSyncApi'
 import { suggestCategory } from '../lib/allegroCategory'
 import { readImportQueue, suggestPrices, writeImportQueue, type ImportQueue } from '../lib/allegroQueue'
 
@@ -129,8 +131,9 @@ export function CreateAuctionPage() {
         const offer: AllegroOfferDetail = await allegroOffer(importQueue.ids[importQueue.pos])
         if (cancelled) return
         setImportOffer(offer)
-        setTitle(offer.title.slice(0, 120))
-        setDescription(offer.description || offer.title)
+        const texts = importedTexts(offer)
+        setTitle(texts.title)
+        setDescription(texts.description)
         const { start, buyNow } = suggestPrices(offer.price)
         setStartingPrice(String(start))
         setBuyNowPrice(buyNow ? String(buyNow) : '')
@@ -418,6 +421,8 @@ export function CreateAuctionPage() {
       if (insErr) throw insErr
       // The listing is checked on the server now (pending_auto); its page shows the progress
       const created = data as { id: string }
+      // remember which Allegro offer this listing came from (the sync on /sell/import uses it)
+      if (importQueue) await linkListing(created.id, importQueue.ids[importQueue.pos])
       if (importQueue && importQueue.pos + 1 < importQueue.ids.length) {
         nextImport(created.id)
         return
