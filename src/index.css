@@ -9249,3 +9249,5 @@ body.nav-open .header {
 .alg-banner .link-btn { justify-self: start; }
 .link-btn { background: none; border: 0; padding: 0; color: var(--accent-ink); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .link-btn:disabled { opacity: .5; cursor: default; }
+
+.alg-bar-actions{display:inline-flex;gap:16px;flex-wrap:wrap}

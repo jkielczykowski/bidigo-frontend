@@ -97,6 +97,15 @@ export function ImportAllegroPage() {
     })
   }
 
+  function refresh() {
+    setPicked(new Set())
+    void loadOffers(0)
+  }
+
+  function toggleAll() {
+    setPicked((prev) => (prev.size === offers.length ? new Set() : new Set(offers.map((o) => o.id))))
+  }
+
   function start() {
     writeImportQueue({ ids: offers.filter((o) => picked.has(o.id)).map((o) => o.id), pos: 0 })
     navigate('/sell?import=1')
@@ -156,10 +165,21 @@ export function ImportAllegroPage() {
             <span>
               Połączono{status.login ? <> jako <b>{status.login}</b></> : null}
             </span>
-            <button type="button" className="link-btn" disabled={busy} onClick={() => void disconnect()}>
-              Odłącz
-            </button>
+            <span className="alg-bar-actions">
+              <button type="button" className="link-btn" disabled={busy} onClick={refresh}>
+                Odśwież listę
+              </button>
+              <button type="button" className="link-btn" disabled={busy} onClick={() => void disconnect()}>
+                Odłącz
+              </button>
+            </span>
           </div>
+
+          {offers.length > 1 && (
+            <button type="button" className="link-btn" onClick={toggleAll}>
+              {picked.size === offers.length ? 'Odznacz wszystkie' : `Zaznacz wszystkie (${offers.length})`}
+            </button>
+          )}
 
           {!busy && offers.length === 0 && <p className="muted">Nie znaleźliśmy aktywnych ofert na Twoim koncie Allegro.</p>}
 
