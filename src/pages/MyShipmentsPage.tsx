@@ -4,12 +4,55 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import {
   PROGRESS_LABELS, SHIPPING_SOON, cancelShipment, downloadLabel, formatGrosz, listShipments, nextAction, progressStep,
-  renewShipmentPayment, shippingError, useShippingStatus, type Shipment,
+  getSender, renewShipmentPayment, saveSender, shippingError, useShippingStatus, type SenderForm, type Shipment,
 } from '../lib/shipping'
 import './shipping.css'
 
 function chipClass(s: Shipment) {
   return s.status === 'SHIPPING_FAILED' || s.status === 'CANCELLED' ? 'ship-chip bad' : s.status === 'DELIVERED' ? 'ship-chip ok' : 'ship-chip'
+}
+
+/** Label sender data of the seller: asked once, only what InPost needs on the label (name; phone and e-mail come from the account). */
+function SenderDataForm({ onSaved }: { onSaved: () => void }) {
+  const [form, setForm] = useState<SenderForm | null>(null)
+  const [first, setFirst] = useState('')
+  const [last, setLast] = useState('')
+  const [company, setCompany] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    getSender().then((f) => {
+      setForm(f)
+      setFirst(f.firstName ?? '')
+      setLast(f.lastName ?? '')
+      setCompany(f.company ?? '')
+    }).catch((e) => setError(shippingError(e)))
+  }, [])
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await saveSender({ firstName: first, lastName: last, company })
+      onSaved()
+    } catch (err) {
+      setError(shippingError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="ship-sender" onSubmit={(e) => void submit(e)}>
+      <h3>Dane nadawcy na etykiecie</h3>
+      <p className="muted">Na etykiecie InPost nadawcą jesteś Ty. Podajemy tylko to, co potrzebne na etykiecie. Telefon i e-mail bierzemy z Twojego konta.</p>
+      <label>Imię<input value={first} onChange={(e) => setFirst(e.target.value)} maxLength={40} required autoComplete="given-name" /></label>
+      <label>Nazwisko<input value={last} onChange={(e) => setLast(e.target.value)} maxLength={40} required autoComplete="family-name" /></label>
+      <label>Nazwa firmy (opcjonalnie)<input value={company} onChange={(e) => setCompany(e.target.value)} maxLength={60} /></label>
+      {form && <p className="muted">Telefon: {form.phone ?? 'brak (potwierdź numer w profilu)'} · E-mail: {form.email ?? 'brak'}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <button type="submit" className="btn btn-primary" disabled={busy}>Zapisz dane nadawcy</button>
+    </form>
+  )
 }
 
 function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
@@ -44,6 +87,7 @@ function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
         </ol>
       )}
       <p>{nextAction(s)}</p>
+      {seller && s.senderDataNeeded && <SenderDataForm onSaved={onChange} />}
       {s.trackingNumber && (
         <p>
           Numer przesyłki: <strong>{s.trackingNumber}</strong>{' '}

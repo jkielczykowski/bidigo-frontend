@@ -41,6 +41,8 @@ test('progress follows the happy path and is -1 for failed or cancelled', () => 
 
 test('the seller is told to download the label, the buyer to pay', () => {
   assert.match(nextAction({ status: 'LABEL_READY', role: 'seller', labelAvailable: true }), /Pobierz etykietę/)
+  assert.match(nextAction({ status: 'SHIPPING_PAID', role: 'seller', labelAvailable: false, senderDataNeeded: true }), /dane nadawcy/)
+  assert.doesNotMatch(nextAction({ status: 'SHIPPING_PAID', role: 'buyer', labelAvailable: false, senderDataNeeded: true }), /nadawcy/)
   assert.match(nextAction({ status: 'AWAITING_SHIPPING_PAYMENT', role: 'buyer', labelAvailable: false }), /Opłać dostawę/)
 })
 

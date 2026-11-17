@@ -20,6 +20,8 @@ export type Shipment = {
   checkoutUrl?: string
   labelAvailable: boolean
   canCancel: boolean
+  /** Seller only: the paid shipment waits for the label sender data (name) */
+  senderDataNeeded: boolean
   createdAt: string
   updatedAt: string
   history: { status: ShipmentStatus; label: string; at: string }[]
@@ -96,11 +98,23 @@ export function progressStep(status: ShipmentStatus): number {
   return FLOW.indexOf(status)
 }
 
+/** The seller is the sender on the InPost label: name given once, phone (verified) and e-mail come from the account. */
+export type SenderForm = {
+  firstName?: string
+  lastName?: string
+  company?: string
+  phone?: string
+  email?: string
+  complete: boolean
+  missing: ('NAME' | 'PHONE' | 'EMAIL')[]
+}
+
 export const PROGRESS_LABELS = ['Opłata', 'Opłacona', 'Etykieta', 'Nadanie', 'W drodze', 'Dostarczona']
 
 /** What the person should do next, in their role. */
-export function nextAction(s: Pick<Shipment, 'status' | 'role' | 'labelAvailable'>): string {
+export function nextAction(s: Pick<Shipment, 'status' | 'role' | 'labelAvailable'> & { senderDataNeeded?: boolean }): string {
   const seller = s.role === 'seller'
+  if (seller && s.senderDataNeeded) return 'Uzupełnij dane nadawcy poniżej. Bez nich nie wygenerujemy etykiety.'
   switch (s.status) {
     case 'AWAITING_SHIPPING_PAYMENT':
       return seller ? 'Czekamy, aż kupujący opłaci dostawę.' : 'Opłać dostawę, żeby sprzedający mógł nadać paczkę.'

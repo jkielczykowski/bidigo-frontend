@@ -22,3 +22,6 @@
 .locker-sheet { position: absolute; inset: 3vh 3vw; background: var(--surface); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
 .locker-sheet-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .locker-map { flex: 1; min-height: 0; }
+
+.ship-sender { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.ship-sender label { display: grid; gap: 4px; font-size: 14px; }

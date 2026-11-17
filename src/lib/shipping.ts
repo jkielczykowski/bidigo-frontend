@@ -1,7 +1,7 @@
 import { ApiError } from './bidigoApi'
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import type { ParcelSize, Shipment, ShippingConfig } from './shippingModel.ts'
+import type { ParcelSize, SenderForm, Shipment, ShippingConfig } from './shippingModel.ts'
 
 export * from './shippingModel.ts'
 
@@ -30,6 +30,9 @@ export const shipmentByOrder = async (orderId: string) => (await call('GET', `/s
 export const openShipment = async (b: { orderId: string; lockerCode: string; lockerName?: string; phone: string; size: ParcelSize; protection: boolean }) =>
   (await call('POST', '/shipments', b)).json() as Promise<Shipment>
 export const renewShipmentPayment = async (id: string) => (await call('POST', `/shipments/${id}/pay`)).json() as Promise<Shipment>
+export const getSender = async () => (await call('GET', '/shipping/sender')).json() as Promise<SenderForm>
+export const saveSender = async (b: { firstName: string; lastName: string; company: string }) =>
+  (await call('PUT', '/shipping/sender', b)).json() as Promise<SenderForm>
 export const cancelShipment = async (id: string) => (await call('POST', `/shipments/${id}/cancel`)).json() as Promise<Shipment>
 
 /** The label needs the login header, so it is fetched as a blob and saved from memory, never put in a link. */
