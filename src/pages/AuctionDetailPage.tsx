@@ -24,7 +24,8 @@ import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
 import { ProtectionQuote } from '../components/ProtectionQuote'
-import { fetchOrderForAuction } from '../lib/ordersApi'
+import { fetchOrderForAuction, useLockerMap } from '../lib/ordersApi'
+import { lockerAllowedFor } from '../lib/ordersLogic'
 import { addRecentView } from '../lib/recentViews'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
@@ -42,6 +43,8 @@ export function AuctionDetailPage() {
   const { id } = useParams()
   const { user, profile } = useAuth()
   const shipping = useShippingStatus(!!user)
+  // Category excludes the parcel locker (V110) → no "Wybierz dostawę Paczkomatem InPost", no "Moje przesyłki" here
+  const lockerMap = useLockerMap()
   const navigate = useNavigate()
   const location = useLocation()
   const [auction, setAuction] = useState<Auction | null>(null)
@@ -474,6 +477,9 @@ export function AuctionDetailPage() {
     )
   }
 
+  // true only when the backend's map says this category allows a parcel locker (unknown / still loading = no button)
+  const lockerOk = lockerAllowedFor(lockerMap, auction.category_id) === true
+
   // Category path for the breadcrumb (category -> parent -> ...)
   const trail: { id: string; name: string }[] = []
   for (let id: string | null | undefined = auction.category_id, n = 0; id && n < 4; n++) {
@@ -771,14 +777,14 @@ export function AuctionDetailPage() {
                 </button>
               )}
               {!user && <p className="hint">Zaloguj się, żeby napisać po zakupie.</p>}
-              {shipping.visible && isWinner && (shipping.ready ? (
+              {shipping.visible && lockerOk && isWinner && (shipping.ready ? (
                 <Link className="btn btn-outline" to={`/shipping/checkout/${auction.id}`}>
                   Wybierz dostawę Paczkomatem InPost
                 </Link>
               ) : (
                 <p className="hint">{SHIPPING_SOON}</p>
               ))}
-              {shipping.visible && isSeller && (
+              {shipping.visible && lockerOk && isSeller && (
                 <Link className="btn btn-outline" to="/my/shipments?role=seller">
                   Moje przesyłki
                 </Link>
@@ -873,7 +879,7 @@ export function AuctionDetailPage() {
             {descOpen ? 'Pokaż mniej' : 'Pokaż cały opis'}
           </button>
         )}
-        <p className="muted">Dostawa: {shippingOptionsText(auction.shipping_options, shipping.visible)}</p>
+        <p className="muted">Dostawa: {shippingOptionsText(auction.shipping_options, shipping.visible && lockerOk)}</p>
         {!isSeller && auction.moderation_status === 'approved' && (
           <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
         )}

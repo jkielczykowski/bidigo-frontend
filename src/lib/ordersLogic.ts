@@ -208,3 +208,16 @@ export function visibleActions(o: Pick<Order, 'actions'>): OrderAction[] {
   const order: OrderAction[] = ['pay', 'choose_direct', 'ship', 'confirm_receipt', 'report_problem', 'respond_dispute', 'cancel']
   return order.filter((a) => o.actions.includes(a))
 }
+
+// ---- kategorie a Paczkomat InPost (V110): decyzję podejmuje backend, tu tylko odczyt mapy ----
+
+export type LockerMap = Record<string, boolean>
+
+/** true/false = kategoria (po dziedziczeniu) dopuszcza / wyklucza Paczkomat; null = mapa jeszcze nie wczytana. Bez kategorii: dopuszcza. */
+export function lockerAllowedFor(map: LockerMap | null, categoryId: string | null | undefined): boolean | null {
+  if (!categoryId) return true
+  if (!map) return null
+  return map[categoryId] !== false
+}
+
+export const LOCKER_EXCLUDED_TEXT = 'Przedmioty z tej kategorii nie mogą być wysyłane Paczkomatem InPost.'
