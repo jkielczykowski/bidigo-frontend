@@ -1,3 +1,5 @@
+import { ParcelFields } from '../components/ParcelFields'
+import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LocationMapView } from '../components/LocationMap'
@@ -19,6 +21,8 @@ export function EditAuctionPage() {
   const [auction, setAuction] = useState<Auction | null>(null)
   const [buyNowPrice, setBuyNowPrice] = useState('')
   const [shipping, setShipping] = useState<string[]>(['odbior'])
+  const [parcel, setParcel] = useState<ParcelInput>(parcelInputFrom(null))
+  const [parcelErrors, setParcelErrors] = useState<Partial<Record<keyof ParcelInput, string>>>({})
   const [note, setNote] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +60,7 @@ export function EditAuctionPage() {
     setAuction(a)
     setBuyNowPrice(a.buy_now_price != null ? String(a.buy_now_price) : '')
     setShipping(a.shipping_options?.length ? a.shipping_options : ['odbior'])
+    setParcel(parcelInputFrom(a))
     setError(null)
     setLoading(false)
   }
@@ -94,6 +99,12 @@ export function EditAuctionPage() {
       setError(Object.values(errs)[0] || 'Uzupełnij pola')
       return
     }
+    const pc = parcelColumns(parcel)
+    setParcelErrors(pc.errors)
+    if (Object.keys(pc.errors).length > 0) {
+      setError('Uzupełnij dane paczki')
+      return
+    }
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -103,6 +114,7 @@ export function EditAuctionPage() {
         .update({
           shipping_options: shipping,
           buy_now_price: buyNowPrice.trim() ? Number(buyNowPrice) : null,
+          ...parcelColumns(parcel).columns,
         })
         .eq('id', id)
         .eq('seller_id', user.id)
@@ -268,6 +280,8 @@ export function EditAuctionPage() {
           ))}
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
+
+        <ParcelFields value={parcel} onChange={setParcel} errors={parcelErrors} />
 
         {error && <p className="error">{error}</p>}
         {notice && <p className="success">{notice}</p>}

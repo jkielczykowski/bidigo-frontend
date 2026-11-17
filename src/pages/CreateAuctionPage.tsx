@@ -1,3 +1,5 @@
+import { ParcelFields } from '../components/ParcelFields'
+import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CategoryPicker } from '../components/CategoryPicker'
@@ -46,6 +48,7 @@ type FieldErrors = {
   buyNowPrice?: string
   durationDays?: string
   shipping?: string
+  parcel?: string
 }
 
 function isLeafCategory(categories: Category[], id: string) {
@@ -78,6 +81,8 @@ export function CreateAuctionPage() {
   const [durationDays, setDurationDays] = useState<7 | 14>(7)
   const [autoRenew, setAutoRenew] = useState(false)
   const [shipping, setShipping] = useState<string[]>(['odbior'])
+  const [parcel, setParcel] = useState<ParcelInput>(parcelInputFrom(null))
+  const [parcelErrors, setParcelErrors] = useState<Partial<Record<keyof ParcelInput, string>>>({})
   const endsOn = useMemo(() => isoDay(durationDays), [durationDays])
   const [photos, setPhotos] = useState<PhotoItem[]>([])
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -303,6 +308,9 @@ export function CreateAuctionPage() {
     if (durationDays !== 7 && durationDays !== 14) {
       errs.durationDays = 'Wybierz 7 albo 14 dni'
     }
+    const pc = parcelColumns(parcel)
+    setParcelErrors(pc.errors)
+    if (Object.keys(pc.errors).length > 0) errs.parcel = 'Uzupełnij dane paczki'
     return errs
   }
 
@@ -371,6 +379,7 @@ export function CreateAuctionPage() {
         ends_at: endsAt,
         city: city.trim(),
         shipping_options: shipping,
+        ...parcelColumns(parcel).columns,
         duration_days: durationDays,
         auto_renew: autoRenew,
       }
@@ -680,6 +689,8 @@ export function CreateAuctionPage() {
           ))}
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
+
+        <ParcelFields value={parcel} onChange={setParcel} errors={parcelErrors} />
 
         <div className="location-block">
           <h3>Lokalizacja na mapie</h3>

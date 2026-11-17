@@ -19,6 +19,8 @@ import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
+import { ProtectionQuote } from '../components/ProtectionQuote'
+import { fetchOrderForAuction } from '../lib/ordersApi'
 import { addRecentView } from '../lib/recentViews'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
@@ -445,6 +447,9 @@ export function AuctionDetailPage() {
       if (err) throw err
       setBuyNowOpen(false)
       await load()
+      // the sale created an order: take the buyer to it (pay with the protection or arrange it directly)
+      const order = await fetchOrderForAuction(id).catch(() => null)
+      if (order) navigate(`/my/orders/${order.id}`)
     } catch (err) {
       setBuyNowError(errorMessage(err, 'Nie udało się kupić'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
@@ -746,6 +751,11 @@ export function AuctionDetailPage() {
                 Sprzedane
                 {isWinner ? ' — wygrałeś!' : isSeller ? ' — Twój przedmiot znalazł nabywcę.' : '.'}
               </p>
+              {(isWinner || isSeller) && (
+                <Link className="btn btn-outline" to="/my/orders">
+                  Zamówienia
+                </Link>
+              )}
               {canChat && (
                 <button type="button" className="btn btn-primary" disabled={chatBusy} onClick={() => void openChat()}>
                   {chatBusy ? 'Otwieranie…' : isSeller ? 'Napisz do kupującego' : 'Napisz do sprzedawcy'}
@@ -1100,9 +1110,10 @@ export function AuctionDetailPage() {
             <h3>{auction.title}</h3>
             <p className="muted">Aukcja zakończy się natychmiast. Kupujesz za stałą cenę.</p>
             <div className="buy-now-price">
-              <span className="label">Do zapłaty</span>
+              <span className="label">Cena przedmiotu</span>
               <strong>{formatPln(auction.buy_now_price)}</strong>
             </div>
+            {id && auction.buy_now_price != null && <ProtectionQuote auctionId={id} price={Number(auction.buy_now_price)} />}
             {buyNowError && <p className="error">{buyNowError}</p>}
             <div className="modal-actions">
               <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setBuyNowOpen(false)}>

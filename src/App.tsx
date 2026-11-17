@@ -28,6 +28,9 @@ const HomePage = page(() => import('./pages/HomePage'), 'HomePage')
 const MessagesPage = page(() => import('./pages/MessagesPage'), 'MessagesPage')
 const MyActivityPage = page(() => import('./pages/MyActivityPage'), 'MyActivityPage')
 const MyBiddingPage = page(() => import('./pages/MyBiddingPage'), 'MyBiddingPage')
+const MyOrdersPage = page(() => import('./pages/MyOrdersPage'), 'MyOrdersPage')
+const OrderPage = page(() => import('./pages/OrderPage'), 'OrderPage')
+const ProtectionTermsPage = page(() => import('./pages/ProtectionTermsPage'), 'ProtectionTermsPage')
 const MyFeesPage = page(() => import('./pages/MyFeesPage'), 'MyFeesPage')
 const MyHubPage = page(() => import('./pages/MyHubPage'), 'MyHubPage')
 const MySellingPage = page(() => import('./pages/MySellingPage'), 'MySellingPage')
@@ -71,6 +74,9 @@ export default function App() {
                   <Route path="/my/selling" element={<MySellingPage />} />
                   <Route path="/my/bidding" element={<MyBiddingPage />} />
                   <Route path="/my/fees" element={<MyFeesPage />} />
+                  <Route path="/my/orders" element={<MyOrdersPage />} />
+                  <Route path="/my/orders/:id" element={<OrderPage />} />
+                  <Route path="/ochrona-kupujacego" element={<ProtectionTermsPage />} />
                   <Route path="/my/activity" element={<MyActivityPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
                   <Route path="/settings" element={<ProfileSettingsPage />} />

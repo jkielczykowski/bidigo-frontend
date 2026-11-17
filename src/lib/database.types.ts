@@ -61,6 +61,13 @@ export type FeeSettlement = {
 
 export type Auction = {
   id: string
+  inpost_locker_ok?: boolean | null
+  parcel_kind?: string | null
+  parcel_length_cm?: number | null
+  parcel_width_cm?: number | null
+  parcel_height_cm?: number | null
+  parcel_weight_kg?: number | null
+  locker_shipping_price?: number | null
   seller_id: string
   category_id: string | null
   title: string

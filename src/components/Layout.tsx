@@ -159,6 +159,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       { to: '/messages', icon: 'chat', label: 'Wiadomości', badge: unread },
                     ]
                   : []),
+                { to: '/my/orders', icon: 'coins', label: 'Zamówienia', badge: null },
                 { to: '/my/fees', icon: 'coins', label: 'Opłaty', badge: null },
                 { to: '/settings', icon: 'gear', label: 'Ustawienia konta', badge: null },
               ].map((l, i) => (
@@ -237,6 +238,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {unread > 0 && <span className="nav-unread">{unread > 99 ? '99+' : unread}</span>}
                     </Link>
                     <div className="nav-profile-sep" aria-hidden />
+                    <Link to="/my/orders" role="menuitem" onClick={closeMenu}>
+                      Zamówienia
+                    </Link>
                     <Link to="/my/fees" role="menuitem" onClick={closeMenu}>
                       Opłaty
                     </Link>
