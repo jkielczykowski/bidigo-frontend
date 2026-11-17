@@ -13,6 +13,9 @@ import { useCategories } from '../lib/categories'
 import { FavoriteButton } from '../lib/favorites'
 import { errorMessage } from '../lib/errors'
 import { isFeeBlockError, useFeeBlock } from '../lib/feeBlock'
+import { AntifraudBanner } from '../components/AntifraudBanner'
+import { isAccountBlockedError } from '../lib/antifraud'
+import { useAntifraud } from '../lib/useAntifraud'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
 import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
@@ -154,6 +157,7 @@ export function AuctionDetailPage() {
   const isSeller = !!user && auction?.seller_id === user.id
   const promotionsOn = usePromotionsEnabled()
   const { block: feeBlock, reload: reloadFeeBlock } = useFeeBlock()
+  const { status: afStatus, reload: reloadAf } = useAntifraud()
   const isAdmin = !!profile?.is_admin
   const isWinner = !!user && auction?.winner_id === user.id
   // Leader = top bid (amount desc, earliest first), the same order the database uses
@@ -417,6 +421,7 @@ export function AuctionDetailPage() {
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się złożyć oferty'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
+      if (isAccountBlockedError(err)) void reloadAf()
       return false
     } finally {
       setBusy(false)
@@ -448,6 +453,7 @@ export function AuctionDetailPage() {
     } catch (err) {
       setBuyNowError(errorMessage(err, 'Nie udało się kupić'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
+      if (isAccountBlockedError(err)) void reloadAf()
     } finally {
       setBusy(false)
     }
@@ -705,6 +711,7 @@ export function AuctionDetailPage() {
           )}
 
           {live && !isSeller && feeBlock?.blocked && <FeeBlockBanner block={feeBlock} />}
+          {live && !isSeller && <AntifraudBanner status={afStatus} blockOnly />}
 
           {live && !isSeller && (
             <div className="bid-form-wrap bid-form-wrap--desktop">

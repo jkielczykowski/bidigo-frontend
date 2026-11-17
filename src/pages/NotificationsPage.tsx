@@ -22,6 +22,11 @@ export type AppNotification = {
     | 'fee_due'
     | 'fee_overdue'
     | 'fee_settlement'
+    | 'antifraud_explain'
+    | 'antifraud_warning'
+    | 'antifraud_warning_risk'
+    | 'antifraud_block'
+    | 'antifraud_decision'
   title: string
   body: string
   auction_id: string | null
@@ -70,6 +75,15 @@ function typeLabel(type: AppNotification['type']) {
       return 'Blokada'
     case 'fee_settlement':
       return 'Rozliczenie'
+    case 'antifraud_explain':
+      return 'Wyjaśnij'
+    case 'antifraud_warning':
+    case 'antifraud_warning_risk':
+      return 'Ostrzeżenie'
+    case 'antifraud_block':
+      return 'Blokada'
+    case 'antifraud_decision':
+      return 'Decyzja'
     default:
       return 'Info'
   }
@@ -256,6 +270,17 @@ export function NotificationsPage() {
                       }}
                     >
                       Zapłać prowizję
+                    </Link>
+                  )}
+                  {n.type.startsWith('antifraud_') && (
+                    <Link
+                      to="/my/security"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        if (!n.read_at) void markOne(n.id)
+                      }}
+                    >
+                      Zobacz szczegóły
                     </Link>
                   )}
                   {n.auction_id && (

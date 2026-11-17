@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { FeeBlockBanner } from '../components/FeeBlockBanner'
 import { useAuth } from '../lib/auth'
 import { useFeeBlock } from '../lib/feeBlock'
+import { AntifraudBanner } from '../components/AntifraudBanner'
+import { strikeLabel } from '../lib/antifraud'
+import { useAntifraud } from '../lib/useAntifraud'
 import { useNotifications } from '../lib/notifications'
 import { useUnreadMessages } from '../lib/unreadMessages'
 import { formatPln } from '../lib/format'
@@ -51,6 +54,7 @@ export function MyHubPage() {
   const { unread: msgUnread } = useUnreadMessages()
   const { unread: notifUnread } = useNotifications()
   const { block } = useFeeBlock()
+  const { status: afStatus } = useAntifraud()
   const [stats, setStats] = useState<HubStats>({
     selling: 0,
     bidding: 0,
@@ -181,6 +185,13 @@ export function MyHubPage() {
 
   const accountTiles: Tile[] = [
     {
+      to: '/my/security',
+      title: 'Bezpieczeństwo konta',
+      desc: 'Ostrzeżenia, oceny systemowe, wyjaśnienia i odwołania',
+      meta: !afStatus || afStatus.level === 'none' ? 'Bez uwag' : afStatus.blocked ? 'Konto zablokowane' : `Ostrzeżenie ${strikeLabel(afStatus.strikes, afStatus.threshold)}`,
+      accent: !!afStatus && afStatus.level !== 'none',
+    },
+    {
       to: '/settings',
       title: 'Ustawienia',
       desc: 'Profil, miasto i dane konta',
@@ -197,6 +208,7 @@ export function MyHubPage() {
         <p>Wybierz kafelek — aukcje, opłaty i wiadomości są osobno, nie na jednej ścianie.</p>
       </div>
 
+      <AntifraudBanner status={afStatus} />
       <FeeBlockBanner block={block} showDueSoon />
 
       <section className="my-hub-section">

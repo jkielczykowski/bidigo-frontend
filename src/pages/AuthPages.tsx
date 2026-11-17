@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ResendConfirmation } from '../components/ResendConfirmation'
 import { TURNSTILE_SITE_KEY, Turnstile } from '../components/Turnstile'
 import { useAuth } from '../lib/auth'
+import { parsePrecheck } from '../lib/antifraud'
 import { supabase } from '../lib/supabase'
 import {
   awaitsSecondConfirmation,
@@ -137,6 +138,16 @@ export function RegisterPage() {
       const taken = await checkEmailAvailability()
       if (taken?.emailTaken) {
         setError('Popraw zaznaczone pole.')
+        return
+      }
+
+      // Anti-fraud (V90): a listed e-mail / phone is refused with the ordinary failure text — never with the reason.
+      // An unusable answer (rate limit, function not deployed yet) lets the sign-up go on: the database is the hard stop.
+      const { data: pre } = await supabase.rpc('antifraud_signup_precheck', { p_email: email.trim(), p_phone: normalized })
+      if (parsePrecheck(pre) === false) {
+        setCaptchaToken(null)
+        setCaptchaKey((k) => k + 1)
+        setError(SIGNUP_FAILED_MESSAGE)
         return
       }
 
