@@ -77,3 +77,11 @@ export function calcSuccessFee(salePrice: number, feePercent: number, minFee = 2
   const fee = Math.max(minFee, Math.round(salePrice * feePercent) / 100)
   return maxFee === null ? fee : Math.min(maxFee, fee)
 }
+
+const SHIPPING_LABELS: Record<string, string> = { odbior: 'odbiór osobisty', inpost: 'InPost', kurier: 'kurier' }
+
+/** „odbior, kurier” → „odbiór osobisty, kurier”; nieznane kody pomijamy, pusta lista = do uzgodnienia */
+export function shippingLabels(options: string[] | null | undefined): string {
+  const labels = (options ?? []).map((o) => SHIPPING_LABELS[o]).filter(Boolean)
+  return labels.length ? labels.join(', ') : 'do uzgodnienia'
+}

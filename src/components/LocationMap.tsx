@@ -62,7 +62,7 @@ export function LocationMapPicker({ lat, lng, city, className }: MapPickerProps)
     return (
       <div className={`location-map location-map--picker ${className || ''}`}>
         <p className="location-map-hint muted">
-          Wyszukaj miejscowość powyżej — na mapie Google pojawi się pinezka (jak we FluffyTag).
+          Wyszukaj miejscowość powyżej — na mapie Google pojawi się pinezka.
         </p>
         <div className="location-map-placeholder">Wybierz miejscowość, żeby zobaczyć mapę</div>
       </div>

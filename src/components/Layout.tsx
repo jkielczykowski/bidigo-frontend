@@ -322,7 +322,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="container footer-bottom">
           <p>© {new Date().getFullYear()} Bidigo</p>
-          <p className="footer-joke">bidigo.pl — domena w przygotowaniu</p>
         </div>
         <div className="container footer-company">
           <address>

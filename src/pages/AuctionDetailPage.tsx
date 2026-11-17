@@ -17,7 +17,7 @@ import { AntifraudBanner } from '../components/AntifraudBanner'
 import { isAccountBlockedError } from '../lib/antifraud'
 import { useAntifraud } from '../lib/useAntifraud'
 import type { Auction, AuctionComment, Bid, SellerNote, SellerRating } from '../lib/database.types'
-import { bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
+import { shippingLabels, bidLabel, formatEndsAt, formatPln, formatRemaining, minNextBid } from '../lib/format'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
@@ -864,7 +864,7 @@ export function AuctionDetailPage() {
             {descOpen ? 'Pokaż mniej' : 'Pokaż cały opis'}
           </button>
         )}
-        <p className="muted">Dostawa: {auction.shipping_options?.join(', ') || 'do uzgodnienia'}</p>
+        <p className="muted">Dostawa: {shippingLabels(auction.shipping_options)}</p>
         {!isSeller && auction.moderation_status === 'approved' && (
           <ReportAuction auctionId={auction.id} userId={user?.id ?? null} />
         )}

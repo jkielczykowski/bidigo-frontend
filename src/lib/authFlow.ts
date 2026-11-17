@@ -30,7 +30,7 @@ export function isUserExists(err: unknown) {
 export const EMAIL_TAKEN_MESSAGE = 'Ten adres e-mail jest już zajęty. Zaloguj się lub zresetuj hasło.'
 /** Any server-side failure of sign-up (5xx / "Database error…"): never show Supabase's English text */
 export const SIGNUP_FAILED_MESSAGE =
-  'Nie udało się założyć konta. Spróbuj ponownie za chwilę. Jeśli błąd się powtarza, napisz na kontakt@bidigo.pl.'
+  'Nie udało się założyć konta. Spróbuj ponownie za chwilę. Jeśli błąd się powtarza, napisz na pomoc@bidigo.pl.'
 /** A number already confirmed by SMS on another account (request_phone_otp / claim_phone_verification, V52) */
 export const PHONE_CONFIRMED_ELSEWHERE_MESSAGE = 'Ten numer telefonu jest już potwierdzony na innym koncie.'
 

@@ -201,7 +201,7 @@ export function PrivacyPolicyPage() {
 }
 
 export function TermsPage() {
-  const updated = '7 października 2026'
+  const updated = '17 listopada 2026'
 
   return (
     <div className="container narrow page legal-page">
@@ -219,7 +219,7 @@ export function TermsPage() {
 
         <h2>1. Postanowienia ogólne</h2>
         <ol>
-          <li>Serwis umożliwia wystawianie aukcji, składanie ofert (licytację) oraz komunikację po sprzedaży.</li>
+          <li>Serwis umożliwia wystawianie aukcji, składanie ofert (licytację), zawieranie transakcji oraz komunikację po sprzedaży.</li>
           <li>Korzystanie z Serwisu wymaga konta oraz akceptacji Regulaminu i Polityki prywatności.</li>
           <li>Licytować i sprzedawać może osoba, która ukończyła 18 lat.</li>
           <li>Operatorem Serwisu jest podmiot wskazany w Polityce prywatności.</li>
@@ -229,8 +229,8 @@ export function TermsPage() {
         <ol>
           <li>Użytkownik podaje prawdziwe dane (w szczególności e-mail i telefon).</li>
           <li>Numer telefonu może wymagać weryfikacji kodem.</li>
-          <li>Zabrania się zakładania kont w celu spamowania, oszustwa lub obchodzenia banów.</li>
-          <li>Możemy zawiesić lub usunąć konto przy naruszeniu Regulaminu.</li>
+          <li>Zabrania się zakładania kont w celu spamowania, oszustwa lub obchodzenia blokad.</li>
+          <li>Możemy zawiesić lub usunąć konto przy naruszeniu Regulaminu, na zasadach opisanych w punkcie 8.</li>
           <li>
             Konto usuniesz według instrukcji na stronie <a href="/usun-konto">Usunięcie konta</a>.
           </li>
@@ -241,26 +241,111 @@ export function TermsPage() {
           <li>Sprzedający odpowiada za treść oferty, zdjęcia, stan przedmiotu i prawo do sprzedaży.</li>
           <li>Zabrania się treści nielegalnych, obraźliwych, wprowadzających w błąd oraz towarów zakazanych.</li>
           <li>Oferta (bid) jest wiążąca w ramach zasad aukcji; „Kup teraz” kończy sprzedaż natychmiast.</li>
-          <li>Zwycięzca i sprzedający dogadują płatność i odbiór / wysyłkę we własnym zakresie (o ile Serwis nie prowadzi escrow).</li>
           <li>Oferty mogą podlegać moderacji przed publikacją.</li>
         </ol>
 
         <h2>4. Opłaty</h2>
         <ol>
-          <li>Wystawianie aukcji jest bezpłatne.</li>
-          <li>Od sprzedaży zawartych po zmianie modelu nie pobieramy prowizji. Prowizje naliczone przed zmianą (sprzedaże z wcześniejszych aukcji) pozostają należne na dotychczasowych zasadach i są widoczne w sekcji „Opłaty”. [SZKIC — wymaga weryfikacji prawnej przed publikacją]</li>
-          <li>Status opłat widać w sekcji „Opłaty”.</li>
+          <li>Wystawianie aukcji, licytowanie i sprzedaż są bezpłatne. Od sprzedaży zawartych po zmianie modelu nie pobieramy prowizji od sprzedającego.</li>
+          <li>
+            Prowizje naliczone przed zmianą modelu (sprzedaże z wcześniejszych aukcji) pozostają należne na dotychczasowych
+            zasadach i są widoczne w sekcji „Opłaty”.
+          </li>
+          <li>
+            Jedyną opłatą w nowym modelu jest opcjonalna opłata za Ochronę Kupującego (punkt 6), płacona przez kupującego.
+            Jej wysokość ustala Bidigo (może zależeć od kategorii i podlegać promocjom) i jest pokazywana kupującemu przed
+            płatnością, razem z ceną przedmiotu i kosztem dostawy.
+          </li>
         </ol>
 
-        <h2>5. Wiadomości</h2>
+        <h2>5. Zamówienia</h2>
+        <ol>
+          <li>
+            Gdy aukcja kończy się sprzedażą (zwycięska oferta albo „Kup teraz”), powstaje zamówienie widoczne w sekcji
+            „Zamówienia” kupującego i sprzedającego. Kupujący i sprzedający mogą też rozmawiać na czacie.
+          </li>
+          <li>
+            Dla przedmiotów, które kwalifikują się do Ochrony Kupującego, kupujący wybiera: zapłatę w Bidigo z Ochroną albo
+            transakcję bezpośrednią. Dla pozostałych przedmiotów transakcja odbywa się bezpośrednio między stronami (odbiór
+            osobisty lub wysyłka ustalona na czacie) — płatności i rozliczenia stron Bidigo wtedy nie obsługuje.
+          </li>
+          <li>
+            Jeśli kupujący nie zapłaci z Ochroną w podanym w zamówieniu terminie, zamówienie staje się zwykłą transakcją
+            bezpośrednią.
+          </li>
+          <li>
+            Zamówienie można anulować do momentu nadania paczki. Anulowanie opłaconego zamówienia przed nadaniem oznacza
+            zwrot całej wpłaty, razem z opłatą za ochronę.
+          </li>
+        </ol>
+
+        <h2>6. Ochrona Kupującego</h2>
+        <ol>
+          <li>
+            Ochrona Kupującego to opcjonalna, płatna usługa dostępna dla przedmiotów wysyłanych Paczkomatem InPost.
+            Serwis sam ocenia, czy przedmiot się kwalifikuje: sprzedający musi zadeklarować wysyłkę Paczkomatem i podać
+            wymiary, wagę oraz koszt wysyłki, a paczka musi mieścić się w limitach przewoźnika. Usługa może być niedostępna
+            dla niektórych kategorii lub cen. Przedmiot, który się nie kwalifikuje, jest sprzedawany bezpośrednio.
+          </li>
+          <li>
+            Kupujący płaci w Bidigo cenę przedmiotu, koszt dostawy i opłatę za ochronę. Płatności obsługuje zewnętrzny
+            operator płatności; Bidigo nie przechowuje danych karty.
+          </li>
+          <li>
+            Po doręczeniu kupujący potwierdza odbiór albo w terminie podanym w zamówieniu zgłasza problem (paczka nie dotarła,
+            jest uszkodzona lub niezgodna z opisem). Bez zgłoszenia zamówienie kończy się samo po upływie tego terminu.
+          </li>
+          <li>
+            Zgłoszenie rozpatruje Bidigo, po wysłuchaniu obu stron. Decyzja może przewidywać zwrot pełny, częściowy albo jego
+            brak. Zwrot trafia na pierwotny sposób płatności.
+          </li>
+          <li>
+            Ochrona nie ogranicza ustawowych praw kupującego, w tym praw konsumenta wobec sprzedawcy będącego przedsiębiorcą,
+            ani prawa do zgłoszenia reklamacji czy sporu u operatora karty.
+          </li>
+        </ol>
+
+        <h2>7. Przesyłki InPost</h2>
+        <ol>
+          <li>Wysyłka Paczkomatem InPost odbywa się na zasadach przewoźnika; sprzedający odpowiada za prawidłowe zapakowanie i dane paczki.</li>
+          <li>Wymiary i waga podane w ofercie muszą odpowiadać rzeczywistej paczce. Podanie nieprawdziwych danych może skutkować utratą dostępu do Ochrony.</li>
+          <li>Kupujący odbiera paczkę w wybranym Paczkomacie w terminie wyznaczonym przez przewoźnika; nieodebranie przesyłki może być uznane za naruszenie (punkt 8).</li>
+        </ol>
+
+        <h2>8. Zasady antyfraudowe i blokady</h2>
+        <ol>
+          <li>
+            Naruszeniem są w szczególności: niezapłacenie za wygraną aukcję lub zamówienie, nieodebranie paczki, niewysłanie
+            sprzedanego przedmiotu, nadużywanie zgłoszeń oraz próby obejścia blokady.
+          </li>
+          <li>
+            Przed uznaniem naruszenia dajemy użytkownikowi możliwość wyjaśnienia sprawy. Naruszenie potwierdza człowiek;
+            użytkownik jest informowany o decyzji i może się od niej odwołać w wyznaczonym terminie. Uznane odwołanie
+            anuluje naruszenie.
+          </li>
+          <li>
+            Trzecie potwierdzone naruszenie w okresie 12 miesięcy skutkuje blokadą możliwości licytowania, kupowania
+            i wystawiania. Terminy i próg mogą zostać zmienione; aktualnie obowiązujące wartości podajemy w komunikacie
+            o naruszeniu.
+          </li>
+          <li>
+            W celu zapobiegania nadużyciom przechowujemy w zabezpieczonej formie (jako skrót kryptograficzny) adres e-mail
+            i numer telefonu zablokowanych kont przez ograniczony czas; szczegóły w <a href="/privacy">Polityce prywatności</a>.
+          </li>
+        </ol>
+
+        <h2>9. Wiadomości</h2>
         <ol>
           <li>Czat kupujący–sprzedający aktywuje się po zakończonej sprzedaży.</li>
           <li>Zabrania się nękania, spamowania i udostępniania treści zabronionych.</li>
         </ol>
 
-        <h2>6. Odpowiedzialność</h2>
+        <h2>10. Odpowiedzialność</h2>
         <ol>
-          <li>Serwis jest platformą pośredniczącą — nie jest stroną umowy sprzedaży między użytkownikami (chyba że wyraźnie wskazano inaczej).</li>
+          <li>
+            Serwis jest platformą pośredniczącą — nie jest stroną umowy sprzedaży między użytkownikami (chyba że wyraźnie
+            wskazano inaczej). Ochrona Kupującego jest odrębną usługą Bidigo opisaną w punkcie 6.
+          </li>
           <li>
             Nie gwarantujemy, że każda transakcja zakończy się bez problemów. Ogłoszenie, użytkownika
             albo nadużycie zgłoś na <a href={`mailto:${operator.email}`}>{operator.email}</a>.
@@ -268,20 +353,22 @@ export function TermsPage() {
           <li>Dokładamy starań, by Serwis działał, ale mogą występować przerwy techniczne.</li>
         </ol>
 
-        <h2>7. Reklamacje i kontakt</h2>
+        <h2>11. Reklamacje i kontakt</h2>
         <p>
           Reklamacje i zgłoszenia: <a href={`mailto:${operator.email}`}>{operator.email}</a>.
-          Pomoc: <a href="/pomoc">bidigo.pl/pomoc</a> (domena w przygotowaniu).
+          Pomoc: <a href="/pomoc">bidigo.pl/pomoc</a>.
         </p>
 
-        <h2>8. Zmiany regulaminu</h2>
+        <h2>12. Zmiany regulaminu</h2>
         <p>
           Możemy zmieniać Regulamin. Aktualna wersja jest publikowana w Serwisie. Dalsze korzystanie
           po zmianie oznacza akceptację, o ile przepisy nie stanowią inaczej.
         </p>
 
         <p className="muted" style={{ marginTop: '2rem' }}>
-          Zobacz też: <a href="/privacy">Polityka prywatności</a>
+          Zobacz też: <a href="/ochrona-kupujacego">Ochrona Kupującego</a>
+          {' · '}
+          <a href="/privacy">Polityka prywatności</a>
           {' · '}
           <a href="/pomoc">Pomoc</a>
           {' · '}

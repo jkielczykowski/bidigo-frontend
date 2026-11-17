@@ -334,8 +334,9 @@ export function MyFeesPage() {
       </div>
 
       <p className="muted my-section-count">
-        Stawka prowizji zależy od kategorii — widzisz ją przy wystawianiu aukcji. Płacisz je zbiorczo, jedną płatnością przez Stripe: rozliczenie wystawiamy,
-        gdy prowizje dojdą do {formatPln(threshold)}, albo 1. dnia miesiąca — masz wtedy 14 dni na zapłatę.
+        Bidigo nie pobiera już prowizji od nowych sprzedaży. Poniżej są tylko należności z wcześniejszych sprzedaży, które pozostają do rozliczenia.
+        Płacisz je zbiorczo, jedną płatnością przez Stripe: rozliczenie wystawiamy, gdy należności dojdą do {formatPln(threshold)}, albo 1. dnia miesiąca —
+        masz wtedy 14 dni na zapłatę.
       </p>
 
       {returnedPaid &&

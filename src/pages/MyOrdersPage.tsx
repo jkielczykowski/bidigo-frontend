@@ -5,7 +5,6 @@ import { fetchMyOrders } from '../lib/ordersApi'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
-import '../orders.css'
 
 export function MyOrdersPage() {
   const { user } = useAuth()

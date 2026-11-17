@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /my
+Disallow: /messages
+Disallow: /notifications
+Disallow: /settings
+Disallow: /sell
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+
+Sitemap: https://bidigo.pl/sitemap.xml

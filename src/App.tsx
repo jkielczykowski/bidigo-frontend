@@ -10,6 +10,7 @@ import { NotificationsProvider } from './lib/notifications'
 import { UnreadMessagesProvider } from './lib/unreadMessages'
 import { LandingPage } from './pages/LandingPage'
 import './index.css'
+import './orders.css'
 
 // The home page ships in the main bundle; every other page loads when first visited
 const page = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>

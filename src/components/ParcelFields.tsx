@@ -9,9 +9,12 @@ type Props = {
 /** Seller's answer to „Czy można wysłać Paczkomatem InPost?” + the package data (the backend decides whether it qualifies). */
 export function ParcelFields({ value, onChange, errors = {} }: Props) {
   const set = (patch: Partial<ParcelInput>) => onChange({ ...value, ...patch })
-  const field = (key: keyof ParcelInput, label: string, unit: string, mode: 'decimal' | 'text' = 'decimal') => (
+  const field = (key: keyof ParcelInput, label: string, unit: string, mode: 'decimal' | 'text' = 'decimal', required = true) => (
     <label className={errors[key] ? 'has-error' : ''}>
-      <span className="label-text">{label}</span>
+      <span className="label-text">
+        {label}
+        {required && <span className="req"> *</span>}
+      </span>
       <input
         type="text"
         inputMode={mode}
@@ -38,14 +41,17 @@ export function ParcelFields({ value, onChange, errors = {} }: Props) {
         Dla przedmiotów wysyłanych Paczkomatem kupujący może wybrać płatną Ochronę Kupującego Bidigo. Nie pobieramy od Ciebie żadnej prowizji.
       </p>
       {value.locker === 'yes' && (
+        <>
+        <p className="hint">Wymiary, waga i koszt wysyłki są wymagane — bez nich kupujący nie zobaczy Ochrony.</p>
         <div className="parcel-grid">
           {field('length', 'Długość', 'cm')}
           {field('width', 'Szerokość', 'cm')}
           {field('height', 'Wysokość', 'cm')}
           {field('weight', 'Waga', 'kg')}
-          {field('kind', 'Rodzaj przedmiotu', 'np. ubrania, książki', 'text')}
+          {field('kind', 'Rodzaj przedmiotu', 'np. ubrania, książki', 'text', false)}
           {field('shippingPrice', 'Koszt wysyłki Paczkomatem (płaci kupujący)', 'zł')}
         </div>
+        </>
       )}
     </fieldset>
   )

@@ -7,7 +7,6 @@ import {
 import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type Order, type OrderAction } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
-import '../orders.css'
 
 const DISPUTE_STATUS: Record<string, string> = {
   open: 'Rozpatrujemy zgłoszenie',
@@ -149,6 +148,9 @@ export function OrderPage() {
               Bidigo nie pobiera żadnej opłaty ani nie przyjmuje tu płatności.
             </p>
           </>
+        )}
+        {order.status === 'DELIVERED' && order.reportUntil && (
+          <p className="hint">Problem możesz zgłosić do {new Date(order.reportUntil).toLocaleString('pl-PL')}. Potem zamówienie kończy się automatycznie.</p>
         )}
         {order.refundedAmount > 0 && <p>Zwrócono: <strong>{formatPln(order.refundedAmount)}</strong></p>}
         {order.status === 'AWAITING_PAYMENT' && order.paymentDueAt && (
