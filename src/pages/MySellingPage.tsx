@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AuctionCard } from '../components/AuctionCard'
 import { Pagination } from '../components/Pagination'
+import { SellerPayuBanner } from '../components/SellerPayuBanner'
 import { useAuth } from '../lib/auth'
 import type { Auction } from '../lib/database.types'
 import { formatPln } from '../lib/format'
@@ -97,6 +98,7 @@ export function MySellingPage() {
       </Link>
       <div className="page-head-row">
         <h1>Moje aukcje</h1>
+        <SellerPayuBanner />
         <div className="page-head-actions">
           <Link to="/sell/import" className="btn btn-outline">
             Import z Allegro

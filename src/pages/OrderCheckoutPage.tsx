@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { LockerPicker } from '../components/LockerPicker'
 import { useAuth } from '../lib/auth'
 import { acceptOrderTerms, fetchCheckoutState, fetchOrder, fetchPayuStatus, setOrderDelivery, startOrderCheckout, type CheckoutState, type PayuStatus } from '../lib/ordersApi'
-import { COVERS, NOT_COVERS, PAYMENT_METHODS_NOTE, howItWorks } from '../lib/checkout'
+import { COVERS, NOT_COVERS, PAYMENT_METHODS_NOTE, howItWorks, paymentDeadline } from '../lib/checkout'
 import { PAYU_TEST_NOTE } from '../lib/payuReturn'
 import { costLines, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
@@ -96,6 +96,10 @@ export function OrderCheckoutPage() {
       <p><Link to={`/my/orders/${order.id}`}>← Zamówienie {order.number}</Link></p>
       <h1>Podsumowanie zamówienia</h1>
       <p className="muted">{order.itemTitle}</p>
+      {(() => {
+        const d = paymentDeadline(order, Date.now())
+        return d && <div className="pay-banner" role="status" data-testid="payment-deadline"><strong>{d.title}</strong><p>{d.consequence}</p></div>
+      })()}
       {processing && (
         <div className="pay-banner pay-pending" role="status">
           <strong>Masz rozpoczętą płatność w PayU</strong>

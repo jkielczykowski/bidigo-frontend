@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { connectPayuSandbox, fetchMyOrders, fetchMyPayuAccount, fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
-import { sellerPayuMessage, type SellerPayuAccount } from '../lib/payuReturn'
+import { fetchMyOrders } from '../lib/ordersApi'
+import { SellerPayuBanner } from '../components/SellerPayuBanner'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
@@ -13,9 +13,6 @@ export function MyOrdersPage() {
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [account, setAccount] = useState<SellerPayuAccount | null>(null)
-  const [payu, setPayu] = useState<PayuStatus | null>(null)
-  const [connecting, setConnecting] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -28,15 +25,6 @@ export function MyOrdersPage() {
       cancelled = true
     }
   }, [user, role])
-
-  useEffect(() => {
-    if (user && role === 'seller') {
-      void fetchMyPayuAccount().then(setAccount).catch(() => setAccount(null))
-      void fetchPayuStatus().then(setPayu).catch(() => setPayu(null))
-    }
-  }, [user, role])
-
-  const sellerNotice = role === 'seller' && account ? sellerPayuMessage(account) : null
 
   if (!user) {
     return (
@@ -59,20 +47,7 @@ export function MyOrdersPage() {
           Moje sprzedaże
         </button>
       </div>
-      {sellerNotice && (
-        <div className="pay-banner" role="note" data-testid="seller-payu">
-          <strong>{sellerNotice.title}</strong>
-          <p>{sellerNotice.body}</p>
-          {account?.status === 'not_connected' && payu?.testMode && payu.marketplaceEnabled && (
-            <button className="btn btn-primary btn-sm" disabled={connecting} onClick={() => {
-              setConnecting(true)
-              void connectPayuSandbox().then(() => fetchMyPayuAccount().then(setAccount)).catch((e) => setError(errorMessage(e, 'Nie udało się połączyć konta'))).finally(() => setConnecting(false))
-            }}>
-              Połącz konto PayU (sandbox, konto testowe)
-            </button>
-          )}
-        </div>
-      )}
+      {role === 'seller' && <SellerPayuBanner />}
       {error && <p className="error">{error}</p>}
       {orders === null && !error && <p className="muted">Ładowanie…</p>}
       {orders?.length === 0 && <p className="muted">{role === 'buyer' ? 'Nie masz jeszcze zakupów.' : 'Nie masz jeszcze sprzedaży.'}</p>}

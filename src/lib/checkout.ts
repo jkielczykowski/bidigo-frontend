@@ -155,3 +155,17 @@ export function countdown(untilIso: string | null | undefined, now: number): { e
   const m = min % 60
   return { expired: false, text: h > 0 ? `zostało ${h} godz. ${m} min` : `zostało ${m} min` }
 }
+
+/**
+ * Czas na płatność z Ochroną (limit „Czas na płatność” z admina): odliczanie i skutek upływu terminu. Skutek zależy od źródła zamówienia:
+ * „Kup teraz” = rezerwacja wygasa i zamówienie jest anulowane; wygrana licytacja = Ochrona znika i zostaje transakcja bezpośrednia.
+ */
+export function paymentDeadline(order: { status: string; fulfillment: string; source?: string | null; paymentDueAt: string | null }, now: number): { title: string; consequence: string } | null {
+  if (order.fulfillment !== 'protected' || order.status !== 'AWAITING_PAYMENT') return null
+  const c = countdown(order.paymentDueAt, now)
+  if (!c) return null
+  const consequence = order.source === 'buy_now'
+    ? 'Po tym terminie rezerwacja wygaśnie, a zamówienie zostanie anulowane.'
+    : 'Po tym terminie Ochrona zniknie i zostanie transakcja bezpośrednia ze sprzedającym, bez Ochrony Kupującego.'
+  return { title: c.expired ? 'Czas na płatność z Ochroną minął' : `Czas na płatność z Ochroną: ${c.text} (do ${new Date(order.paymentDueAt as string).toLocaleString('pl-PL')})`, consequence }
+}

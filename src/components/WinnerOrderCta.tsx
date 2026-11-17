@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchOrderForAuction } from '../lib/ordersApi'
 import { SHIPPING_SOON } from '../lib/shipping'
-import { DIRECT_CONSEQUENCES } from '../lib/checkout'
+import { DIRECT_CONSEQUENCES, paymentDeadline } from '../lib/checkout'
 import type { Order } from '../lib/ordersLogic'
 import './checkout.css'
 
@@ -27,9 +27,10 @@ export function WinnerOrderCta({ auctionId, shippingReady }: { auctionId: string
     return (
       <div className="buy-choices" data-testid="winner-choices">
         <section className="buy-choice on">
-          <h4>Kup z dostawą i Ochroną Bidigo</h4>
+          <h4>Zapłać z Ochroną Bidigo</h4>
+          {(() => { const d = paymentDeadline(order, Date.now()); return d && <p data-testid="payment-deadline"><strong>{d.title}.</strong> {d.consequence}</p> })()}
           <p className="hint">Wybierz Paczkomat, zobacz podsumowanie kosztów i zapłać raz przez PayU. Pieniądze czekają u operatora, dopóki nie potwierdzisz odbioru.</p>
-          <Link className="btn btn-primary" to={`/my/orders/${order.id}/checkout`}>Przejdź do kasy</Link>
+          <Link className="btn btn-primary" to={`/my/orders/${order.id}/checkout`}>Zapłać z Ochroną</Link>
         </section>
         <section className="buy-choice">
           <h4>Kup bezpośrednio od sprzedającego</h4>

@@ -8,7 +8,7 @@ import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
 import { orderPayState, returnedFromPayu } from '../lib/payuReturn'
-import { DIRECT_CONSEQUENCES, countdown, whatNow } from '../lib/checkout'
+import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib/checkout'
 import { shipmentByOrder, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
@@ -170,9 +170,10 @@ export function OrderPage() {
           <p className="hint">Problem możesz zgłosić do {new Date(order.reportUntil).toLocaleString('pl-PL')}. Potem zamówienie kończy się automatycznie.</p>
         )}
         {order.refundedAmount > 0 && <p>Zwrócono: <strong>{formatPln(order.refundedAmount)}</strong></p>}
-        {order.status === 'AWAITING_PAYMENT' && order.paymentDueAt && (
-          <p className="hint">Zapłać do {new Date(order.paymentDueAt).toLocaleString('pl-PL')} — potem zamówienie przechodzi na zwykłą transakcję bezpośrednią.</p>
-        )}
+        {(() => {
+          const d = paymentDeadline(order, now)
+          return d && <p className="hint order-countdown" data-testid="payment-deadline"><strong>{d.title}.</strong> {d.consequence}</p>
+        })()}
       </section>
 
       {order.dispute && (

@@ -42,7 +42,7 @@ export function BuyNowChoices({ auctionId, price, busy, onProtected, onDirect, o
               {cost.lines.map((l) => <li key={l.key}><span>{l.label}</span><span>{formatPln(l.amount)}</span></li>)}
               <li className="cost-total"><strong>Razem do zapłaty</strong><strong>{formatPln(cost.total)}</strong></li>
             </ul>
-            <p className="hint">Płacisz raz przez PayU. Pieniądze za przedmiot czekają u operatora, dopóki nie potwierdzisz odbioru. Wybierzesz Paczkomat i zobaczysz podsumowanie, zanim zapłacisz.</p>
+            <p className="hint">Płacisz raz przez PayU. Pieniądze za przedmiot czekają u operatora, dopóki nie potwierdzisz odbioru. Przedmiot zostanie zarezerwowany na czas płatności (limit ustawia Bidigo); jeśli nie zapłacisz w terminie, rezerwacja wygaśnie i zamówienie zostanie anulowane. Wybierzesz Paczkomat i zobaczysz podsumowanie, zanim zapłacisz.</p>
             <button type="button" className="btn btn-primary" disabled={busy} onClick={onProtected}>Kup z dostawą i Ochroną Bidigo</button>
           </>
         ) : (

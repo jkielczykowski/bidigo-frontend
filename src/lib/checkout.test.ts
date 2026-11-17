@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, whatNow } from './checkout.ts'
+import { COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, whatNow } from './checkout.ts'
 import type { Quote } from './ordersLogic.ts'
 
 const eligible: Quote = { eligible: true, reason: null, itemPrice: 100, shippingPrice: 12.99, protectionFee: 4, total: 116.99, notEligibleText: null }
@@ -74,4 +74,19 @@ test('odliczanie okna zgłoszeń', () => {
   assert.deepEqual(countdown('2026-11-18T15:05:00Z', now), { expired: false, text: 'zostało 29 godz. 5 min' })
   assert.deepEqual(countdown('2026-11-17T10:20:00Z', now), { expired: false, text: 'zostało 20 min' })
   assert.equal(countdown('2026-11-17T09:00:00Z', now)!.expired, true)
+})
+
+test('termin płatności: odliczanie i skutek zależny od źródła zamówienia', () => {
+  const now = Date.parse('2026-11-17T10:00:00Z')
+  const base = { status: 'AWAITING_PAYMENT', fulfillment: 'protected', paymentDueAt: '2026-11-18T10:00:00Z' }
+  const buyNow = paymentDeadline({ ...base, source: 'buy_now' }, now)!
+  assert.match(buyNow.title, /zostało 24 godz\. 0 min/)
+  assert.match(buyNow.consequence, /rezerwacja wygaśnie/)
+  assert.match(buyNow.consequence, /anulowane/)
+  const won = paymentDeadline({ ...base, source: 'auction' }, now)!
+  assert.match(won.consequence, /Ochrona zniknie/)
+  assert.match(won.consequence, /bez Ochrony Kupującego/)
+  assert.equal(paymentDeadline({ ...base, source: 'auction', paymentDueAt: '2026-11-17T09:00:00Z' }, now)!.title, 'Czas na płatność z Ochroną minął')
+  assert.equal(paymentDeadline({ ...base, status: 'PAID' }, now), null)
+  assert.equal(paymentDeadline({ ...base, fulfillment: 'direct' }, now), null)
 })

@@ -42,6 +42,7 @@ export type Order = {
   imageUrl: string | null
   status: OrderStatus
   fulfillment: 'protected' | 'direct'
+  source?: 'auction' | 'buy_now'
   role: 'buyer' | 'seller' | 'admin' | null
   buyerName: string | null
   sellerName: string | null
