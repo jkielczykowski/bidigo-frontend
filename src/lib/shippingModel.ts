@@ -37,6 +37,14 @@ export type ShipmentStatus =
   | 'CANCELLED'
 
 export type ShippingConfig = {
+  /** The admin's switch (and the server's kill switch): shows or hides every trace of shipments. */
+  flagEnabled: boolean
+  /** The ONE condition for paying for a delivery: credentials, payment gateway and mode were checked by the backend. */
+  carrierReady: boolean
+  /** InPost sandbox: labels are test labels, payments must be test payments. */
+  sandbox: boolean
+  notReadyReason?: string | null
+  message?: string | null
   enabled: boolean
   environment: 'sandbox' | 'production' | string
   geowidgetToken?: string
@@ -113,3 +121,20 @@ export function nextAction(s: Pick<Shipment, 'status' | 'role' | 'labelAvailable
   }
 }
 
+
+// ---------------------------------------------------------------- how a listing's delivery options read
+
+const OPTION_LABELS: Record<string, string> = {
+  odbior: 'Odbiór osobisty',
+  inpost: 'Paczkomat InPost',
+  kurier: 'Kurier',
+}
+
+/** "odbior, kurier" is stored; people read "Odbiór osobisty, Kurier". InPost disappears while shipping is switched off. */
+export function shippingOptionsText(options: string[] | null | undefined, shippingOn: boolean): string {
+  const shown = (options ?? []).filter((o) => shippingOn || o !== 'inpost').map((o) => OPTION_LABELS[o] ?? o)
+  return shown.length ? shown.join(', ') : 'do uzgodnienia'
+}
+
+/** Why the buyer cannot pay now, in words. */
+export const SHIPPING_SOON = 'Dostawa InPost będzie dostępna wkrótce. Ustal wysyłkę ze sprzedającym.'

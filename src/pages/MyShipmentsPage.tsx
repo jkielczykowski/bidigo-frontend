@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import {
-  PROGRESS_LABELS, cancelShipment, downloadLabel, formatGrosz, listShipments, nextAction, progressStep,
-  renewShipmentPayment, shippingError, type Shipment,
+  PROGRESS_LABELS, SHIPPING_SOON, cancelShipment, downloadLabel, formatGrosz, listShipments, nextAction, progressStep,
+  renewShipmentPayment, shippingError, useShippingStatus, type Shipment,
 } from '../lib/shipping'
 import './shipping.css'
 
@@ -91,6 +92,7 @@ function ShipmentCard({ s, onChange }: { s: Shipment; onChange: () => void }) {
 /** "Moje przesyłki": what I bought (track, pay) and what I sell (label, number, status, locker). */
 export function MyShipmentsPage() {
   const { user } = useAuth()
+  const status = useShippingStatus(!!user)
   const [params, setParams] = useSearchParams()
   const role = params.get('role') === 'seller' ? 'seller' : 'buyer'
   const [loadedFor, setLoadedFor] = useState<{ role: string; items: Shipment[] } | null>(null)
@@ -111,9 +113,14 @@ export function MyShipmentsPage() {
   }, [user, load])
 
   if (!user) return <div className="ship-page"><p><Link to="/login">Zaloguj się</Link>, żeby zobaczyć przesyłki.</p></div>
+  // switched off: the page does not exist for anyone (also not via a saved link)
+  if (status.loaded && !status.visible) return <Navigate to="/my" replace />
+  if (!status.loaded) return <div className="ship-page"><p className="muted">Wczytywanie…</p></div>
   return (
     <div className="ship-page">
       <h1>Moje przesyłki</h1>
+      {status.sandbox && <p className="ship-notice" role="note">Tryb testowy InPost: etykiety są próbne i nie służą do prawdziwych wysyłek.</p>}
+      {!status.ready && <p className="ship-notice" role="note">{SHIPPING_SOON} Istniejące przesyłki możesz nadal śledzić; paczkę wyślij samodzielnie i wpisz jej numer w <Link to="/my/orders">zamówieniu</Link>.</p>}
       {params.get('paid') && <p className="success">Dziękujemy! Potwierdzamy płatność za dostawę, to potrwa chwilę.</p>}
       <div className="ship-tabs">
         <button type="button" className={`btn btn-sm ${role === 'buyer' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setParams({ role: 'buyer' })}>Kupuję</button>

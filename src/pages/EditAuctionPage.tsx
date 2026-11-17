@@ -1,3 +1,4 @@
+import { useShippingStatus } from '../lib/shipping'
 import { ParcelFields } from '../components/ParcelFields'
 import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -17,6 +18,7 @@ type FieldErrors = {
 export function EditAuctionPage() {
   const { id } = useParams()
   const { user, loading: authLoading } = useAuth()
+  const shippingOn = useShippingStatus(!!user).visible
   const navigate = useNavigate()
   const [auction, setAuction] = useState<Auction | null>(null)
   const [buyNowPrice, setBuyNowPrice] = useState('')
@@ -270,7 +272,7 @@ export function EditAuctionPage() {
           </legend>
           {[
             ['odbior', 'Odbiór osobisty'],
-            ['inpost', 'InPost'],
+            ...(shippingOn ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([sid, label]) => (
             <label key={sid} className="checkbox">

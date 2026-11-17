@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { LockerPicker } from '../components/LockerPicker'
 import { useAuth } from '../lib/auth'
 import {
-  formatGrosz, normaliseLocker, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
+  SHIPPING_SOON, useShippingStatus, formatGrosz, normaliseLocker, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
   type LockerPoint, type ParcelSize, type ShippingConfig,
 } from '../lib/shipping'
 import './shipping.css'
@@ -16,6 +16,7 @@ export function ShippingCheckoutPage() {
   const { orderId = '' } = useParams()
   const { user } = useAuth()
   const nav = useNavigate()
+  const status = useShippingStatus(!!user)
   const [params] = useSearchParams()
   const protection = params.get('protection') === '1'
   const [cfg, setCfg] = useState<ShippingConfig | null>(null)
@@ -33,6 +34,25 @@ export function ShippingCheckoutPage() {
   }, [orderId, nav])
 
   if (!user) return <div className="ship-page"><p>Zaloguj się, żeby wybrać dostawę. <Link to="/login">Zaloguj się</Link></p></div>
+  if (status.loaded && !status.visible) return <Navigate to="/my" replace />
+  if (!status.loaded) return <div className="ship-page"><p className="muted">Wczytywanie…</p></div>
+  // The backend says a delivery cannot be paid for now (no InPost credentials, no payment gateway, sandbox with real money):
+  // no form, no payment button, and nothing is ever charged.
+  if (!status.ready && !protection) {
+    return (
+      <div className="ship-page">
+        <h1>Dostawa do Paczkomatu InPost</h1>
+        <div className="ship-notice" role="status">
+          <strong>{SHIPPING_SOON}</strong>
+          <p>Napisz do sprzedającego i umówcie się na wysyłkę lub odbiór. Sprzedający może wysłać paczkę sam i wpisać numer przesyłki w zamówieniu.</p>
+        </div>
+        <div className="ship-actions">
+          <Link className="btn btn-primary" to="/my/orders">Moje zamówienia</Link>
+          <Link className="btn btn-outline" to="/messages">Wiadomości</Link>
+        </div>
+      </div>
+    )
+  }
   const price = cfg?.sizes.find((s) => s.size === size)?.priceGrosz ?? 0
   const code = point?.code ?? normaliseLocker(manual)
   const phoneOk = normalisePhone(phone)
@@ -56,6 +76,7 @@ export function ShippingCheckoutPage() {
   return (
     <div className="ship-page">
       <h1>Dostawa do Paczkomatu InPost</h1>
+      {status.sandbox && <p className="ship-notice" role="note">Tryb testowy: etykieta InPost jest próbna, a płatność testowa. Nie wysyłaj prawdziwej paczki.</p>}
       {cfg && !cfg.enabled && <p className="notice">Wysyłka InPost nie jest jeszcze włączona. Dogadaj dostawę ze sprzedającym.</p>}
       <div className="ship-notice" role="note">
         {protection ? cfg?.protectionNotice : cfg?.standaloneNotice}
