@@ -456,7 +456,7 @@ export function MyFeesPage() {
       ) : allCount === 0 ? (
         <div className="empty">
           <h2>Brak opłat</h2>
-          <p>Prowizja pojawia się dopiero po sprzedaży.</p>
+          <p>Nie masz żadnych rozliczeń z wcześniejszych sprzedaży.</p>
           <Link to="/my/selling" className="btn btn-outline">
             Moje aukcje
           </Link>

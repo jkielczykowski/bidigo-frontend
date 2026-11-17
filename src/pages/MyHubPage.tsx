@@ -18,6 +18,8 @@ type HubStats = {
   pendingFees: number
   pendingFeeCount: number
   activity: number
+  /** Any fee (also paid) or promotion of this user: only then the Opłaty tile makes sense */
+  hasCharges: boolean
 }
 
 type Tile = {
@@ -63,6 +65,7 @@ export function MyHubPage() {
     pendingFees: 0,
     pendingFeeCount: 0,
     activity: 0,
+    hasCharges: false,
   })
   const [loading, setLoading] = useState(true)
 
@@ -70,7 +73,7 @@ export function MyHubPage() {
     if (!user) return
     async function load() {
       setLoading(true)
-      const [{ count: sellCount }, { data: myBids }, { data: feeRows }, { data: sellIds }] =
+      const [{ count: sellCount }, { data: myBids }, { data: feeRows }, { data: sellIds }, { count: feeTotal }, { count: promoTotal }] =
         await Promise.all([
           supabase
             .from('auctions')
@@ -83,6 +86,8 @@ export function MyHubPage() {
             .eq('seller_id', user!.id)
             .eq('status', 'pending'),
           supabase.from('auctions').select('id').eq('seller_id', user!.id),
+          supabase.from('seller_fees').select('id', { count: 'exact', head: true }).eq('seller_id', user!.id),
+          supabase.from('auction_promotions').select('id', { count: 'exact', head: true }).eq('seller_id', user!.id),
         ])
 
       const bidIds = new Set((myBids ?? []).map((b: { auction_id: string }) => b.auction_id))
@@ -103,6 +108,7 @@ export function MyHubPage() {
         pendingFees: pending.reduce((s, f) => s + Number(f.fee_amount), 0),
         pendingFeeCount: pending.length,
         activity,
+        hasCharges: (feeTotal ?? 0) + (promoTotal ?? 0) > 0,
       })
       setLoading(false)
     }
@@ -141,18 +147,22 @@ export function MyHubPage() {
           meta: 'Kupuję i sprzedaję',
         }]
       : []),
-    {
-      to: '/my/fees',
-      title: 'Opłaty',
-      desc: 'Rozliczenia z wcześniejszych sprzedaży',
-      meta: loading
-        ? '…'
-        : stats.pendingFeeCount > 0
-          ? `Do zapłaty: ${formatPln(stats.pendingFees)}`
-          : 'Brak zaległości',
-      accent: stats.pendingFeeCount > 0,
-      badge: stats.pendingFeeCount > 0 ? String(stats.pendingFeeCount) : undefined,
-    },
+    ...(loading || !stats.hasCharges
+      ? []
+      : [
+      {
+        to: '/my/fees',
+        title: 'Opłaty',
+        desc: 'Rozliczenia z wcześniejszych sprzedaży',
+        meta: loading
+          ? '…'
+          : stats.pendingFeeCount > 0
+            ? `Do zapłaty: ${formatPln(stats.pendingFees)}`
+            : 'Brak zaległości',
+        accent: stats.pendingFeeCount > 0,
+        badge: stats.pendingFeeCount > 0 ? String(stats.pendingFeeCount) : undefined,
+      },
+        ]),
     {
       to: '/sell',
       title: 'Wystaw aukcję',
