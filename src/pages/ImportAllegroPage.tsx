@@ -19,7 +19,7 @@ const PAGE = 50
 export function ImportAllegroPage() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const [status, setStatus] = useState<AllegroStatus | null>(null)
   const [offers, setOffers] = useState<AllegroOffer[]>([])
   const [total, setTotal] = useState(0)
@@ -81,6 +81,8 @@ export function ImportAllegroPage() {
       setStatus((s) => (s ? { ...s, connected: false, login: undefined } : s))
       setOffers([])
       setPicked(new Set())
+      // the ?allegro=connected notice of this visit no longer applies
+      setParams({}, { replace: true })
     } finally {
       setBusy(false)
     }
@@ -118,7 +120,7 @@ export function ImportAllegroPage() {
         aukcję przed wystawieniem — wybierasz kategorię, miasto i dostawę.
       </p>
 
-      {result === 'connected' && <p className="alg-note is-ok">Połączono z Allegro. Wybierz oferty do zaimportowania.</p>}
+      {result === 'connected' && status?.connected && <p className="alg-note is-ok">Połączono z Allegro. Wybierz oferty do zaimportowania.</p>}
       {result === 'error' && (
         <p className="alg-note is-err">Nie udało się połączyć z Allegro. Spróbuj jeszcze raz.</p>
       )}
