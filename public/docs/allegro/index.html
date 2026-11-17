@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dokumentacja Bidigo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* Układ: jedna kolumna czytelnej dokumentacji, spis treści po lewej na szerokim ekranie */
+:root{
+  --bg:#f6f7fb; --card:#ffffff; --ink:#14213d; --muted:#5b6478; --line:#dfe3ee; --accent:#e8590c;
+  --font-display:"Fraunces",Georgia,serif; --font-body:"IBM Plex Sans",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1524; --card:#171f33; --ink:#eaeefb; --muted:#9aa4bd; --line:#2a3550; --accent:#ff8a4c; color-scheme:dark;}}
+:root[data-theme="dark"]{--bg:#0f1524; --card:#171f33; --ink:#eaeefb; --muted:#9aa4bd; --line:#2a3550; --accent:#ff8a4c; color-scheme:dark;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--font-body)}
+.wrap{max-width:960px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:32px;grid-template-columns:1fr}
+@media(min-width:860px){.wrap{grid-template-columns:200px 1fr}}
+nav{font-size:14px}
+nav strong{display:block;font-family:var(--font-display);font-size:22px;margin-bottom:12px}
+nav ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+@media(min-width:860px){nav{position:sticky;top:24px;align-self:start}nav ul{flex-direction:column}}
+nav a{color:var(--muted);text-decoration:none}
+nav a:hover,nav a:focus-visible{color:var(--accent);outline:none;text-decoration:underline}
+main{display:grid;gap:20px;min-width:0}
+h1{font:600 clamp(30px,5vw,42px)/1.15 var(--font-display);margin:0;text-wrap:balance}
+.lead{color:var(--muted);margin:8px 0 0;max-width:62ch}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
+h2{font:600 24px/1.25 var(--font-display);margin:0 0 12px;text-wrap:balance}
+p{margin:0 0 12px;max-width:68ch}
+p:last-child{margin-bottom:0}
+ol,ul.list{margin:0 0 12px;padding-left:22px;max-width:68ch}
+li{margin:4px 0}
+code{font-family:var(--font-mono);font-size:.9em;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;overflow-wrap:anywhere}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.tag{display:inline-block;font:500 12px var(--font-body);border-radius:999px;padding:2px 10px;border:1px solid var(--line)}
+.tag.yes{color:#157347;border-color:#157347}
+.tag.no{color:#b02a37;border-color:#b02a37}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag.yes{color:#5fd49a;border-color:#5fd49a}:root:not([data-theme="light"]) .tag.no{color:#ff8f9a;border-color:#ff8f9a}}
+:root[data-theme="dark"] .tag.yes{color:#5fd49a;border-color:#5fd49a}
+:root[data-theme="dark"] .tag.no{color:#ff8f9a;border-color:#ff8f9a}
+footer{color:var(--muted);font-size:14px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav aria-label="Spis treści">
+  <strong>Bidigo</strong>
+  <ul>
+    <li><a href="#o-serwisie">O serwisie</a></li>
+    <li><a href="#import-allegro">Import z Allegro</a></li>
+    <li><a href="#kroki">Jak to działa</a></li>
+    <li><a href="#dane">Jakie dane</a></li>
+    <li><a href="#bezpieczenstwo">Bezpieczeństwo</a></li>
+    <li><a href="#odlaczenie">Odłączenie konta</a></li>
+    <li><a href="#operator">Operator</a></li>
+  </ul>
+</nav>
+<main>
+  <header>
+    <h1>Dokumentacja Bidigo</h1>
+    <p class="lead">Bidigo to polski serwis aukcyjny dostępny pod adresem <a href="https://bidigo.pl">bidigo.pl</a>. Ta strona opisuje integrację z Allegro, która pozwala użytkownikowi przenieść własne oferty do aukcji na Bidigo.</p>
+  </header>
+
+  <section id="o-serwisie">
+    <h2>O serwisie</h2>
+    <p>Użytkownicy Bidigo wystawiają przedmioty na aukcje, licytują i kupują. Integracja z Allegro jest dodatkiem dla sprzedających: zamiast przepisywać ofertę ręcznie, sprzedający pobiera z Allegro jej tytuł, opis, zdjęcia i cenę i dostaje gotowy formularz aukcji.</p>
+  </section>
+
+  <section id="import-allegro">
+    <h2>Import ofert z Allegro</h2>
+    <p>Aplikacja Bidigo korzysta z oficjalnego REST API Allegro i autoryzacji OAuth2 (authorization code). Użytkownik łączy własne konto Allegro i widzi tylko własne aktywne oferty.</p>
+    <p>Integracja działa wyłącznie w trybie odczytu. Bidigo niczego nie tworzy, nie zmienia i nie usuwa na koncie Allegro.</p>
+  </section>
+
+  <section id="kroki">
+    <h2>Jak to działa</h2>
+    <ol>
+      <li>Zalogowany użytkownik otwiera na Bidigo stronę importu i klika „Połącz z Allegro”.</li>
+      <li>Allegro pokazuje ekran zgody. Użytkownik loguje się na stronie Allegro i akceptuje odczyt swoich ofert. Bidigo nigdy nie widzi hasła do Allegro.</li>
+      <li>Po powrocie na Bidigo użytkownik widzi listę swoich aktywnych ofert i zaznacza te, które chce przenieść.</li>
+      <li>Każda zaznaczona oferta otwiera się po kolei w zwykłym formularzu aukcji z wypełnionym tytułem, opisem, zdjęciami, proponowanymi cenami i podpowiedzianą kategorią.</li>
+      <li>Użytkownik sprawdza dane, uzupełnia brakujące (np. miasto) i sam zatwierdza aukcję. Nic nie jest publikowane automatycznie.</li>
+    </ol>
+  </section>
+
+  <section id="dane">
+    <h2>Jakie dane i uprawnienia</h2>
+    <div class="tbl">
+    <table>
+      <thead><tr><th>Element</th><th>Wykorzystanie</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>allegro:api:sale:offers:read</code></td><td>Odczyt listy i szczegółów własnych ofert użytkownika</td><td><span class="tag yes">używane</span></td></tr>
+        <tr><td>Tytuł, opis, zdjęcia, cena, ścieżka kategorii oferty</td><td>Wypełnienie formularza aukcji na Bidigo</td><td><span class="tag yes">używane</span></td></tr>
+        <tr><td>Zamówienia, płatności, finanse, wiadomości, dane osobowe</td><td>Aplikacja o nie nie prosi</td><td><span class="tag no">brak dostępu</span></td></tr>
+        <tr><td>Uprawnienia zapisu (tworzenie, edycja, zamykanie ofert)</td><td>Aplikacja o nie nie prosi</td><td><span class="tag no">brak dostępu</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Dane ofert trafiają do formularza w przeglądarce użytkownika. Na serwerze Bidigo zapisywane są tylko dane potrzebne do utrzymania połączenia: zaszyfrowane tokeny dostępu i nazwa konta Allegro.</p>
+  </section>
+
+  <section id="bezpieczenstwo">
+    <h2>Bezpieczeństwo</h2>
+    <ul class="list">
+      <li>Tokeny Allegro są szyfrowane algorytmem AES-256-GCM, zanim trafią do bazy danych.</li>
+      <li>Tabela z połączeniami jest zamknięta dla zwykłych użytkowników; odczytuje ją tylko serwer.</li>
+      <li>Parametr <code>state</code> w przepływie OAuth jest podpisany i ważny 10 minut, co chroni przed podstawieniem cudzej autoryzacji.</li>
+      <li>Zdjęcia z Allegro pobiera serwer Bidigo, wyłącznie z dozwolonych domen obrazów Allegro.</li>
+      <li>Każdy użytkownik widzi tylko własne połączenie i własne oferty.</li>
+    </ul>
+  </section>
+
+  <section id="odlaczenie">
+    <h2>Odłączenie konta</h2>
+    <p>Użytkownik może w każdej chwili odłączyć Allegro na stronie importu. Bidigo usuwa wtedy zapisane tokeny. Zgodę można też cofnąć w ustawieniach konta Allegro w sekcji aplikacji połączonych z kontem.</p>
+  </section>
+
+  <section id="operator">
+    <h2>Operator</h2>
+    <p>Bidigo prowadzi Loop Soft sp. z o.o. Strona serwisu: <a href="https://bidigo.pl">bidigo.pl</a>.</p>
+  </section>
+
+  <footer>Dokument opisuje integrację z Allegro w obecnej wersji Bidigo.</footer>
+</main>
+</div>
+</body>
+</html>
