@@ -50,7 +50,7 @@ export async function startOrderCheckout(orderId: string, expectedTotal: number)
   return { status: 'ok', checkoutUrl: body.checkoutUrl }
 }
 
-export type PayuStatus = { provider: 'payu'; ready: boolean; testMode: boolean; reason: string }
+export type PayuStatus = { provider: 'payu'; ready: boolean; testMode: boolean; marketplaceEnabled?: boolean; reason: string }
 
 /** Whether buyers can pay through PayU right now, and whether it is the sandbox (test money). Public, no secrets. */
 export async function fetchPayuStatus(): Promise<PayuStatus> {
@@ -61,3 +61,12 @@ export async function fetchPayuStatus(): Promise<PayuStatus> {
 
 /** The seller's own PayU account state ("konto PayU do połączenia"), from the database function. */
 export const fetchMyPayuAccount = () => rpc<import('./payuReturn').SellerPayuAccount>('my_payu_account')
+
+/** SANDBOX only: connects a test PayU recipient for the seller (in production PayU verifies sellers; the server answers 403). */
+export async function connectPayuSandbox(): Promise<{ status: string }> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  const res = await fetch('/api/v1/payments/payu/seller/connect-sandbox', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`)
+  return (await res.json()) as { status: string }
+}

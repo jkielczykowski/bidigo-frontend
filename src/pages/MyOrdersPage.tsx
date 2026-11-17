@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { fetchMyOrders, fetchMyPayuAccount } from '../lib/ordersApi'
+import { connectPayuSandbox, fetchMyOrders, fetchMyPayuAccount, fetchPayuStatus, type PayuStatus } from '../lib/ordersApi'
 import { sellerPayuMessage, type SellerPayuAccount } from '../lib/payuReturn'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
@@ -14,6 +14,8 @@ export function MyOrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [account, setAccount] = useState<SellerPayuAccount | null>(null)
+  const [payu, setPayu] = useState<PayuStatus | null>(null)
+  const [connecting, setConnecting] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -28,7 +30,10 @@ export function MyOrdersPage() {
   }, [user, role])
 
   useEffect(() => {
-    if (user && role === 'seller') void fetchMyPayuAccount().then(setAccount).catch(() => setAccount(null))
+    if (user && role === 'seller') {
+      void fetchMyPayuAccount().then(setAccount).catch(() => setAccount(null))
+      void fetchPayuStatus().then(setPayu).catch(() => setPayu(null))
+    }
   }, [user, role])
 
   const sellerNotice = role === 'seller' && account ? sellerPayuMessage(account) : null
@@ -58,6 +63,14 @@ export function MyOrdersPage() {
         <div className="pay-banner" role="note" data-testid="seller-payu">
           <strong>{sellerNotice.title}</strong>
           <p>{sellerNotice.body}</p>
+          {account?.status === 'not_connected' && payu?.testMode && payu.marketplaceEnabled && (
+            <button className="btn btn-primary btn-sm" disabled={connecting} onClick={() => {
+              setConnecting(true)
+              void connectPayuSandbox().then(() => fetchMyPayuAccount().then(setAccount)).catch((e) => setError(errorMessage(e, 'Nie udało się połączyć konta'))).finally(() => setConnecting(false))
+            }}>
+              Połącz konto PayU (sandbox, konto testowe)
+            </button>
+          )}
         </div>
       )}
       {error && <p className="error">{error}</p>}
