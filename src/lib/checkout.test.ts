@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, whatNow } from './checkout.ts'
+import { COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
 import type { Quote } from './ordersLogic.ts'
 
 const eligible: Quote = { eligible: true, reason: null, itemPrice: 100, shippingPrice: 12.99, protectionFee: 4, total: 116.99, notEligibleText: null }
@@ -20,19 +20,41 @@ test('dwa wybory: Ochrona tylko gdy backend kwalifikuje i PayU jest gotowe; bezp
   assert.equal(buyChoices(eligible, { ready: true, marketplaceEnabled: false }).protection.available, false)
 })
 
-test('brak niejasnych stanów: każdy powód niedostępności to jedno zdanie, a wymagane zdanie o Paczkomacie jest dosłowne', () => {
-  const no = (reason: string | null, text: string | null = null): Quote => ({ ...eligible, eligible: false, reason, notEligibleText: text })
-  for (const r of ['protection_disabled', 'payments_not_ready', 'marketplace_not_ready', 'seller_payu_missing', 'fee_not_configured', 'price_above_limit',
-    'parcel_data_missing', 'shipping_price_missing', 'parcel_too_large', 'limits_not_configured']) {
+test('każdy kod reason z buyer_protection_check ma właściwe zdanie; „nie kwalifikuje się” tylko dla przedmiotu', () => {
+  // pełna lista kodów z SQL (V70/V74/V102/V111): protection_disabled, payments_not_ready, marketplace_not_ready, seller_payu_missing,
+  // fee_not_configured, price_above_limit, category_excluded, not_inpost, parcel_data_missing, shipping_price_missing, limits_not_configured, parcel_too_large, auction_not_found
+  const GENERIC = 'Ochrona Kupującego jest dostępna dla przedmiotów wysyłanych Paczkomatem InPost. Ten przedmiot nie kwalifikuje się do tej usługi.'
+  const no = (reason: string | null, text: string | null = GENERIC): Quote => ({ ...eligible, eligible: false, reason, notEligibleText: text })
+  // konfiguracja Bidigo: „chwilowo niedostępna”, bez słowa o przedmiocie, nawet gdy backend dołączył ogólny notEligibleText
+  for (const r of ['limits_not_configured', 'fee_not_configured', 'protection_disabled', 'payments_not_ready', 'marketplace_not_ready']) {
     const c = buyChoices(no(r), payuOk)
     assert.equal(c.protection.available, false, r)
-    assert.ok(c.protection.reason && c.protection.reason.endsWith('.') && !c.protection.reason.includes('\n'), r)
+    assert.equal(c.protection.reason, 'Ochrona Kupującego jest chwilowo niedostępna.', r)
+    assert.doesNotMatch(c.protection.reason!, /kwalifikuje/, r)
+    assert.equal(c.protection.configIssue, true, r)
   }
-  assert.equal(buyChoices(no('not_inpost', 'Ochrona Kupującego jest dostępna dla przedmiotów wysyłanych Paczkomatem InPost. Ten przedmiot nie kwalifikuje się do tej usługi.'), payuOk).protection.reason,
-    'Ochrona Kupującego jest dostępna dla przedmiotów wysyłanych Paczkomatem InPost. Ten przedmiot nie kwalifikuje się do tej usługi.')
-  // powód spoza listy (np. wykluczona kategoria z innego wątku): ogólne zdanie, bez zgadywania
-  assert.equal(buyChoices(no('category_excluded'), payuOk).protection.reason, 'Ochrona nie jest dostępna dla tego przedmiotu.')
+  // przedmiot: dosłowne wymagane zdanie
+  for (const r of ['category_excluded', 'not_inpost']) {
+    const c = buyChoices(no(r), payuOk)
+    assert.equal(c.protection.reason, GENERIC, r)
+    assert.equal(c.protection.configIssue, false, r)
+  }
+  assert.equal(buyChoices(no('parcel_data_missing'), payuOk).protection.reason, 'Sprzedający nie podał jeszcze wymiarów paczki.')
+  assert.match(buyChoices(no('shipping_price_missing'), payuOk).protection.reason!, /kosztu wysyłki/)
+  assert.match(buyChoices(no('seller_payu_missing'), payuOk).protection.reason!, /konta PayU/)
+  assert.match(buyChoices(no('parcel_too_large'), payuOk).protection.reason!, /za duża/)
+  assert.match(buyChoices(no('price_above_limit'), payuOk).protection.reason!, /limit/)
+  assert.equal(buyChoices(no('auction_not_found'), payuOk).protection.reason, 'Nie znaleziono aukcji.')
+  // kod, którego nie znamy (nowy w backendzie): nigdy „nie kwalifikuje się”
+  assert.equal(buyChoices(no('cos_nowego'), payuOk).protection.reason, 'Ochrona Kupującego jest chwilowo niedostępna.')
+  assert.equal(buyChoices(no(null), payuOk).protection.reason, 'Ochrona Kupującego jest chwilowo niedostępna.')
+  assert.equal(protectionReasonText('limits_not_configured'), 'Ochrona Kupującego jest chwilowo niedostępna.')
   assert.match(buyChoices(null, payuOk).protection.reason!, /Nie udało się sprawdzić/)
+  // każde zdanie to jedno zdanie
+  for (const r of ['limits_not_configured', 'category_excluded', 'parcel_data_missing', 'shipping_price_missing', 'seller_payu_missing', 'parcel_too_large', 'price_above_limit']) {
+    const s = buyChoices(no(r), payuOk).protection.reason!
+    assert.ok(s.endsWith('.') && !s.includes('\n'), r)
+  }
 })
 
 test('skutki zakupu bezpośredniego są jawne', () => {

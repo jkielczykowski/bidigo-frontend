@@ -4,24 +4,43 @@ import { NOT_ELIGIBLE_TEXT, type Order, type Quote } from './ordersLogic.ts'
 
 export type PayuReady = { ready: boolean; testMode?: boolean; marketplaceEnabled?: boolean } | null
 
+/**
+ * Kody `reason` z buyer_protection_check (SQL) → jedno zdanie po polsku. Kluczowe: „nie kwalifikuje się” mówimy WYŁĄCZNIE o przedmiocie
+ * (kategoria wyłączona z Paczkomatu, sprzedający nie oferuje Paczkomatu). Braki konfiguracji po stronie Bidigo to „chwilowo niedostępna”.
+ * Tekstu notEligibleText z backendu NIE używamy: jest ogólny i błędnie sugeruje przedmiot także przy braku konfiguracji.
+ */
+export const PROTECTION_TEMPORARILY_UNAVAILABLE = 'Ochrona Kupującego jest chwilowo niedostępna.'
+
+/** Powody po stronie konfiguracji Bidigo (admin może to naprawić w panelu). */
+export const CONFIG_REASONS = new Set(['protection_disabled', 'payments_not_ready', 'marketplace_not_ready', 'fee_not_configured', 'limits_not_configured'])
+
 const REASONS: Record<string, string> = {
-  protection_disabled: 'Ochrona Kupującego jest teraz wyłączona.',
-  payments_not_ready: 'Płatności za przedmioty przez Bidigo jeszcze nie działają.',
-  marketplace_not_ready: 'Płatności za przedmioty przez Bidigo jeszcze nie działają.',
-  seller_payu_missing: 'Sprzedający nie połączył jeszcze konta PayU, więc ten przedmiot nie ma Ochrony.',
-  fee_not_configured: 'Ochrona nie jest jeszcze ustawiona dla tej kategorii.',
-  price_above_limit: 'Cena przedmiotu przekracza limit Ochrony.',
+  // konfiguracja Bidigo / PayU: nic o przedmiocie
+  protection_disabled: PROTECTION_TEMPORARILY_UNAVAILABLE,
+  payments_not_ready: PROTECTION_TEMPORARILY_UNAVAILABLE,
+  marketplace_not_ready: PROTECTION_TEMPORARILY_UNAVAILABLE,
+  fee_not_configured: PROTECTION_TEMPORARILY_UNAVAILABLE,
+  limits_not_configured: PROTECTION_TEMPORARILY_UNAVAILABLE,
+  // sprzedający
+  seller_payu_missing: 'Sprzedający nie połączył jeszcze konta PayU, więc ta oferta nie ma Ochrony.',
+  parcel_data_missing: 'Sprzedający nie podał jeszcze wymiarów paczki.',
+  shipping_price_missing: 'Sprzedający nie podał jeszcze kosztu wysyłki Paczkomatem.',
+  // przedmiot
+  category_excluded: NOT_ELIGIBLE_TEXT,
   not_inpost: NOT_ELIGIBLE_TEXT,
-  parcel_data_missing: 'Sprzedający nie podał jeszcze wymiarów paczki, więc Ochrona jest niedostępna.',
-  shipping_price_missing: 'Sprzedający nie podał jeszcze kosztu wysyłki, więc Ochrona jest niedostępna.',
-  parcel_too_large: 'Paczka jest za duża na Paczkomat InPost, więc Ochrona jest niedostępna.',
-  limits_not_configured: 'Gabaryty InPost nie są jeszcze ustawione, więc Ochrona jest niedostępna.',
+  parcel_too_large: 'Paczka jest za duża na Paczkomat InPost.',
+  price_above_limit: 'Cena przedmiotu przekracza limit Ochrony.',
   auction_not_found: 'Nie znaleziono aukcji.',
+}
+
+/** Zdanie dla danego kodu; nieznany kod (np. nowy po stronie backendu) = „chwilowo niedostępna”, nigdy „nie kwalifikuje się”. */
+export function protectionReasonText(reason: string | null | undefined): string {
+  return (reason ? REASONS[reason] : undefined) ?? PROTECTION_TEMPORARILY_UNAVAILABLE
 }
 
 export type BuyChoices = {
   /** „Kup z dostawą i Ochroną Bidigo”: tylko gdy backend mówi, że aukcja się kwalifikuje i bramka PayU jest gotowa */
-  protection: { available: boolean; reason: string | null }
+  protection: { available: boolean; reason: string | null; /** brak konfiguracji po stronie Bidigo: admin może to naprawić */ configIssue?: boolean }
   /** „Kup bezpośrednio od sprzedającego”: zawsze dostępne */
   direct: { available: true }
 }
@@ -30,11 +49,12 @@ export function buyChoices(quote: Quote | null, payu: PayuReady): BuyChoices {
   let reason: string | null = null
   if (!quote) reason = 'Nie udało się sprawdzić, czy Ochrona jest dostępna dla tego przedmiotu.'
   else if (!quote.eligible) {
-    reason = quote.notEligibleText ?? (quote.reason ? REASONS[quote.reason] : null) ?? 'Ochrona nie jest dostępna dla tego przedmiotu.'
+    reason = protectionReasonText(quote.reason)
   } else if (!payu || !payu.ready || payu.marketplaceEnabled === false) {
     reason = 'Płatności PayU są chwilowo niedostępne, więc Ochrona jest teraz niedostępna.'
   }
-  return { protection: { available: reason === null, reason }, direct: { available: true } }
+  const configIssue = reason !== null && ((!!quote && !quote.eligible && !!quote.reason && CONFIG_REASONS.has(quote.reason)) || (!!quote && quote.eligible))
+  return { protection: { available: reason === null, reason, configIssue }, direct: { available: true } }
 }
 
 /** Skutki zakupu bezpośredniego: komunikat wymagany, żeby kupujący wiedział, z czego rezygnuje. */

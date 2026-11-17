@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/auth'
 import { fetchPayuStatus, fetchQuote, type PayuStatus } from '../lib/ordersApi'
 import { DIRECT_CONSEQUENCES, buyChoices } from '../lib/checkout'
 import { costLines, type Quote } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import './checkout.css'
+
+const ADMIN_URL = (import.meta.env.VITE_ADMIN_URL as string | undefined)?.replace(/\/+$/, '') ?? 'https://panel.bidigo.pl'
 
 /**
  * „Kup teraz”: dwa wyraźne wybory zamiast jednego przycisku. Kwalifikację i kwoty zwraca backend (order_quote), gotowość płatności PayU:
@@ -22,6 +25,7 @@ export function BuyNowChoices({ auctionId, price, busy, lockerOk = true, onProte
   const [quote, setQuote] = useState<Quote | null | undefined>(undefined)
   const [payu, setPayu] = useState<PayuStatus | null>(null)
   const [confirmDirect, setConfirmDirect] = useState(false)
+  const { profile } = useAuth()
 
   useEffect(() => {
     let off = false
@@ -48,7 +52,13 @@ export function BuyNowChoices({ auctionId, price, busy, lockerOk = true, onProte
             <button type="button" className="btn btn-primary" disabled={busy} onClick={onProtected}>Kup z dostawą i Ochroną Bidigo</button>
           </>
         ) : (
-          <p className="buy-choice-why" role="note">{c.protection.reason}</p>
+          <>
+            <p className="buy-choice-why" role="note">{c.protection.reason}</p>
+            {/* admin widzi, że to brak konfiguracji, i dostaje link do panelu */}
+            {profile?.is_admin && c.protection.configIssue && (
+              <p><a href={`${ADMIN_URL}/ochrona`} target="_blank" rel="noopener noreferrer">Skonfiguruj w panelu</a></p>
+            )}
+          </>
         )}
       </section>}
 
