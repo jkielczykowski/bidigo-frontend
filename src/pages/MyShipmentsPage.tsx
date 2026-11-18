@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import {
-  PROGRESS_LABELS, SHIPPING_SOON, cancelShipment, downloadLabel, formatGrosz, listShipments, nextAction, progressStep,
+  PROGRESS_LABELS, SHIPPING_SOON, cancelShipment, downloadLabel, printLabel, formatGrosz, listShipments, nextAction, progressStep,
   getSender, renewShipmentPayment, saveSender, shippingError, useShippingStatus, type SenderForm, type Shipment,
 } from '../lib/shipping'
 import { PAYU_NOTE, returnedFromPayu, shipmentPayState } from '../lib/payuReturn'
@@ -106,6 +106,11 @@ function ShipmentCard({ s, onChange, returned, waitedMs }: { s: Shipment; onChan
         {seller && s.labelAvailable && (
           <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void run(async () => { await downloadLabel(s.id) })}>
             Pobierz etykietę (PDF)
+          </button>
+        )}
+        {seller && s.labelAvailable && (
+          <button type="button" className="btn btn-outline" disabled={busy} onClick={() => void run(async () => { await printLabel(s.id) })}>
+            Drukuj etykietę
           </button>
         )}
         {!seller && s.status === 'AWAITING_SHIPPING_PAYMENT' && (

@@ -48,6 +48,25 @@ export async function downloadLabel(id: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
+/** Prints the label: the PDF goes into a hidden frame (from memory, with the login header) and the browser's print dialog opens on it. */
+export async function printLabel(id: string): Promise<void> {
+  const res = await call('GET', `/shipments/${id}/label`)
+  const url = URL.createObjectURL(await res.blob())
+  const frame = document.createElement('iframe')
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'
+  frame.src = url
+  frame.onload = () => {
+    try {
+      frame.contentWindow?.focus()
+      frame.contentWindow?.print()
+    } catch {
+      window.open(url, '_blank', 'noopener') // the browser refuses printing inside a frame: open the PDF, it has its own print button
+    }
+  }
+  document.body.appendChild(frame)
+  setTimeout(() => { frame.remove(); URL.revokeObjectURL(url) }, 120_000)
+}
+
 /** User-facing text for a failed shipping call. */
 export function shippingError(err: unknown): string {
   if (err instanceof ApiError) {

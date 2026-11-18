@@ -9,7 +9,7 @@ import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
 import { orderPayState, returnedFromPayu } from '../lib/payuReturn'
 import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib/checkout'
-import { shipmentByOrder, type Shipment } from '../lib/shipping'
+import { downloadLabel, printLabel, shipmentByOrder, shippingError, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { fetchAuctionLockerAllowed } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
@@ -137,7 +137,13 @@ export function OrderPage() {
             <p>Numer przesyłki: <strong>{shipment?.trackingNumber ?? order.trackingNumber}</strong>{' '}
               {shipment?.trackingUrl && <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer">Śledź w InPost</a>}</p>
           )}
-          {order.role === 'seller' && ['PAID', 'AWAITING_SHIPMENT'].includes(order.status) && (
+          {order.role === 'seller' && shipment?.labelAvailable && (
+            <p className="ship-actions" data-testid="order-label">
+              <button type="button" className="btn btn-primary" onClick={() => void downloadLabel(shipment.id).catch((e) => setError(shippingError(e)))}>Pobierz etykietę (PDF)</button>{' '}
+              <button type="button" className="btn btn-outline" onClick={() => void printLabel(shipment.id).catch((e) => setError(shippingError(e)))}>Drukuj etykietę</button>
+            </p>
+          )}
+          {order.role === 'seller' && !shipment?.labelAvailable && ['PAID', 'AWAITING_SHIPMENT'].includes(order.status) && (
             <p><Link className="btn btn-primary" to="/my/shipments?role=seller">Nadaj paczkę i pobierz etykietę</Link></p>
           )}
           {order.role === 'seller' && <p className="hint">Pieniądze za przedmiot ({formatPln(order.itemAmount)}) czekają u operatora płatności i trafią do Ciebie po potwierdzeniu odbioru przez kupującego albo po upływie terminu bez zgłoszenia.</p>}
