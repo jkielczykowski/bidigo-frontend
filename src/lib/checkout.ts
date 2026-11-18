@@ -197,6 +197,7 @@ export function checkoutErrorText(status: number): string {
     case 403:
     case 404: return 'Tego zamówienia nie możesz opłacić.'
     case 409: return 'Ochrona nie jest już dostępna dla tego zamówienia albo brakuje dostawy lub zgody. Odśwież stronę.'
+    case 422: return 'Konto PayU sprzedającego jest niezweryfikowane, więc płatność jest niemożliwa. Napisz do sprzedawcy.'
     case 503: return 'Płatności są chwilowo niedostępne. Spróbuj później.'
     default: return 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.'
   }

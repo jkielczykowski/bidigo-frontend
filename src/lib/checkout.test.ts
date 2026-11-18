@@ -149,3 +149,7 @@ test('an unavailable Kup teraz always says why and what to do: the price limit n
   assert.match(buyNowUnavailableText('not_inpost', null), /Napisz do sprzedawcy/)
   assert.match(buyNowUnavailableText('something_new', null), /chwilowo niedostępna.*Napisz do sprzedawcy/)
 })
+
+test('an unverified seller account at PayU is explained in plain words (422)', () => {
+  assert.match(checkoutErrorText(422), /niezweryfikowane.*Napisz do sprzedawcy/)
+})
