@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import {
-  cancelOrder, chooseDirect, confirmReceipt, fetchCheckoutState, fetchOrder, markShipped, reportProblem, respondDispute, type CheckoutState,
+  cancelOrder, confirmReceipt, fetchCheckoutState, fetchOrder, markShipped, reportProblem, respondDispute, type CheckoutState,
 } from '../lib/ordersApi'
 import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type Order, type OrderAction } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
@@ -26,6 +27,7 @@ const DISPUTE_STATUS: Record<string, string> = {
 
 export function OrderPage() {
   const { id } = useParams()
+  const nav = useNavigate()
   const { user } = useAuth()
   const [params] = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
@@ -39,7 +41,6 @@ export function OrderPage() {
   const [co, setCo] = useState<CheckoutState | null>(null)
   const [shipment, setShipment] = useState<Shipment | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const [confirmDirect, setConfirmDirect] = useState(false)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -78,6 +79,12 @@ export function OrderPage() {
       clearTimeout(stop)
     }
   }, [returned, user, load])
+
+  async function writeToSeller() {
+    if (!order) return
+    const { data, error: e } = await supabase.rpc('get_or_create_conversation', { p_auction_id: order.auctionId })
+    if (!e && data) nav(`/messages/${(data as { id: string }).id}`)
+  }
 
   async function run(fn: () => Promise<unknown>, done?: string) {
     setBusy(true)
@@ -205,15 +212,11 @@ export function OrderPage() {
             <p className="muted ship-note">Najpierw wybierzesz Paczkomat i zobaczysz pełne podsumowanie kosztów, a dopiero potem zapłacisz.</p>
           </>
         )}
-        {has('choose_direct') && !confirmDirect && (
-          <button className="btn btn-outline" disabled={busy} onClick={() => setConfirmDirect(true)}>Kup bezpośrednio od sprzedającego (bez Ochrony)</button>
-        )}
-        {has('choose_direct') && confirmDirect && (
-          <div className="order-card" role="alertdialog" aria-label="Zakup bezpośredni">
-            <p>{DIRECT_CONSEQUENCES}</p>
-            <button className="btn btn-outline" disabled={busy} onClick={() => void run(() => chooseDirect(order.id), 'Przechodzisz na transakcję bezpośrednią.')}>Rozumiem, kupuję bezpośrednio</button>{' '}
-            <button className="btn btn-ghost" disabled={busy} onClick={() => setConfirmDirect(false)}>Wróć</button>
-          </div>
+        {isBuyer && order.fulfillment === 'protected' && order.status === 'AWAITING_PAYMENT' && order.source !== 'buy_now' && (
+          <p className="hint" data-testid="direct-hint">
+            Wolisz ustalić zakup bezpośrednio ze sprzedającym? Napisz do niego w czacie. {DIRECT_CONSEQUENCES}{' '}
+            <button type="button" className="bidsheet-link" onClick={() => void writeToSeller()}>Napisz do sprzedawcy</button>
+          </p>
         )}
         {isBuyer && lockerOk && order.fulfillment === 'protected' && order.status === 'AWAITING_SHIPMENT' && !shipment && (
           <Link className="btn btn-primary" to={`/shipping/checkout/${order.auctionId}?protection=1`}>Wybierz Paczkomat InPost (nie otworzył się automatycznie)</Link>

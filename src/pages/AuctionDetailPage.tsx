@@ -23,9 +23,10 @@ import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
-import { BuyNowChoices } from '../components/BuyNowChoices'
+import { BuyNowSummary } from '../components/BuyNowSummary'
+import { useBuyNowOffer } from '../lib/useBuyNowOffer'
 import { WinnerOrderCta } from '../components/WinnerOrderCta'
-import { chooseDirect, fetchOrderForAuction } from '../lib/ordersApi'
+import { fetchOrderForAuction } from '../lib/ordersApi'
 import { useLockerMap } from '../lib/ordersApi'
 import { lockerAllowedFor } from '../lib/ordersLogic'
 import { addRecentView } from '../lib/recentViews'
@@ -278,6 +279,10 @@ export function AuctionDetailPage() {
   }, [auction])
 
   const buyNowPrice = auction?.buy_now_price != null ? Number(auction.buy_now_price) : null
+  const lockerOkForOffer = lockerAllowedFor(lockerMap, auction?.category_id ?? null) === true
+  // „Kup teraz” tylko z Ochroną: bez kwalifikacji (kategoria, Paczkomat, limit, gotowość PayU) przycisku ani ceny „Kup teraz” nie ma
+  const buyNowOffer = useBuyNowOffer(id, buyNowPrice, lockerOkForOffer && !!auction && auction.seller_id !== user?.id)
+  const shownBuyNowPrice = buyNowOffer.state === 'yes' ? buyNowPrice : null
   const bidCappedByBuyNow = buyNowPrice != null && minBid >= buyNowPrice
   const maxBidAllowed = buyNowPrice != null ? Math.max(buyNowPrice - 0.01, 0) : null
 
@@ -437,6 +442,17 @@ export function AuctionDetailPage() {
     }
   }
 
+  /** „Napisz do sprzedawcy” przed sprzedażą: pytanie w wątku pod ogłoszeniem (czat 1:1 działa dopiero po sprzedaży). */
+  function askSeller() {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    const box = document.getElementById('ask-seller-question') as HTMLTextAreaElement | null
+    box?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    box?.focus()
+  }
+
   function openBuyNow() {
     if (!user) {
       navigate('/login')
@@ -450,8 +466,8 @@ export function AuctionDetailPage() {
     setBuyNowOpen(true)
   }
 
-  /** Both choices buy the item (the auction ends); the choice decides what happens next: checkout with Ochrona or a direct deal. */
-  async function confirmBuyNow(mode: 'protected' | 'direct') {
+  /** „Kup teraz” = zakup z Ochroną: aukcja się kończy, powstaje zamówienie z Ochroną, kupujący trafia do kasy (dostawa i PayU). */
+  async function confirmBuyNow() {
     if (!id || !auction?.buy_now_price) return
     setBusy(true)
     setBuyNowError(null)
@@ -460,15 +476,8 @@ export function AuctionDetailPage() {
       if (err) throw err
       setBuyNowOpen(false)
       await load()
-      // the sale created an order: take the buyer to it (pay with the protection or arrange it directly)
       const order = await fetchOrderForAuction(id).catch(() => null)
-      if (!order) return
-      if (mode === 'protected' && order.fulfillment === 'protected') {
-        navigate(`/my/orders/${order.id}/checkout`)
-      } else {
-        if (mode === 'direct' && order.fulfillment === 'protected') await chooseDirect(order.id).catch(() => {})
-        navigate(`/my/orders/${order.id}`)
-      }
+      if (order) navigate(order.fulfillment === 'protected' ? `/my/orders/${order.id}/checkout` : `/my/orders/${order.id}`)
     } catch (err) {
       setBuyNowError(errorMessage(err, 'Nie udało się kupić'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
@@ -715,8 +724,8 @@ export function AuctionDetailPage() {
             {auction.reserve_price != null && (
               <span className="muted">Minimum sprzedawcy: {formatPln(auction.reserve_price)}</span>
             )}
-            {auction.buy_now_price != null && (
-              <span className="muted">Kup teraz: {formatPln(auction.buy_now_price)}</span>
+            {shownBuyNowPrice != null && (
+              <span className="muted">Kup teraz: {formatPln(shownBuyNowPrice)}</span>
             )}
           </div>
 
@@ -740,33 +749,41 @@ export function AuctionDetailPage() {
               {bidCappedByBuyNow ? (
                 <div className="buy-now-only">
                   <p className="hint">
-                    Kolejna oferta osiągnęłaby cenę „Kup teraz” — licytacja jest zamknięta. Możesz tylko kupić od razu.
+                    {shownBuyNowPrice != null
+                      ? 'Kolejna oferta osiągnęłaby cenę „Kup teraz” — licytacja jest zamknięta. Możesz tylko kupić od razu.'
+                      : 'Licytacja osiągnęła górny limit ceny tego ogłoszenia, więc nie można już przebić oferty. Zakup ustal ze sprzedawcą.'}
                   </p>
-                  {buyNowPrice != null && (
+                  {shownBuyNowPrice != null && (
                     <button className="btn btn-primary btn-lg" type="button" disabled={busy} onClick={openBuyNow}>
-                      Kup teraz · {formatPln(buyNowPrice)}
+                      Kup teraz · {formatPln(shownBuyNowPrice)}
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="bid-form">
-                  {buyNowPrice != null && (
+                  {shownBuyNowPrice != null && (
                     <p className="hint">
-                      Licytuj poniżej {formatPln(buyNowPrice)}. Od tej kwoty w górę tylko „Kup teraz”.
+                      Licytuj poniżej {formatPln(shownBuyNowPrice)}. Od tej kwoty w górę tylko „Kup teraz”.
                     </p>
                   )}
                   <button className="btn btn-primary btn-lg" disabled={busy} type="button" onClick={openBidSheet}>
                     {myLimit != null && isLeading ? 'Zmień limit' : `Licytuj od ${formatPln(minBid)}`}
                   </button>
-                  {buyNowPrice != null && (
+                  {shownBuyNowPrice != null && (
                     <button className="btn btn-outline btn-lg" type="button" disabled={busy} onClick={openBuyNow}>
-                      Kup teraz · {formatPln(buyNowPrice)}
+                      Kup teraz · {formatPln(shownBuyNowPrice)}
                     </button>
                   )}
                   <p className="hint">Oferta w ostatnich 3 minutach przedłuża aukcję o 3 minuty.</p>
                 </div>
               )}
             </div>
+          )}
+
+          {live && !isSeller && (
+            <p>
+              <button type="button" className="btn btn-ghost" data-testid="write-to-seller" onClick={askSeller}>Napisz do sprzedawcy</button>
+            </p>
           )}
 
           {!live && auction.status === 'sold' && (
@@ -1040,6 +1057,7 @@ export function AuctionDetailPage() {
             <label>
               Zadaj pytanie
               <textarea
+                id="ask-seller-question"
                 rows={3}
                 maxLength={1000}
                 value={commentBody}
@@ -1092,9 +1110,9 @@ export function AuctionDetailPage() {
       {live && !isSeller && (
         <div className="bid-bar">
           {bidCappedByBuyNow ? (
-            buyNowPrice != null && (
+            shownBuyNowPrice != null && (
               <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBuyNow}>
-                Kup teraz · {formatPln(buyNowPrice)}
+                Kup teraz · {formatPln(shownBuyNowPrice)}
               </button>
             )
           ) : (
@@ -1117,7 +1135,7 @@ export function AuctionDetailPage() {
         minBid={minBid}
         maxAllowed={maxBidAllowed}
         step={Number(auction.bid_increment) || 1}
-        buyNowPrice={buyNowPrice}
+        buyNowPrice={shownBuyNowPrice}
         currentLimit={myLimit}
         leadingPrice={isLeading ? Number(auction.current_price) : null}
         busy={busy}
@@ -1144,9 +1162,8 @@ export function AuctionDetailPage() {
               <strong>{formatPln(auction.buy_now_price)}</strong>
             </div>
             {buyNowError && <p className="error">{buyNowError}</p>}
-            {id && auction.buy_now_price != null && (
-              <BuyNowChoices auctionId={id} price={Number(auction.buy_now_price)} busy={busy} lockerOk={lockerOk}
-                onProtected={() => void confirmBuyNow('protected')} onDirect={() => void confirmBuyNow('direct')} onCancel={() => setBuyNowOpen(false)} />
+            {buyNowOffer.quote && (
+              <BuyNowSummary quote={buyNowOffer.quote} busy={busy} onPay={() => void confirmBuyNow()} onCancel={() => setBuyNowOpen(false)} onWriteToSeller={isSeller ? null : () => { setBuyNowOpen(false); setTimeout(askSeller, 150) }} />
             )}
           </div>
         </div>
