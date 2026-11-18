@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { fetchOrderForAuction } from '../lib/ordersApi'
 import { SHIPPING_SOON } from '../lib/shipping'
 import { DIRECT_CONSEQUENCES, paymentDeadline } from '../lib/checkout'
@@ -17,6 +18,11 @@ export function WinnerOrderCta({ auctionId, shippingReady, lockerOk = true }: { 
     fetchOrderForAuction(auctionId).then((o) => !off && setOrder(o)).catch(() => !off && setOrder(null))
     return () => { off = true }
   }, [auctionId])
+  const nav = useNavigate()
+  async function writeToSeller() {
+    const { data, error } = await supabase.rpc('get_or_create_conversation', { p_auction_id: auctionId })
+    if (!error && data) nav(`/messages/${(data as { id: string }).id}`)
+  }
   if (order === undefined) return null
   if (!order) {
     if (!lockerOk) return null // kategoria nie dopuszcza Paczkomatu (V110): żadnych przycisków dostawy ani Ochrony
@@ -33,11 +39,10 @@ export function WinnerOrderCta({ auctionId, shippingReady, lockerOk = true }: { 
           <p className="hint">Wybierz Paczkomat, zobacz podsumowanie kosztów i zapłać raz przez PayU. Pieniądze czekają u operatora, dopóki nie potwierdzisz odbioru.</p>
           <Link className="btn btn-primary" to={`/my/orders/${order.id}/checkout`}>Zapłać z Ochroną</Link>
         </section>
-        <section className="buy-choice">
-          <h4>Kup bezpośrednio od sprzedającego</h4>
-          <p className="hint">{DIRECT_CONSEQUENCES}</p>
-          <Link className="btn btn-outline" to={`/my/orders/${order.id}`}>Wybierz zakup bezpośredni</Link>
-        </section>
+        <p className="hint" data-testid="direct-hint">
+          Wolisz ustalić zakup bezpośrednio ze sprzedającym? Napisz do niego w czacie. {DIRECT_CONSEQUENCES}{' '}
+          <button type="button" className="bidsheet-link" onClick={() => void writeToSeller()}>Napisz do sprzedawcy</button>
+        </p>
       </div>
     )
   }

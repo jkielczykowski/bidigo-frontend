@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { checkoutErrorText, COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
+import { buyNowOffered, checkoutErrorText, COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
 import type { Quote } from './ordersLogic.ts'
 
 const eligible: Quote = { eligible: true, reason: null, itemPrice: 100, shippingPrice: 12.99, protectionFee: 4, total: 116.99, notEligibleText: null }
@@ -121,4 +121,16 @@ test('błąd startu płatności: czytelny komunikat, nigdy surowy kod HTTP', () 
   }
   assert.equal(checkoutErrorText(502), 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.')
   assert.equal(checkoutErrorText(500), 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.')
+})
+
+test('„Kup teraz” tylko z Ochroną: bez kwalifikacji, bez Paczkomatu w kategorii albo bez PayU nie ma przycisku ani ceny', () => {
+  const ok = { ready: true, testMode: true, marketplaceEnabled: true }
+  assert.equal(buyNowOffered(true, eligible, ok), true)
+  assert.equal(buyNowOffered(false, eligible, ok), false, 'kategoria bez Paczkomatu (np. Audi w Pojazdach)')
+  assert.equal(buyNowOffered(true, { ...eligible, eligible: false, reason: 'limits_not_configured' }, ok), false)
+  assert.equal(buyNowOffered(true, { ...eligible, eligible: false, reason: 'price_above_limit' }, ok), false)
+  assert.equal(buyNowOffered(true, { ...eligible, eligible: false, reason: 'not_inpost' }, ok), false)
+  assert.equal(buyNowOffered(true, eligible, { ready: false }), false, 'PayU niegotowe')
+  assert.equal(buyNowOffered(true, eligible, null), false)
+  assert.equal(buyNowOffered(true, null, ok), false, 'nie udało się sprawdzić: nic nie oferujemy')
 })

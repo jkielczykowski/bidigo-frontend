@@ -201,3 +201,11 @@ export function checkoutErrorText(status: number): string {
     default: return 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.'
   }
 }
+
+/**
+ * Czy w ogłoszeniu w ogóle oferujemy „Kup teraz”: tylko z Ochroną Kupującego. Kategoria bez Paczkomatu (V110), brak kwalifikacji (Paczkomat, wymiary,
+ * limit ceny, Ochrona wyłączona) albo niegotowe PayU = żadnego przycisku i żadnej ceny „Kup teraz”; zostają licytacja i rozmowa ze sprzedającym.
+ */
+export function buyNowOffered(lockerOk: boolean, quote: Quote | null, payu: PayuReady): boolean {
+  return lockerOk && buyChoices(quote, payu).protection.available
+}
