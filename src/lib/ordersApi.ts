@@ -26,6 +26,18 @@ export const fetchMyOrders = (role: 'buyer' | 'seller', limit = 30, offset = 0) 
   rpc<Order[]>('my_orders', { p_role: role, p_limit: limit, p_offset: offset })
 
 export const fetchOrder = (id: string) => rpc<Order>('order_get', { p_order_id: id })
+/**
+ * After the return from PayU: asks the server to read the order's open payment from PayU (a notification may never come) and book it.
+ * Returns the order as it is afterwards. Buyer only; errors are ignored by the caller (the order is re-read anyway).
+ */
+export async function refreshOrderPayment(orderId: string): Promise<Order> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  const res = await fetch(`/api/v1/orders/${orderId}/payment/refresh`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) throw new ApiError(res.status, 'Nie udało się odświeżyć płatności')
+  return (await res.json()) as Order
+}
+
 export const fetchOrderForAuction = (auctionId: string) => rpc<Order | null>('order_for_auction', { p_auction_id: auctionId })
 
 export const chooseDirect = (id: string) => rpc<Order>('order_choose_direct', { p_order_id: id })

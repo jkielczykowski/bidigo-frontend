@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PAYU_WAIT_MS, PAY_MESSAGES, orderPayState, returnedFromPayu, sellerPayuMessage, shipmentPayState } from './payuReturn.ts'
+import { shouldRefreshPayment, PAYU_WAIT_MS, PAY_MESSAGES, orderPayState, returnedFromPayu, sellerPayuMessage, shipmentPayState } from './payuReturn.ts'
 
 test('powrót z PayU rozpoznajemy po ?payment=payu, stary ?paid=1 nic nie znaczy', () => {
   assert.equal(returnedFromPayu(new URLSearchParams('payment=payu')), true)
@@ -40,4 +40,12 @@ test('sprzedający: „konto PayU do połączenia”, dopóki nie ma zweryfikowa
   // bez umowy marketplace nawet zweryfikowany sprzedający nie sprzedaje z Ochroną
   assert.match(sellerPayuMessage({ status: 'verified', marketplaceReady: false })!.title, /niedostępna/)
   assert.match(sellerPayuMessage({ status: 'not_connected', marketplaceReady: true })!.body, /nie do Bidigo/)
+})
+
+test('after the return from PayU the page asks the server to read the payment only while the order still waits and after ~20 s', () => {
+  assert.equal(shouldRefreshPayment('PAYMENT_PROCESSING', 5_000), false)
+  assert.equal(shouldRefreshPayment('PAYMENT_PROCESSING', 20_000), true)
+  assert.equal(shouldRefreshPayment('AWAITING_PAYMENT', 45_000), true)
+  assert.equal(shouldRefreshPayment('PAID', 45_000), false)
+  assert.equal(shouldRefreshPayment('CANCELLED', 45_000), false)
 })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
@@ -8,11 +8,11 @@ import {
 import { PROBLEM_KINDS, costLines, statusLabel, statusTone, visibleActions, type Order, type OrderAction } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
-import { orderPayState, returnedFromPayu } from '../lib/payuReturn'
+import { PAYU_REFRESH_EVERY_MS, orderPayState, returnedFromPayu, shouldRefreshPayment } from '../lib/payuReturn'
 import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib/checkout'
 import { downloadLabel, printLabel, shipmentByOrder, shippingError, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
-import { fetchAuctionLockerAllowed } from '../lib/ordersApi'
+import { fetchAuctionLockerAllowed, refreshOrderPayment } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import './shipping.css'
 import '../components/checkout.css'
@@ -79,6 +79,23 @@ export function OrderPage() {
       clearTimeout(stop)
     }
   }, [returned, user, load])
+
+  // after ~20 s without a confirmation the page asks the server to read the payment from PayU itself (the notification may never arrive), then every 15 s
+  const orderStatusRef = useRef<string | undefined>(undefined)
+  orderStatusRef.current = order?.status
+  useEffect(() => {
+    if (!returned || !user || !id) return
+    const started = Date.now()
+    let lastAsk = 0
+    const t = setInterval(() => {
+      const now = Date.now()
+      if (!shouldRefreshPayment(orderStatusRef.current ?? '', now - started) || now - lastAsk < PAYU_REFRESH_EVERY_MS) return
+      lastAsk = now
+      void refreshOrderPayment(id).then((o) => { setOrder(o); void load() }).catch(() => {})
+    }, 5000)
+    const stop = setTimeout(() => clearInterval(t), 600000)
+    return () => { clearInterval(t); clearTimeout(stop) }
+  }, [returned, user, id, load])
 
   async function writeToSeller() {
     if (!order) return

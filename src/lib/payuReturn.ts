@@ -6,6 +6,15 @@ export type PayState = 'pending' | 'paid' | 'failed'
 /** Jak długo (ms) czekamy na powiadomienie PayU, zanim zaproponujemy ponowną próbę. */
 export const PAYU_WAIT_MS = 90_000
 
+/** Po tylu ms od powrotu z PayU strona sama prosi serwer o odczyt płatności w PayU (powiadomienie mogło nie dotrzeć), potem co tyle samo. */
+export const PAYU_REFRESH_AFTER_MS = 20_000
+export const PAYU_REFRESH_EVERY_MS = 15_000
+
+/** Czy po powrocie z PayU pora na odczyt płatności z PayU: zamówienie nadal czeka, a od powrotu minęło dość czasu. */
+export function shouldRefreshPayment(orderStatus: string, sinceReturnMs: number): boolean {
+  return (orderStatus === 'PAYMENT_PROCESSING' || orderStatus === 'AWAITING_PAYMENT') && sinceReturnMs >= PAYU_REFRESH_AFTER_MS
+}
+
 /** Czy adres zawiera znacznik powrotu z PayU (?payment=payu). */
 export function returnedFromPayu(params: URLSearchParams): boolean {
   return params.get('payment') === 'payu'
