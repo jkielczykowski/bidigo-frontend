@@ -8955,6 +8955,50 @@ body.nav-open .header {
   margin: 0;
   font-size: 1.5rem;
 }
+/* Sekcja „Dla Ciebie” nigdy nie może zniknąć: jej rzędy omijają animację wejścia przy przewijaniu
+   (obserwator nie zawsze zdąży je zauważyć, bo karty doczytują się po starcie strony). */
+.bidigo-home.js-reveal .bg-foryou .bg-rail-section {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+.bg-foryou-skel {
+  overflow: hidden;
+}
+.bg-skel {
+  min-height: 300px;
+  border-radius: 14px;
+  background: linear-gradient(100deg, #eef1f6 30%, #f8f9fc 50%, #eef1f6 70%) 0 0 / 200% 100%;
+  animation: bg-skel-sheen 1.4s linear infinite;
+  border: 1px solid var(--border);
+}
+@keyframes bg-skel-sheen {
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-skel { animation: none; }
+}
+.bg-foryou-msg {
+  margin: 12px 0 24px;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text-muted);
+}
+.bg-foryou-msg p { margin: 0 0 12px; }
+.bg-foryou-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.bg-foryou-btn {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--accent-ink, #1a2744);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
 
 /* Home: category tiles, trust strip, sell banner */
 .home-cats h2,
