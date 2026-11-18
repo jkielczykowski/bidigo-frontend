@@ -112,12 +112,14 @@ export function pointAddressLine(p: Pick<LockerPoint, 'address' | 'city' | 'post
   return [p.address, [p.postCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
 }
 
-const FLOW: ShipmentStatus[] = ['AWAITING_SHIPPING_PAYMENT', 'SHIPPING_PAID', 'LABEL_READY', 'AWAITING_DISPATCH', 'IN_TRANSIT', 'DELIVERED']
+// the label is not a step of its own: as soon as it exists the parcel is simply "to dispatch" (Nadanie)
+const FLOW: ShipmentStatus[] = ['AWAITING_SHIPPING_PAYMENT', 'SHIPPING_PAID', 'LABEL_READY', 'IN_TRANSIT', 'DELIVERED']
 
 /** Progress bar of the happy path: index of the step reached, -1 for failed/cancelled. */
 export function progressStep(status: ShipmentStatus): number {
   if (status === 'SHIPPING_FAILED' || status === 'CANCELLED') return -1
   if (status === 'LABEL_GENERATING') return 1
+  if (status === 'AWAITING_DISPATCH') return FLOW.indexOf('LABEL_READY')
   return FLOW.indexOf(status)
 }
 
@@ -132,7 +134,7 @@ export type SenderForm = {
   missing: ('NAME' | 'PHONE' | 'EMAIL')[]
 }
 
-export const PROGRESS_LABELS = ['Opłata', 'Opłacona', 'Etykieta', 'Nadanie', 'W drodze', 'Dostarczona']
+export const PROGRESS_LABELS = ['Opłata', 'Opłacona', 'Nadanie', 'W drodze', 'Dostarczona']
 
 /** What the person should do next, in their role. */
 export function nextAction(s: Pick<Shipment, 'status' | 'role' | 'labelAvailable'> & { senderDataNeeded?: boolean }): string {

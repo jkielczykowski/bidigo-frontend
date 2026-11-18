@@ -33,8 +33,10 @@ test('geowidget point becomes a picker point', () => {
 test('progress follows the happy path and is -1 for failed or cancelled', () => {
   assert.equal(progressStep('AWAITING_SHIPPING_PAYMENT'), 0)
   assert.equal(progressStep('LABEL_GENERATING'), 1)
-  assert.equal(progressStep('IN_TRANSIT'), 4)
-  assert.equal(progressStep('DELIVERED'), 5)
+  assert.equal(progressStep('LABEL_READY'), 2)
+  assert.equal(progressStep('AWAITING_DISPATCH'), 2)
+  assert.equal(progressStep('IN_TRANSIT'), 3)
+  assert.equal(progressStep('DELIVERED'), 4)
   assert.equal(progressStep('SHIPPING_FAILED'), -1)
   assert.equal(progressStep('CANCELLED'), -1)
 })
