@@ -5,7 +5,7 @@ import { fetchAuctionLockerAllowed } from '../lib/ordersApi'
 import { LOCKER_EXCLUDED_TEXT } from '../lib/ordersLogic'
 import { useAuth } from '../lib/auth'
 import {
-  SHIPPING_SOON, useShippingStatus, formatGrosz, normaliseLocker, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
+  SHIPPING_SOON, useShippingStatus, formatGrosz, normalisePhone, openShipment, shippingConfig, shippingError, shipmentByOrder,
   type LockerPoint, type ParcelSize, type ShippingConfig,
 } from '../lib/shipping'
 import './shipping.css'
@@ -24,7 +24,6 @@ export function ShippingCheckoutPage() {
   const [cfg, setCfg] = useState<ShippingConfig | null>(null)
   const [size, setSize] = useState<ParcelSize>('A')
   const [point, setPoint] = useState<LockerPoint | null>(null)
-  const [manual, setManual] = useState('')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -74,7 +73,7 @@ export function ShippingCheckoutPage() {
     )
   }
   const price = cfg?.sizes.find((s) => s.size === size)?.priceGrosz ?? 0
-  const code = point?.code ?? normaliseLocker(manual)
+  const code = point?.code ?? null
   const phoneOk = normalisePhone(phone)
   const canPay = !!cfg?.enabled && !!code && !!phoneOk && !busy
 
@@ -117,13 +116,6 @@ export function ShippingCheckoutPage() {
 
         <h2>2. Paczkomat odbioru</h2>
         <LockerPicker token={cfg?.geowidgetToken} environment={cfg?.environment ?? 'sandbox'} value={point} onChange={setPoint} />
-        {!point && (
-          <label>
-            Albo wpisz kod Paczkomatu (np. KRA010M)
-            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="KRA010M" maxLength={20} />
-          </label>
-        )}
-        {!point && manual && !normaliseLocker(manual) && <p className="error">To nie wygląda na kod Paczkomatu.</p>}
 
         <h2>3. Telefon do powiadomień InPost</h2>
         <label>

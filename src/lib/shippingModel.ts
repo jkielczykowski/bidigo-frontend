@@ -55,7 +55,7 @@ export type ShippingConfig = {
   protectionNotice: string
 }
 
-export type LockerPoint = { code: string; name: string; address: string; city: string; postCode: string }
+export type LockerPoint = { code: string; name: string; address: string; city: string; postCode: string; hours?: string }
 
 // ---------------------------------------------------------------- pure helpers (tested)
 
@@ -66,7 +66,7 @@ export function formatGrosz(grosz: number): string {
 /** KRA010M, WAW123BM, POP-KRA12: the codes InPost uses (case-insensitive, spaces ignored). */
 export function normaliseLocker(raw: string): string | null {
   const code = raw.replace(/\s+/g, '').toUpperCase()
-  return /^([A-Z]{3}\d{2,3}[A-Z]{1,3}|POP-[A-Z0-9-]{2,12})$/.test(code) ? code : null
+  return /^([A-Z]{3}\d{2,3}[A-Z]{1,4}|POP-[A-Z0-9-]{2,12})$/.test(code) ? code : null
 }
 
 /** 9 digits, "+48", spaces and dashes allowed. null when it cannot be a Polish mobile number InPost accepts. */
@@ -80,13 +80,36 @@ export function normalisePhone(raw: string): string | null {
 /** The Geowidget point as the picker needs it (ShipX point name = code). */
 export function pointFromGeowidget(p: Record<string, any>): LockerPoint {
   const d = p.address_details ?? {}
+  const hours = typeof p.opening_hours === 'string' && p.opening_hours.trim() ? p.opening_hours.trim() : undefined
   return {
     code: String(p.name ?? ''),
     name: String(p.location_description ?? p.name ?? ''),
     address: [d.street, d.building_number].filter(Boolean).join(' ') || String(p.address?.line1 ?? ''),
-    city: String(d.city ?? ''),
+    city: String(d.city ?? p.address?.line2 ?? ''),
     postCode: String(d.post_code ?? ''),
+    ...(hours ? { hours } : {}),
   }
+}
+
+/**
+ * What a point announced by the map is worth: only parcel lockers (A–Z, 3 letters + digits + letters) can be chosen;
+ * a PaczkoPunkt (type without parcel_locker) is refused with its own message, anything unreadable is ignored.
+ */
+export function judgePoint(p: Record<string, any> | null | undefined): { ok: true; point: LockerPoint } | { ok: false; reason: 'not_locker' | 'invalid' } {
+  if (!p || !/^[A-Z]{3}[0-9]{2,3}[A-Z]{0,4}$/.test(String(p.name ?? ''))) return { ok: false, reason: 'invalid' }
+  if (Array.isArray(p.type) && p.type.length > 0 && !p.type.includes('parcel_locker')) return { ok: false, reason: 'not_locker' }
+  return { ok: true, point: pointFromGeowidget(p) }
+}
+
+/** A code typed by hand (the map is unavailable): the same shape the map gives, with only the code known. */
+export function pointFromCode(raw: string): LockerPoint | null {
+  const code = normaliseLocker(raw)
+  return code ? { code, name: code, address: '', city: '', postCode: '' } : null
+}
+
+/** One line under the code in the "chosen locker" card: "Długa 5, 31-001 Kraków". */
+export function pointAddressLine(p: Pick<LockerPoint, 'address' | 'city' | 'postCode'>): string {
+  return [p.address, [p.postCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
 }
 
 const FLOW: ShipmentStatus[] = ['AWAITING_SHIPPING_PAYMENT', 'SHIPPING_PAID', 'LABEL_READY', 'AWAITING_DISPATCH', 'IN_TRANSIT', 'DELIVERED']

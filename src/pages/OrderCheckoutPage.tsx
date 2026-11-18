@@ -8,7 +8,7 @@ import { PAYU_TEST_NOTE } from '../lib/payuReturn'
 import { costLines, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
-import { normaliseLocker, normalisePhone, shippingConfig, type LockerPoint, type ShippingConfig } from '../lib/shipping'
+import { normalisePhone, shippingConfig, type LockerPoint, type ShippingConfig } from '../lib/shipping'
 import '../components/checkout.css'
 import './shipping.css'
 
@@ -26,7 +26,6 @@ export function OrderCheckoutPage() {
   const [cfg, setCfg] = useState<ShippingConfig | null>(null)
   const [payu, setPayu] = useState<PayuStatus | null>(null)
   const [point, setPoint] = useState<LockerPoint | null>(null)
-  const [manual, setManual] = useState('')
   const [phone, setPhone] = useState('')
   const [terms, setTerms] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -47,7 +46,6 @@ export function OrderCheckoutPage() {
   }, [profile?.phone])
 
   useEffect(() => {
-    if (state?.delivery?.lockerCode && !point && !manual) setManual(state.delivery.lockerCode)
     if (state?.delivery?.phone && !phone) setPhone(state.delivery.phone)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.delivery?.lockerCode])
@@ -59,7 +57,7 @@ export function OrderCheckoutPage() {
     return null
   }
 
-  const code = point?.code ?? normaliseLocker(manual)
+  const code = point?.code ?? null
   const phoneOk = normalisePhone(phone)
   const cost = costLines({ itemPrice: order.itemAmount, shippingPrice: order.shippingAmount, protectionFee: order.protectionFee, total: order.totalAmount })
   const payuReady = !!payu?.ready && payu.marketplaceEnabled !== false
@@ -72,7 +70,7 @@ export function OrderCheckoutPage() {
     setError(null)
     try {
       if (!processing) {
-        await setOrderDelivery(order.id, code ?? '', point?.name ?? state.delivery?.lockerName ?? null, phoneOk ?? '')
+        await setOrderDelivery(order.id, code ?? '', (point && point.name !== point.code ? point.name : state.delivery?.lockerName ?? point?.name) ?? null, phoneOk ?? '')
         await acceptOrderTerms(order.id, state.termsVersion)
       }
       const r = await startOrderCheckout(order.id, order.totalAmount)
@@ -111,15 +109,7 @@ export function OrderCheckoutPage() {
       <section className="checkout-card" data-testid="step-delivery">
         <h2><span className="step-no">1</span>Dostawa</h2>
         <p>Przewoźnik: <strong>InPost Paczkomat 24/7</strong>. Wybierz Paczkomat, do którego sprzedający wyśle paczkę.</p>
-        <LockerPicker token={cfg?.geowidgetToken} environment={cfg?.environment ?? 'sandbox'} value={point} onChange={setPoint} />
-        {point && <p data-testid="picked-locker"><strong>{point.code}</strong> · {point.name}{point.address ? `, ${point.address}` : ''}</p>}
-        {!point && (
-          <label>
-            Albo wpisz kod Paczkomatu (np. KRA010M)
-            <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="KRA010M" maxLength={20} />
-          </label>
-        )}
-        {!point && manual && !normaliseLocker(manual) && <p className="error">To nie wygląda na kod Paczkomatu.</p>}
+        <LockerPicker token={cfg?.geowidgetToken} environment={cfg?.environment ?? 'sandbox'} value={point} onChange={setPoint} initialCode={state?.delivery?.lockerCode} />
         <p>Odbiorca: <strong>{order.buyerName ?? 'Ty'}</strong></p>
         <label>
           Telefon odbiorcy (9 cyfr, na ten numer InPost wyśle kod odbioru)

@@ -17,11 +17,6 @@
 .ship-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .ship-history { margin: 10px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--text-muted); }
 .locker-picker { margin: 8px 0 16px; }
-.locker-selected { margin: 8px 0 0; }
-.locker-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; }
-.locker-sheet { position: absolute; inset: 3vh 3vw; background: var(--surface); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
-.locker-sheet-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.locker-map { flex: 1; min-height: 0; }
 
 .ship-sender { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
 .ship-sender label { display: grid; gap: 4px; font-size: 14px; }
@@ -31,3 +26,18 @@
 .pay-banner p { margin: 4px 0 0; }
 .pay-banner.pay-paid { border-left-color: #1a7f37; }
 .pay-banner.pay-failed { border-left-color: #b42318; }
+
+/* Wybór Paczkomatu: mapa w kasie (iframe), karta wybranego punktu, wpis ręczny */
+.locker-picker { margin: 8px 0 16px; }
+.locker-hint { margin: 0 0 8px; color: var(--text-muted); font-size: 0.92rem; }
+.locker-frame-wrap { position: relative; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-warm); }
+.locker-frame { display: block; width: 100%; height: 460px; border: 0; background: #fff; }
+.locker-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; pointer-events: none; }
+.locker-chosen { border: 1px solid var(--accent-secondary); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; }
+.locker-chosen p { margin: 0 0 4px; }
+.locker-chosen .btn { margin-top: 8px; }
+.locker-manual-label { display: block; font-weight: 600; }
+.locker-manual-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; text-transform: uppercase; font-size: 16px; }
+@media (max-width: 600px) {
+  .locker-frame { height: min(72vh, 520px); }
+}
