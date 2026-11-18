@@ -3104,6 +3104,10 @@ select {
   box-shadow: var(--shadow-lg);
   outline: none;
   animation: modal-in 0.18s ease-out;
+  /* a tall dialog (Kup teraz with a photo) must scroll inside itself on short screens, or its buttons are unreachable */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes modal-in {
