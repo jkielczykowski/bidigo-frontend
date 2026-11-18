@@ -17,6 +17,7 @@ const page = <K extends string>(load: () => Promise<Record<K, React.ComponentTyp
   lazy(() => load().then((m) => ({ default: m[name] })))
 
 const AuctionDetailPage = page(() => import('./pages/AuctionDetailPage'), 'AuctionDetailPage')
+const BuyNowPage = page(() => import('./pages/BuyNowPage'), 'BuyNowPage')
 const CreateAuctionPage = page(() => import('./pages/CreateAuctionPage'), 'CreateAuctionPage')
 const ImportAllegroPage = page(() => import('./pages/ImportAllegroPage'), 'ImportAllegroPage')
 const AllegroConnectionPage = page(() => import('./pages/AllegroConnectionPage'), 'AllegroConnectionPage')
@@ -68,6 +69,7 @@ export default function App() {
                   <Route path="/favorites" element={<FavoritesPage />} />
                   <Route path="/ulubione" element={<Navigate to="/favorites" replace />} />
                   <Route path="/auction/:id" element={<AuctionDetailPage />} />
+                  <Route path="/auction/:id/buy" element={<BuyNowPage />} />
                   <Route path="/auction/:id/edit" element={<EditAuctionPage />} />
                   <Route path="/sell" element={<CreateAuctionPage />} />
                   <Route path="/sell/import" element={<ImportAllegroPage />} />

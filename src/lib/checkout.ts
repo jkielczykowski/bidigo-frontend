@@ -209,3 +209,26 @@ export function checkoutErrorText(status: number): string {
 export function buyNowOffered(lockerOk: boolean, quote: Quote | null, payu: PayuReady): boolean {
   return lockerOk && buyChoices(quote, payu).protection.available
 }
+
+/** Zegar do końca czasu na płatność: „23:59:41” (godz:min:sek); null bez terminu, „00:00:00” po terminie. */
+export function payClock(dueIso: string | null | undefined, now: number): { expired: boolean; text: string } | null {
+  if (!dueIso) return null
+  const ms = new Date(dueIso).getTime() - now
+  if (Number.isNaN(ms)) return null
+  const sec = Math.max(0, Math.floor(ms / 1000))
+  const p = (n: number) => String(n).padStart(2, '0')
+  return { expired: ms <= 0, text: `${p(Math.floor(sec / 3600))}:${p(Math.floor((sec % 3600) / 60))}:${p(sec % 60)}` }
+}
+
+/**
+ * Dlaczego „Kup teraz” jest niedostępne, jednym zdaniem dla kupującego, z którym nic nie da się zrobić poza rozmową ze sprzedającym.
+ * Limit ceny podaje kwotę (z `protection_price_limit`), reszta to powody z buyer_protection_check.
+ */
+export function buyNowUnavailableText(reason: string | null | undefined, priceLimit: number | null): string {
+  if (reason === 'price_above_limit' && priceLimit != null) {
+    const x = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 }).format(priceLimit)
+    return `Ochrona Kupującego obejmuje zakupy do ${x} zł. Napisz do sprzedawcy, żeby ustalić zakup.`
+  }
+  if (reason === 'price_above_limit') return 'Cena przedmiotu przekracza limit Ochrony Kupującego. Napisz do sprzedawcy, żeby ustalić zakup.'
+  return `${protectionReasonText(reason)} Napisz do sprzedawcy, żeby ustalić zakup.`
+}

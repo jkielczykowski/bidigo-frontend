@@ -23,10 +23,8 @@ import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
 import { AUCTION_CARD_COLUMNS, PUBLIC_PROFILE_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
-import { BuyNowSummary } from '../components/BuyNowSummary'
 import { useBuyNowOffer } from '../lib/useBuyNowOffer'
 import { WinnerOrderCta } from '../components/WinnerOrderCta'
-import { fetchOrderForAuction } from '../lib/ordersApi'
 import { useLockerMap } from '../lib/ordersApi'
 import { lockerAllowedFor } from '../lib/ordersLogic'
 import { addRecentView } from '../lib/recentViews'
@@ -58,9 +56,7 @@ export function AuctionDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now())
-  const [buyNowOpen, setBuyNowOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [buyNowError, setBuyNowError] = useState<string | null>(null)
   const [activeImage, setActiveImage] = useState(0)
   const carRef = useRef<HTMLDivElement>(null)
   const categories = useCategories()
@@ -442,6 +438,14 @@ export function AuctionDetailPage() {
     }
   }
 
+  // wejście ze strony zakupu („Napisz do sprzedawcy”): po załadowaniu ogłoszenia przewiń do pola pytania
+  useEffect(() => {
+    if (!auction || !new URLSearchParams(location.search).get('ask')) return
+    const t = setTimeout(askSeller, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auction?.id, location.search])
+
   /** „Napisz do sprzedawcy” przed sprzedażą: pytanie w wątku pod ogłoszeniem (czat 1:1 działa dopiero po sprzedaży). */
   function askSeller() {
     if (!user) {
@@ -462,29 +466,7 @@ export function AuctionDetailPage() {
       navigate(`/verify-phone?next=/auction/${id}`)
       return
     }
-    setBuyNowError(null)
-    setBuyNowOpen(true)
-  }
-
-  /** „Kup teraz” = zakup z Ochroną: aukcja się kończy, powstaje zamówienie z Ochroną, kupujący trafia do kasy (dostawa i PayU). */
-  async function confirmBuyNow() {
-    if (!id || !auction?.buy_now_price) return
-    setBusy(true)
-    setBuyNowError(null)
-    try {
-      const { error: err } = await supabase.rpc('buy_now', { p_auction_id: id })
-      if (err) throw err
-      setBuyNowOpen(false)
-      await load()
-      const order = await fetchOrderForAuction(id).catch(() => null)
-      if (order) navigate(order.fulfillment === 'protected' ? `/my/orders/${order.id}/checkout` : `/my/orders/${order.id}`)
-    } catch (err) {
-      setBuyNowError(errorMessage(err, 'Nie udało się kupić'))
-      if (isFeeBlockError(err)) void reloadFeeBlock()
-      if (isAccountBlockedError(err)) void reloadAf()
-    } finally {
-      setBusy(false)
-    }
+    navigate(`/auction/${id}/buy`)
   }
 
   if (!auction) {
@@ -519,7 +501,6 @@ export function AuctionDetailPage() {
   }
 
   const images = auction.image_urls?.filter(Boolean) ?? []
-  const img = images[Math.min(activeImage, Math.max(images.length - 1, 0))]
 
   return (
     <div className="container page detail">
@@ -1146,28 +1127,6 @@ export function AuctionDetailPage() {
           openBuyNow()
         }}
       />
-
-      <Modal open={buyNowOpen} title="Kup teraz" onClose={() => !busy && setBuyNowOpen(false)}>
-        <div className="buy-now-modal">
-          {img && (
-            <div className="buy-now-thumb">
-              <img src={img} alt="" />
-            </div>
-          )}
-          <div className="buy-now-info">
-            <h3>{auction.title}</h3>
-            <p className="muted">Aukcja zakończy się natychmiast. Kupujesz za stałą cenę.</p>
-            <div className="buy-now-price">
-              <span className="label">Cena przedmiotu</span>
-              <strong>{formatPln(auction.buy_now_price)}</strong>
-            </div>
-            {buyNowError && <p className="error">{buyNowError}</p>}
-            {buyNowOffer.quote && (
-              <BuyNowSummary quote={buyNowOffer.quote} busy={busy} onPay={() => void confirmBuyNow()} onCancel={() => setBuyNowOpen(false)} onWriteToSeller={isSeller ? null : () => { setBuyNowOpen(false); setTimeout(askSeller, 150) }} />
-            )}
-          </div>
-        </div>
-      </Modal>
 
       <Modal open={endOpen} title="Zakończ aukcję" onClose={() => !busy && setEndOpen(false)}>
         <div className="buy-now-modal">

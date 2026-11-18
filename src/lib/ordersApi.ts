@@ -16,6 +16,12 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Promise<T
 export const fetchQuote = (auctionId: string, price?: number | null) =>
   rpc<Quote | null>('order_quote', { p_auction_id: auctionId, p_price: price ?? null })
 
+/** Limit ceny Ochrony (zł) albo null = bez limitu; publiczny, tylko do komunikatu „Ochrona obejmuje zakupy do X zł”. */
+export const fetchProtectionPriceLimit = async () => {
+  const v = await rpc<number | string | null>('protection_price_limit')
+  return v == null ? null : Number(v)
+}
+
 export const fetchMyOrders = (role: 'buyer' | 'seller', limit = 30, offset = 0) =>
   rpc<Order[]>('my_orders', { p_role: role, p_limit: limit, p_offset: offset })
 

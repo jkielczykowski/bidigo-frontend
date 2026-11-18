@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buyNowOffered, checkoutErrorText, COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
+import { payClock, buyNowUnavailableText, buyNowOffered, checkoutErrorText, COVERS, DIRECT_CONSEQUENCES, NOT_COVERS, buyChoices, countdown, howItWorks, orderTimeline, paymentDeadline, protectionReasonText, whatNow } from './checkout.ts'
 import type { Quote } from './ordersLogic.ts'
 
 const eligible: Quote = { eligible: true, reason: null, itemPrice: 100, shippingPrice: 12.99, protectionFee: 4, total: 116.99, notEligibleText: null }
@@ -133,4 +133,19 @@ test('„Kup teraz” tylko z Ochroną: bez kwalifikacji, bez Paczkomatu w kateg
   assert.equal(buyNowOffered(true, eligible, { ready: false }), false, 'PayU niegotowe')
   assert.equal(buyNowOffered(true, eligible, null), false)
   assert.equal(buyNowOffered(true, null, ok), false, 'nie udało się sprawdzić: nic nie oferujemy')
+})
+
+test('the payment clock counts down to the second and stops at zero', () => {
+  const due = new Date(Date.UTC(2026, 0, 1, 12, 0, 0)).toISOString()
+  assert.equal(payClock(due, Date.UTC(2026, 0, 1, 10, 59, 18))?.text, '01:00:42')
+  assert.equal(payClock(due, Date.UTC(2026, 0, 1, 12, 0, 1))?.expired, true)
+  assert.equal(payClock(due, Date.UTC(2026, 0, 1, 12, 0, 1))?.text, '00:00:00')
+  assert.equal(payClock(null, 0), null)
+})
+
+test('an unavailable Kup teraz always says why and what to do: the price limit names the amount', () => {
+  assert.match(buyNowUnavailableText('price_above_limit', 1000), /do 1000 zł.*Napisz do sprzedawcy/)
+  assert.match(buyNowUnavailableText('price_above_limit', null), /limit.*Napisz do sprzedawcy/)
+  assert.match(buyNowUnavailableText('not_inpost', null), /Napisz do sprzedawcy/)
+  assert.match(buyNowUnavailableText('something_new', null), /chwilowo niedostępna.*Napisz do sprzedawcy/)
 })
