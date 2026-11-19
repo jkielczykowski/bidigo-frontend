@@ -33,7 +33,7 @@ test('komunikaty są po polsku, wspominają PayU i nie obiecują pieniędzy prze
 
 test('sprzedający: „konto PayU do połączenia”, dopóki nie ma zweryfikowanego konta i umowy marketplace', () => {
   assert.equal(sellerPayuMessage({ status: 'verified', marketplaceReady: true }), null)
-  assert.match(sellerPayuMessage({ status: 'not_connected', marketplaceReady: true })!.title, /Konto PayU do połączenia/)
+  assert.match(sellerPayuMessage({ status: 'not_connected', marketplaceReady: true })!.title, /Konto do wypłat do połączenia/)
   assert.match(sellerPayuMessage({ status: 'pending', marketplaceReady: true })!.title, /weryfikacji/)
   assert.match(sellerPayuMessage({ status: 'rejected', marketplaceReady: true })!.title, /odrzucone/)
   assert.match(sellerPayuMessage({ status: 'locked', marketplaceReady: true })!.title, /zablokowane/)

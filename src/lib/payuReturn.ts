@@ -74,20 +74,20 @@ export function sellerPayuMessage(a: SellerPayuAccount): { title: string; body: 
   if (!a.marketplaceReady) {
     return {
       title: 'Sprzedaż z Ochroną Bidigo jeszcze niedostępna',
-      body: 'Ochrona Kupującego ruszy, gdy uruchomimy płatności PayU Marketplace. Do tego czasu sprzedajesz bezpośrednio, a kupujący może zapłacić tylko za dostawę przez Bidigo.',
+      body: 'Ochrona Kupującego ruszy, gdy uruchomimy płatności z podziałem u operatora płatności. Do tego czasu sprzedajesz bezpośrednio, a kupujący może zapłacić tylko za dostawę przez Bidigo.',
     }
   }
   switch (a.status) {
     case 'pending':
-      return { title: 'Konto PayU w trakcie weryfikacji', body: 'Gdy PayU zweryfikuje Twoje konto, włączymy sprzedaż z Ochroną Bidigo. Do tego czasu sprzedajesz bezpośrednio.' }
+      return { title: 'Konto do wypłat w trakcie weryfikacji', body: 'Gdy operator płatności zweryfikuje Twoje konto, włączymy sprzedaż z Ochroną Bidigo. Do tego czasu sprzedajesz bezpośrednio.' }
     case 'rejected':
-      return { title: 'Konto PayU odrzucone', body: 'PayU nie zweryfikował Twojego konta, więc nie możesz sprzedawać z Ochroną Bidigo. Skontaktuj się z nami, żebyśmy pomogli to wyjaśnić.' }
+      return { title: 'Konto do wypłat odrzucone', body: 'Operator płatności nie zweryfikował Twojego konta, więc nie możesz sprzedawać z Ochroną Bidigo. Skontaktuj się z nami, żebyśmy pomogli to wyjaśnić.' }
     case 'locked':
-      return { title: 'Konto PayU zablokowane', body: 'Sprzedaż z Ochroną Bidigo jest wstrzymana. Skontaktuj się z nami.' }
+      return { title: 'Konto do wypłat zablokowane', body: 'Sprzedaż z Ochroną Bidigo jest wstrzymana. Skontaktuj się z nami.' }
     default:
       return {
-        title: 'Konto PayU do połączenia',
-        body: 'Żeby sprzedawać z Ochroną Bidigo, połącz konto PayU. Pieniądze za towar trafią prosto na Twoje konto w PayU (nie do Bidigo), po potwierdzeniu odbioru przez kupującego. Do tego czasu sprzedajesz bezpośrednio.',
+        title: 'Konto do wypłat do połączenia',
+        body: 'Żeby sprzedawać z Ochroną Bidigo, połącz konto do wypłat. Pieniądze za towar trafią prosto na Twoje konto u operatora płatności (nie do Bidigo), po potwierdzeniu odbioru przez kupującego. Do tego czasu sprzedajesz bezpośrednio.',
       }
   }
 }

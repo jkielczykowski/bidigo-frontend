@@ -151,5 +151,5 @@ test('an unavailable Kup teraz always says why and what to do: the price limit n
 })
 
 test('an unverified seller account at PayU is explained in plain words (422)', () => {
-  assert.match(checkoutErrorText(422), /niezweryfikowane.*Napisz do sprzedawcy/)
+  assert.match(checkoutErrorText(422), /Sprzedający kończy weryfikację.*Napisz do sprzedawcy/)
 })

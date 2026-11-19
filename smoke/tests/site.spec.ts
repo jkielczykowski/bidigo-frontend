@@ -71,3 +71,8 @@ test('link z błędem (wygasły) pokazuje komunikat po polsku', async ({ page })
   await page.goto('/auth/potwierdzono#error=access_denied&error_code=otp_expired')
   await expect(page.getByRole('alert')).toContainText('wygasł')
 })
+
+test('ekran „Dane do wypłaty” bez logowania prosi o zalogowanie', async ({ page }) => {
+  await page.goto('/my/payout')
+  await expect(page.getByText('żeby podać dane do wypłaty')).toBeVisible()
+})

@@ -1,0 +1,12 @@
+/* Ekran „Dane do wypłaty”: kroki i formularz; reszta stylów (karty, chipy) z shipping.css i orders.css */
+.payout-page { max-width: 760px; }
+.payout-steps { display: flex; gap: 4px; margin: 12px 0 16px; padding: 0; list-style: none; }
+.payout-steps li { flex: 1; font-size: 0.75rem; text-align: center; color: var(--text-light); border-top: 4px solid var(--border); padding-top: 4px; }
+.payout-steps li.done { color: var(--text); border-top-color: var(--accent-secondary); }
+.payout-steps li.now { color: var(--text); font-weight: 700; border-top-color: var(--accent-secondary); }
+.payout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0; }
+.payout-grid label { display: grid; gap: 4px; align-content: start; font-size: 14px; }
+.payout-block { display: block; margin-top: 4px; }
+.payout-doc { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
+.payout-due { border-left-color: #b26a00; }
+@media (max-width: 520px) { .payout-steps li { font-size: 0.65rem; } }

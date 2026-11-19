@@ -30,6 +30,7 @@ const HomePage = page(() => import('./pages/HomePage'), 'HomePage')
 const MessagesPage = page(() => import('./pages/MessagesPage'), 'MessagesPage')
 const MyActivityPage = page(() => import('./pages/MyActivityPage'), 'MyActivityPage')
 const MyBiddingPage = page(() => import('./pages/MyBiddingPage'), 'MyBiddingPage')
+const MyPayoutPage = page(() => import('./pages/MyPayoutPage'), 'MyPayoutPage')
 const MyOrdersPage = page(() => import('./pages/MyOrdersPage'), 'MyOrdersPage')
 const OrderPage = page(() => import('./pages/OrderPage'), 'OrderPage')
 const OrderCheckoutPage = page(() => import('./pages/OrderCheckoutPage'), 'OrderCheckoutPage')
@@ -81,6 +82,7 @@ export default function App() {
                   <Route path="/my/selling" element={<MySellingPage />} />
                   <Route path="/my/bidding" element={<MyBiddingPage />} />
                   <Route path="/my/fees" element={<MyFeesPage />} />
+                  <Route path="/my/payout" element={<MyPayoutPage />} />
                   <Route path="/my/orders" element={<MyOrdersPage />} />
                   <Route path="/my/orders/:id" element={<OrderPage />} />
                   <Route path="/my/orders/:id/checkout" element={<OrderCheckoutPage />} />

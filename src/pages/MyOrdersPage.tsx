@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { fetchMyOrders } from '../lib/ordersApi'
 import { SellerPayuBanner } from '../components/SellerPayuBanner'
+import { PayoutDueNotice } from '../components/PayoutDueNotice'
+import { amountWaitingForSeller } from '../lib/sellerKyc'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
@@ -47,6 +49,7 @@ export function MyOrdersPage() {
           Moje sprzedaże
         </button>
       </div>
+      {role === 'seller' && orders && <PayoutDueNotice amount={amountWaitingForSeller(orders)} />}
       {role === 'seller' && <SellerPayuBanner />}
       {error && <p className="error">{error}</p>}
       {orders === null && !error && <p className="muted">Ładowanie…</p>}

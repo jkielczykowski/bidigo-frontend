@@ -1,6 +1,7 @@
 // Kasa „Kup z dostawą i Ochroną Bidigo” i oś statusów zamówienia: czysta logika (bez sieci), testowana node --test.
 // Kwalifikację liczy WYŁĄCZNIE backend (order_quote); tu tylko opisujemy to, co zwrócił, jednym zdaniem.
 import { NOT_ELIGIBLE_TEXT, type Order, type Quote } from './ordersLogic.ts'
+import { BUYER_SELLER_VERIFYING } from './sellerKyc.ts'
 
 export type PayuReady = { ready: boolean; testMode?: boolean; marketplaceEnabled?: boolean } | null
 
@@ -197,7 +198,7 @@ export function checkoutErrorText(status: number): string {
     case 403:
     case 404: return 'Tego zamówienia nie możesz opłacić.'
     case 409: return 'Ochrona nie jest już dostępna dla tego zamówienia albo brakuje dostawy lub zgody. Odśwież stronę.'
-    case 422: return 'Konto PayU sprzedającego jest niezweryfikowane, więc płatność jest niemożliwa. Napisz do sprzedawcy.'
+    case 422: return BUYER_SELLER_VERIFYING
     case 503: return 'Płatności są chwilowo niedostępne. Spróbuj później.'
     default: return 'Nie udało się rozpocząć płatności PayU, spróbuj ponownie.'
   }
