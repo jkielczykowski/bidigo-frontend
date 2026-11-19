@@ -35,7 +35,8 @@ export function OrderPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [panel, setPanel] = useState<'problem' | 'cancel' | 'ship' | 'respond' | null>(null)
+  const [panel, setPanel] = useState<'problem' | 'cancel' | 'ship' | 'respond' | 'confirm' | null>(null)
+  const [checks, setChecks] = useState<boolean[]>([false, false, false])
   const [text, setText] = useState('')
   const [kind, setKind] = useState('not_as_described')
   const [co, setCo] = useState<CheckoutState | null>(null)
@@ -240,7 +241,7 @@ export function OrderPage() {
         )}
         {has('ship') && <button className="btn btn-primary" disabled={busy} onClick={() => setPanel('ship')}>Oznacz jako nadane</button>}
         {has('confirm_receipt') && (
-          <button className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReceipt(order.id), 'Dziękujemy! Transakcja zakończona, sprzedający dostaje pieniądze.')}>
+          <button className="btn btn-primary" disabled={busy} onClick={() => { setChecks([false, false, false]); setPanel('confirm') }}>
             {order.fulfillment === 'protected' ? 'Wszystko w porządku' : 'Transakcja zrealizowana'}
           </button>
         )}
@@ -249,6 +250,21 @@ export function OrderPage() {
         {has('cancel') && <button className="btn btn-outline" disabled={busy} onClick={() => setPanel('cancel')}>Anuluj zamówienie</button>}
       </div>
 
+      {panel === 'confirm' && (
+        <form className="order-card" data-testid="confirm-form" onSubmit={(e) => { e.preventDefault(); void run(() => confirmReceipt(order.id), 'Dziękujemy! Transakcja zakończona, sprzedający dostaje pieniądze.') }}>
+          <h3>Potwierdzenie odbioru</h3>
+          <p className="hint">Po potwierdzeniu pieniądze za przedmiot ({formatPln(order.itemAmount)}) trafiają do sprzedającego i nie można tego cofnąć. Jeśli coś jest nie tak, zamiast tego zgłoś problem.</p>
+          {['Odebrałem(-am) paczkę i ją otworzyłem(-am)', 'Przedmiot jest zgodny z opisem w ogłoszeniu', 'Przedmiot nie jest uszkodzony i działa'].map((label, i) => (
+            <label key={label} className="check-row">
+              <input type="checkbox" checked={checks[i]} onChange={(e) => setChecks(checks.map((c, j) => (j === i ? e.target.checked : c)))} /> <span>{label}</span>
+            </label>
+          ))}
+          <div className="order-actions">
+            <button className="btn btn-primary" disabled={busy || !checks.every(Boolean)} type="submit">Potwierdzam, wypłać sprzedającemu</button>
+            <button className="btn btn-outline" type="button" onClick={() => setPanel('problem')}>Jest problem, zgłaszam</button>
+          </div>
+        </form>
+      )}
       {panel === 'problem' && (
         <form className="order-card" onSubmit={(e) => { e.preventDefault(); void run(() => reportProblem(order.id, kind, text), 'Zgłoszenie wysłane — rozpatrzymy je i dostaniesz odpowiedź.') }}>
           <h3>Zgłoś problem z zamówieniem</h3>
