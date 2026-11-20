@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  EMPTY_FORM, ageOn, amountWaitingForSeller, buildKycPayload, documentFileError, fieldErrorFromApi, formatIban, formatZip, ibanChecksumOk,
+  EMPTY_FORM, acceptRegulationsIdempotent, ageOn, amountWaitingForSeller, buildKycPayload, documentFileError, fieldErrorFromApi, formatIban, formatZip, ibanChecksumOk,
   isValidNip, isValidPesel, isIdDocument, expireDateError, isValidPlIban, isValidZip, normalizePlIban, sellerKycMessage, stepForState, validateKycForm, BUYER_SELLER_VERIFYING, MAX_DOCUMENT_BYTES,
 } from './sellerKyc.ts'
 
@@ -143,4 +143,12 @@ test('błąd 422 z API: pole i komunikat', () => {
   assert.deepEqual(fieldErrorFromApi({ field: 'nieznane', message: 'x' }), { field: null, message: 'x' })
   assert.equal(fieldErrorFromApi(null), null)
   assert.equal(fieldErrorFromApi({ field: 'iban' }), null)
+})
+
+test('regulamin: 409 = już zaakceptowane, odczyt stanu zamiast błędu; inne błędy lecą dalej', async () => {
+  const err = (status: number) => Object.assign(new Error('x'), { status })
+  assert.equal(await acceptRegulationsIdempotent(async () => 'post', async () => 'get'), 'post')
+  assert.equal(await acceptRegulationsIdempotent(async () => { throw err(409) }, async () => 'get'), 'get')
+  await assert.rejects(acceptRegulationsIdempotent(async () => { throw err(503) }, async () => 'get'), /x/)
+  await assert.rejects(acceptRegulationsIdempotent(async () => { throw new Error('sieć') }, async () => 'get'), /sieć/)
 })

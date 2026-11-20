@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { fieldErrorFromApi, type KycForm, type KycKind, type KycState } from './sellerKyc.ts'
+import { acceptRegulationsIdempotent, fieldErrorFromApi, type KycForm, type KycKind, type KycState } from './sellerKyc.ts'
 import { buildKycPayload } from './sellerKyc.ts'
 
 // Klient API weryfikacji sprzedającego: /api/v1/seller/kyc (kontrakt: docs/PAYU-KYC.md w repozytorium backendu).
@@ -69,7 +69,8 @@ function normalize(raw: Partial<KycState>): KycState {
 export const fetchKyc = () => call<Partial<KycState>>('/').then(normalize)
 export const startKyc = (kind: KycKind) => call<Partial<KycState>>('/start', { method: 'POST', body: { kind } }).then(normalize)
 export const sendKycData = (form: KycForm, kind: KycKind) => call<Partial<KycState>>('/data', { method: 'POST', body: buildKycPayload(form, kind) }).then(normalize)
-export const confirmRegulationsAccepted = () => call<Partial<KycState>>('/regulations-accepted', { method: 'POST' }).then(normalize)
+export const confirmRegulationsAccepted = () =>
+  acceptRegulationsIdempotent(() => call<Partial<KycState>>('/regulations-accepted', { method: 'POST' }), () => call<Partial<KycState>>('/')).then(normalize)
 export const refreshKyc = () => call<Partial<KycState>>('/refresh', { method: 'POST' }).then(normalize)
 export const completeKyc = () => call<Partial<KycState>>('/complete', { method: 'POST' }).then(normalize)
 

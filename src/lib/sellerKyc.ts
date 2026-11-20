@@ -274,3 +274,13 @@ export function fieldErrorFromApi(body: unknown): { field: keyof KycForm | null;
   const known = Object.keys(EMPTY_FORM)
   return { field: typeof b.field === 'string' && known.includes(b.field) ? (b.field as keyof KycForm) : null, message: b.message }
 }
+
+/** POST /regulations-accepted: odpowiedź 409 znaczy „już zaakceptowane” (np. w widżecie), więc zamiast błędu odczytujemy stan i idziemy dalej. */
+export async function acceptRegulationsIdempotent<T>(post: () => Promise<T>, get: () => Promise<T>): Promise<T> {
+  try {
+    return await post()
+  } catch (e) {
+    if (typeof e === 'object' && e !== null && (e as { status?: unknown }).status === 409) return get()
+    throw e
+  }
+}
