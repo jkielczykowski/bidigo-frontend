@@ -12,6 +12,7 @@ import { PAYU_REFRESH_EVERY_MS, orderPayState, returnedFromPayu, shouldRefreshPa
 import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib/checkout'
 import { downloadLabel, printLabel, shipmentByOrder, shippingError, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
+import { ReturnSection } from '../components/ReturnSection'
 import { fetchAuctionLockerAllowed, refreshOrderPayment } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import { PayoutDueNotice } from '../components/PayoutDueNotice'
@@ -175,6 +176,9 @@ export function OrderPage() {
           )}
           {order.role === 'seller' && <p className="hint">Pieniądze za przedmiot ({formatPln(order.itemAmount)}) czekają u operatora płatności i trafią do Ciebie po potwierdzeniu odbioru przez kupującego albo po upływie terminu bez zgłoszenia.</p>}
         </section>
+      )}
+      {order.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(order.status) && (
+        <ReturnSection orderId={order.id} role={order.role} now={now} onChanged={() => void load()} />
       )}
       {order.role === 'seller' && <PayoutDueNotice amount={amountWaitingForSeller([order])} />}
       {notice && <p className="success">{notice}</p>}

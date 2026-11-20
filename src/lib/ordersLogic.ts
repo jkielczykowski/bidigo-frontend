@@ -55,6 +55,8 @@ export type Order = {
   paymentDueAt: string | null
   reportUntil: string | null
   createdAt: string
+  /** Status zwrotu (order_returns.status), gdy zamówienie ma zwrot; pole opcjonalne w odpowiedzi serwera. */
+  returnStatus?: string | null
   actions: OrderAction[]
   dispute: { kind: string; status: string; description: string; sellerResponse: string | null; resolutionNote: string | null } | null
   history?: { from: string | null; to: OrderStatus; note: string; at: string }[]

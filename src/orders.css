@@ -33,3 +33,6 @@
 }
 .check-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; cursor: pointer; }
 .check-row input { margin-top: 3px; }
+.return-card .order-countdown { margin: 6px 0; }
+.return-card textarea, .return-card select { width: 100%; }
+.order-status.tone-muted { background: rgba(107, 114, 128, 0.14); color: #4b5563; }

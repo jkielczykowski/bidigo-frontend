@@ -6,6 +6,7 @@ import { SellerPayuBanner } from '../components/SellerPayuBanner'
 import { PayoutDueNotice } from '../components/PayoutDueNotice'
 import { amountWaitingForSeller } from '../lib/sellerKyc'
 import { statusLabel, statusTone, type Order } from '../lib/ordersLogic'
+import { listReturnLabel } from '../lib/returns'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
 import './shipping.css'
@@ -59,7 +60,7 @@ export function MyOrdersPage() {
           <li key={o.id}>
             <Link to={`/my/orders/${o.id}`} className="order-row">
               <span className="order-title">{o.itemTitle}</span>
-              <span className={`order-status tone-${statusTone(o.status)}`}>{statusLabel(o.status, o.fulfillment)}</span>
+              <span className={`order-status tone-${statusTone(o.status)}`}>{listReturnLabel(o.returnStatus) ?? statusLabel(o.status, o.fulfillment)}</span>
               <span className="order-amount">{formatPln(o.fulfillment === 'protected' ? o.totalAmount : o.itemAmount)}</span>
               <span className="muted order-meta">
                 {o.number} · {o.fulfillment === 'protected' ? 'z Ochroną Bidigo' : 'bezpośrednio'} · {role === 'buyer' ? o.sellerName : o.buyerName}
