@@ -42,7 +42,8 @@ export function BuyNowPage() {
   }, [id])
 
   useEffect(() => {
-    if (!a || a.buy_now_price == null) return
+    if (!a) return
+    if (a.buy_now_price == null) { setQuote(null); return }
     void fetchQuote(a.id, Number(a.buy_now_price)).then(setQuote).catch(() => setQuote(null))
   }, [a])
 
