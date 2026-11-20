@@ -13,6 +13,8 @@ import { DIRECT_CONSEQUENCES, countdown, paymentDeadline, whatNow } from '../lib
 import { downloadLabel, printLabel, shipmentByOrder, shippingError, type Shipment } from '../lib/shipping'
 import { OrderTimeline } from '../components/OrderTimeline'
 import { ReturnSection } from '../components/ReturnSection'
+import { fetchReturn } from '../lib/returnsApi'
+import { actionsDuringReturn, type ReturnInfo } from '../lib/returns'
 import { fetchAuctionLockerAllowed, refreshOrderPayment } from '../lib/ordersApi'
 import { PaymentStateBanner } from '../components/PaymentStateBanner'
 import { PayoutDueNotice } from '../components/PayoutDueNotice'
@@ -44,6 +46,7 @@ export function OrderPage() {
   const [kind, setKind] = useState('not_as_described')
   const [co, setCo] = useState<CheckoutState | null>(null)
   const [shipment, setShipment] = useState<Shipment | null>(null)
+  const [ret, setRet] = useState<ReturnInfo | null>(null)
   const [now, setNow] = useState(() => Date.now())
 
   const load = useCallback(async () => {
@@ -53,6 +56,7 @@ export function OrderPage() {
       setOrder(o)
       // the category of the item must allow a parcel locker before any Paczkomat button is offered (V110)
       void fetchAuctionLockerAllowed(o.auctionId).then(setLockerOk).catch(() => setLockerOk(false))
+      if (o.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(o.status)) void fetchReturn(o.id).then(setRet).catch(() => setRet(null))
       void fetchCheckoutState(o.id).then(setCo).catch(() => {})
       if (o.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(o.status)) {
         void shipmentByOrder(o.auctionId).then(setShipment).catch(() => setShipment(null))
@@ -134,7 +138,7 @@ export function OrderPage() {
   }
   if (!order) return <div className="container page">{error ? <p className="error">{error}</p> : <p className="muted">Ładowanie…</p>}</div>
 
-  const actions = visibleActions(order)
+  const actions = actionsDuringReturn(visibleActions(order), order.returnStatus, ret)
   const has = (a: OrderAction) => actions.includes(a)
   const isBuyer = order.role === 'buyer'
   const summary = costLines({ itemPrice: order.itemAmount, shippingPrice: order.shippingAmount, protectionFee: order.protectionFee, total: order.totalAmount })
@@ -178,7 +182,7 @@ export function OrderPage() {
         </section>
       )}
       {order.fulfillment === 'protected' && !['AWAITING_PAYMENT', 'PAYMENT_PROCESSING'].includes(order.status) && (
-        <ReturnSection orderId={order.id} role={order.role} now={now} onChanged={() => void load()} />
+        <ReturnSection orderId={order.id} role={order.role} info={ret} now={now} onChanged={() => void load()} />
       )}
       {order.role === 'seller' && <PayoutDueNotice amount={amountWaitingForSeller([order])} />}
       {notice && <p className="success">{notice}</p>}

@@ -28,6 +28,7 @@ export function returnErrorText(status: number, bodyText: string): string {
     const m = (JSON.parse(bodyText) as { message?: unknown }).message
     if (typeof m === 'string' && m.trim()) return m
   } catch { /* nie JSON */ }
+  if (status === 503) return 'Przesyłki zwrotne są chwilowo niedostępne. Spróbuj ponownie później.'
   if (status === 409) return 'Zwrotu nie można teraz zgłosić (minęło okno zwrotu albo zamówienie jest w innym stanie).'
   if (status === 422) return 'Sprawdź dane zgłoszenia zwrotu.'
   if (status === 403) return 'Nie masz uprawnień do tej operacji.'
@@ -42,6 +43,9 @@ export async function fetchReturn(orderId: string): Promise<ReturnInfo | null> {
     throw e
   }
 }
+
+export const setReturnLocker = async (orderId: string, lockerCode: string, lockerName?: string) =>
+  (await call('PUT', orderId, '/locker', { lockerCode, ...(lockerName?.trim() ? { lockerName: lockerName.trim() } : {}) })).json() as Promise<ReturnInfo>
 
 export const requestReturn = async (orderId: string, reason: string, note: string) =>
   (await (await call('POST', orderId, '', { reason, ...(note.trim() ? { note: note.trim() } : {}) })).json()) as ReturnInfo

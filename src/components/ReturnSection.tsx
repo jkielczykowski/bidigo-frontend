@@ -1,35 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
-import { confirmReturnReceived, disputeReturn, downloadReturnLabel, fetchReturn, requestReturn } from '../lib/returnsApi'
+import { useState } from 'react'
+import { confirmReturnReceived, disputeReturn, downloadReturnLabel, requestReturn, setReturnLocker } from '../lib/returnsApi'
 import {
-  RETURN_COST_NOTICE, RETURN_REASONS, buyerCanDownloadLabel, canRequestReturn, isActiveReturn, returnDeadlineText,
-  returnStatusLabel, returnTone, sellerReturnActions, sellerReturnText, validateReturnRequest, type ReturnInfo,
+  RETURN_COST_NOTICE, RETURN_REASONS, buyerCanDownloadLabel, canRequestReturn, hasReturn, normalizeLockerCode, returnDeadlineText,
+  returnStatusLabel, returnTone, sellerCanConfirm, sellerCanDispute, sellerNeedsLocker, sellerReturnText, validateReturnRequest, type ReturnInfo,
 } from '../lib/returns'
 import { formatPln } from '../lib/format'
 import { errorMessage } from '../lib/errors'
 
-type Props = { orderId: string; role: 'buyer' | 'seller' | 'admin' | null; now: number; onChanged: () => void }
+type Props = { orderId: string; role: 'buyer' | 'seller' | 'admin' | null; info: ReturnInfo | null; now: number; onChanged: () => void }
 
 /** Zwrot na koszt Bidigo (Ochrona Kupującego): zgłoszenie, list zwrotny, status; dla sprzedającego potwierdzenie odbioru i zgłoszenie problemu. */
-export function ReturnSection({ orderId, role, now, onChanged }: Props) {
-  const [info, setInfo] = useState<ReturnInfo | null>(null)
+export function ReturnSection({ orderId, role, info, now, onChanged }: Props) {
   const [panel, setPanel] = useState<'request' | 'dispute' | null>(null)
-  const [reason, setReason] = useState('not_liked')
+  const [reason, setReason] = useState('changed_mind')
+  const [locker, setLocker] = useState('')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    try {
-      setInfo(await fetchReturn(orderId))
-    } catch {
-      setInfo(null)
-    }
-  }, [orderId])
-
-  useEffect(() => {
-    void load()
-  }, [load])
 
   async function run(fn: () => Promise<unknown>, done: string) {
     setBusy(true)
@@ -39,7 +27,6 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
       setPanel(null)
       setText('')
       setNotice(done)
-      await load()
       onChanged()
     } catch (e) {
       setError(errorMessage(e, 'Nie udało się wykonać operacji'))
@@ -49,9 +36,9 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
   }
 
   if (role !== 'buyer' && role !== 'seller') return null
-  const hasReturn = !!info?.status
+  const has = hasReturn(info)
   const canRequest = canRequestReturn(info, role)
-  if (!hasReturn && !canRequest) return null
+  if (!has && !canRequest) return null
 
   const errors = validateReturnRequest(reason, text)
   const deadline = info ? returnDeadlineText(info, now) : null
@@ -59,7 +46,8 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
   return (
     <section className="order-card return-card" data-testid="return-section">
       <h3>Zwrot przedmiotu</h3>
-      {hasReturn && info && (
+      {!has && !canRequest && info?.cannotRequestReason && <p className="hint">{info.cannotRequestReason}</p>}
+      {has && info && (
         <p>
           <span className={`order-status tone-${returnTone(info.status)}`} data-testid="return-status">{returnStatusLabel(info)}</span>
         </p>
@@ -75,7 +63,7 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
         </>
       )}
       {role === 'buyer' && canRequest && panel === 'request' && (
-        <form data-testid="return-form" onSubmit={(e) => { e.preventDefault(); void run(() => requestReturn(orderId, reason, text), 'Zwrot zgłoszony. Pobierz list zwrotny i nadaj paczkę.') }}>
+        <form data-testid="return-form" onSubmit={(e) => { e.preventDefault(); void run(() => requestReturn(orderId, reason, text), 'Zwrot zgłoszony. Gdy list zwrotny będzie gotowy, pobierzesz go tutaj.') }}>
           <p className="hint">{RETURN_COST_NOTICE}</p>
           <label>
             <span className="label-text">Powód zwrotu</span>
@@ -95,7 +83,9 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
         </form>
       )}
 
-      {role === 'buyer' && hasReturn && info && (
+      {has && info?.refundState === 'pending' && <p className="hint">Zwrot pieniędzy jest w toku.</p>}
+      {has && info?.refundState === 'failed' && <p className="hint">Zwrot pieniędzy nie powiódł się — Bidigo ponowi go lub zajmie się sprawą.</p>}
+      {role === 'buyer' && has && info && (
         <>
           {info.status !== 'refunded' && <p className="hint">{RETURN_COST_NOTICE}</p>}
           {info.refundAmount != null && <p>Kwota zwrotu: <strong>{formatPln(info.refundAmount)}</strong></p>}
@@ -109,16 +99,26 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
         </>
       )}
 
-      {role === 'seller' && hasReturn && info && (
+      {role === 'seller' && has && info && (
         <>
           <p>{sellerReturnText(info)}</p>
           {info.refundAmount != null && <p>Kwota zwrotu dla kupującego: <strong>{formatPln(info.refundAmount)}</strong></p>}
           {info.trackingNumber && <p>Numer przesyłki zwrotnej: <strong>{info.trackingNumber}</strong></p>}
           {deadline && <p className="order-countdown">{deadline}</p>}
-          {sellerReturnActions(info, role) && panel !== 'dispute' && (
+          {sellerNeedsLocker(info, role) && (
+            <form data-testid="return-locker-form" onSubmit={(e) => { e.preventDefault(); const c = normalizeLockerCode(locker); if (c) void run(() => setReturnLocker(orderId, c), 'Paczkomat zwrotu zapisany. Przygotowujemy list zwrotny.') }}>
+              <label>
+                <span className="label-text">Paczkomat, do którego ma wrócić paczka (kod, np. WAW22M)</span>
+                <input value={locker} onChange={(e) => setLocker(e.target.value)} maxLength={12} required />
+              </label>
+              <button className="btn btn-primary" disabled={busy || !normalizeLockerCode(locker)} type="submit">Zapisz Paczkomat zwrotu</button>
+            </form>
+          )}
+          {info.returnLocker?.code && <p className="muted">Paczkomat zwrotu: <strong>{info.returnLocker.code}</strong>{info.returnLocker.name ? ` · ${info.returnLocker.name}` : ''}</p>}
+          {(sellerCanConfirm(info, role) || sellerCanDispute(info, role)) && panel !== 'dispute' && (
             <div className="order-actions" data-testid="return-seller-actions">
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReturnReceived(orderId), 'Odbiór zwrotu potwierdzony. Kupujący dostanie zwrot ceny przedmiotu.')}>Potwierdzam odbiór zwrotu</button>
-              <button type="button" className="btn btn-outline" disabled={busy} onClick={() => setPanel('dispute')}>Zgłoś problem ze zwrotem</button>
+              {sellerCanConfirm(info, role) && <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void run(() => confirmReturnReceived(orderId), 'Odbiór zwrotu potwierdzony. Kupujący dostanie zwrot ceny przedmiotu.')}>Potwierdzam odbiór zwrotu</button>}
+              {sellerCanDispute(info, role) && <button type="button" className="btn btn-outline" disabled={busy} onClick={() => setPanel('dispute')}>Zgłoś problem ze zwrotem</button>}
             </div>
           )}
           {panel === 'dispute' && (
@@ -135,7 +135,7 @@ export function ReturnSection({ orderId, role, now, onChanged }: Props) {
           )}
         </>
       )}
-      {hasReturn && info && !isActiveReturn(info.status) && info.status === 'rejected' && <p className="hint">Zwrot został odrzucony przez Bidigo.</p>}
+      {has && info?.status === 'rejected' && <p className="hint">Zwrot został odrzucony przez Bidigo{info.rejectReason ? `: ${info.rejectReason}` : ''}.</p>}
     </section>
   )
 }
