@@ -10,3 +10,4 @@
 .payout-doc { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
 .payout-due { border-left-color: #b26a00; }
 @media (max-width: 520px) { .payout-steps li { font-size: 0.65rem; } }
+.payout-file { display: grid; gap: 4px; font-size: 14px; }

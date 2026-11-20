@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { errorMessage } from '../lib/errors'
 import {
-  EMPTY_FORM, KIND_LABEL, STATUS_LABEL, STATUS_TONE, documentFileError, formatIban, formatZip, stepForState, validateKycForm,
+  EMPTY_FORM, KIND_LABEL, expireDateError, isIdDocument, STATUS_LABEL, STATUS_TONE, documentFileError, formatIban, formatZip, stepForState, validateKycForm,
   type KycForm, type KycFormErrors, type KycKind, type KycState, type KycStep,
 } from '../lib/sellerKyc'
 import {
@@ -27,6 +27,7 @@ const FIELDS: { name: keyof KycForm; label: string; type?: string; autoComplete?
   { name: 'birthDate', label: 'Data urodzenia', type: 'date', autoComplete: 'bday' },
   { name: 'companyName', label: 'Nazwa działalności', trader: true, autoComplete: 'organization' },
   { name: 'nip', label: 'NIP', trader: true, inputMode: 'numeric', hint: '10 cyfr, bez kresek' },
+  { name: 'pesel', label: 'PESEL (opcjonalnie)', trader: true, inputMode: 'numeric', hint: 'Może przyspieszyć weryfikację działalności' },
   { name: 'street', label: 'Ulica i numer', autoComplete: 'street-address' },
   { name: 'zipcode', label: 'Kod pocztowy', autoComplete: 'postal-code', inputMode: 'numeric', hint: 'Format 00-000' },
   { name: 'city', label: 'Miejscowość', autoComplete: 'address-level2' },
@@ -44,8 +45,6 @@ export function MyPayoutPage() {
   const [kind, setKind] = useState<KycKind>('PRIVATE_PERSON')
   const [form, setForm] = useState<KycForm>(EMPTY_FORM)
   const [errors, setErrors] = useState<KycFormErrors>({})
-  const [dataSent, setDataSent] = useState(false)
-  const [regsAccepted, setRegsAccepted] = useState(false)
   const [restart, setRestart] = useState(false)
   const [uploaded, setUploaded] = useState<Set<string>>(new Set())
   const [widgetReady, setWidgetReady] = useState(false)
@@ -66,7 +65,7 @@ export function MyPayoutPage() {
     if (user) void load()
   }, [user, load])
 
-  const step: KycStep | null = state ? (restart ? 'kind' : stepForState(state, dataSent, regsAccepted)) : null
+  const step: KycStep | null = state ? (restart ? 'kind' : stepForState(state)) : null
 
   // oczekiwanie na operatora: co kilkanaście sekund prosimy serwer o odczyt stanu
   useEffect(() => {
@@ -144,8 +143,6 @@ export function MyPayoutPage() {
           <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void run(async () => {
             const s = await startKyc(kind)
             setRestart(false)
-            setDataSent(false)
-            setRegsAccepted(false)
             setUploaded(new Set())
             return s
           })}>Dalej</button>
@@ -160,7 +157,6 @@ export function MyPayoutPage() {
           if (Object.keys(errs).length > 0) return
           void run(async () => {
             const s = await sendKycData(form, kind)
-            setDataSent(true)
             setForm(EMPTY_FORM) // po wysłaniu nie trzymamy danych osobowych w pamięci strony
             return s
           })
@@ -195,7 +191,6 @@ export function MyPayoutPage() {
             onState={(s) => setWidgetReady(s === 'ready')}
             onAccepted={() => void run(async () => {
               const s = await confirmRegulationsAccepted()
-              setRegsAccepted(true)
               if (s.documentsRequested.length === 0 && s.status !== 'verified') return completeKyc()
               return s
             })}
@@ -216,7 +211,7 @@ export function MyPayoutPage() {
           <p>Operator płatności prosi o dodatkowe dokumenty. Dozwolone: PDF, JPG, PNG, do 1 MB każdy.</p>
           {state.documentsRequested.map((d) => (
             <DocumentRow key={d.code} label={d.label} done={uploaded.has(d.code)} busy={busy}
-              onFile={(file) => run(async () => { const s = await uploadKycDocument(d.code, file); setUploaded((u) => new Set(u).add(d.code)); return s })} />
+              id={d.code} onSubmit={(file, opts) => run(async () => { const s = await uploadKycDocument(d.code, file, opts); setUploaded((u) => new Set(u).add(d.code)); return s })} />
           ))}
           <div className="ship-actions">
             <button type="button" className="btn btn-primary" disabled={busy || docsLeft.length > 0} onClick={() => void run(completeKyc)}>Wyślij do weryfikacji</button>
@@ -247,28 +242,53 @@ export function MyPayoutPage() {
           <p>Operator płatności nie zweryfikował Twoich danych.</p>
           {(state.lastError || state.message) && <p className="ship-notice" role="alert">{state.lastError ?? state.message}</p>}
           <p className="hint">Sprawdź, czy imię, nazwisko, data urodzenia i numer rachunku zgadzają się z dokumentami. Jeśli problem wraca, napisz do nas.</p>
-          <button type="button" className="btn btn-primary" onClick={() => { setRestart(true); setDataSent(false); setRegsAccepted(false); setError(null) }}>Spróbuj ponownie</button>
+          <button type="button" className="btn btn-primary" onClick={() => { setRestart(true); setError(null) }}>Spróbuj ponownie</button>
         </section>
       )}
     </div>
   )
 }
 
-function DocumentRow({ label, done, busy, onFile }: { label: string; done: boolean; busy: boolean; onFile: (f: File) => Promise<void> }) {
+function DocumentRow({ id, label, done, busy, onSubmit }: {
+  id: string; label: string; done: boolean; busy: boolean
+  onSubmit: (file: File, opts: { fileBack?: File | null; expireDate?: string }) => Promise<void>
+}) {
+  const idDoc = isIdDocument(id)
+  const [front, setFront] = useState<File | null>(null)
+  const [back, setBack] = useState<File | null>(null)
+  const [expire, setExpire] = useState('')
   const [err, setErr] = useState<string | null>(null)
+  const pick = (set: (f: File | null) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null
+    const bad = f ? documentFileError(f) : null
+    setErr(bad)
+    set(bad ? null : f)
+    if (bad) e.target.value = ''
+  }
+  const accept = '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png'
   return (
-    <div className="payout-doc">
+    <div className="payout-doc" data-testid={`kyc-doc-${id}`}>
       <strong>{label}</strong> {done && <span className="ship-chip ok">Wysłano</span>}
-      <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" disabled={busy || done} aria-label={`Plik: ${label}`}
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (!f) return
-          const bad = documentFileError(f)
-          setErr(bad)
-          if (!bad) void onFile(f)
-          e.target.value = ''
-        }} />
-      {err && <span className="field-error" role="alert">{err}</span>}
+      {!done && (
+        <>
+          <label className="payout-file"><span className="label-text">{idDoc ? 'Przód' : 'Plik'}</span>
+            <input type="file" accept={accept} disabled={busy} onChange={pick(setFront)} /></label>
+          {idDoc && (
+            <>
+              <label className="payout-file"><span className="label-text">Tył (jeśli dokument ma drugą stronę)</span>
+                <input type="file" accept={accept} disabled={busy} onChange={pick(setBack)} /></label>
+              <label className="payout-file"><span className="label-text">Data ważności dokumentu</span>
+                <input type="date" value={expire} disabled={busy} onChange={(e) => { setExpire(e.target.value); setErr(null) }} /></label>
+            </>
+          )}
+          {err && <span className="field-error" role="alert">{err}</span>}
+          <div><button type="button" className="btn btn-outline btn-sm" disabled={busy || !front} onClick={() => {
+            const e = idDoc ? expireDateError(expire) : null
+            if (e) return setErr(e)
+            if (front) void onSubmit(front, { fileBack: back, expireDate: idDoc ? expire : undefined })
+          }}>Wyślij dokument</button></div>
+        </>
+      )}
     </div>
   )
 }

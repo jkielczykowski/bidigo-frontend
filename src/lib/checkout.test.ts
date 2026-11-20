@@ -41,7 +41,7 @@ test('każdy kod reason z buyer_protection_check ma właściwe zdanie; „nie kw
   }
   assert.equal(buyChoices(no('parcel_data_missing'), payuOk).protection.reason, 'Sprzedający nie podał jeszcze wymiarów paczki.')
   assert.match(buyChoices(no('shipping_price_missing'), payuOk).protection.reason!, /kosztu wysyłki/)
-  assert.match(buyChoices(no('seller_payu_missing'), payuOk).protection.reason!, /konta PayU/)
+  assert.match(buyChoices(no('seller_payu_missing'), payuOk).protection.reason!, /Sprzedający kończy weryfikację/)
   assert.match(buyChoices(no('parcel_too_large'), payuOk).protection.reason!, /za duża/)
   assert.match(buyChoices(no('price_above_limit'), payuOk).protection.reason!, /limit/)
   assert.equal(buyChoices(no('auction_not_found'), payuOk).protection.reason, 'Nie znaleziono aukcji.')

@@ -16,6 +16,9 @@ export type KycState = {
   extCustomerId: string | null
   shopId: string | null
   widgetUrl: string | null
+  regulationsAccepted: boolean | null
+  dataSent: boolean | null
+  sandbox: boolean | null
 }
 
 export type KycForm = {
@@ -30,10 +33,11 @@ export type KycForm = {
   iban: string
   nip: string
   companyName: string
+  pesel: string
 }
 
 export const EMPTY_FORM: KycForm = {
-  firstName: '', lastName: '', birthDate: '', street: '', zipcode: '', city: '', phone: '', email: '', iban: '', nip: '', companyName: '',
+  firstName: '', lastName: '', birthDate: '', street: '', zipcode: '', city: '', phone: '', email: '', iban: '', nip: '', companyName: '', pesel: '',
 }
 
 export type KycFormErrors = Partial<Record<keyof KycForm, string>>
@@ -97,6 +101,15 @@ export function isValidNip(input: string): boolean {
   return c !== 10 && c === Number(n[9])
 }
 
+/** PESEL: 11 cyfr z cyfrą kontrolną (wagi 1-3-7-9). */
+export function isValidPesel(input: string): boolean {
+  const n = input.replace(/\s/g, '')
+  if (!/^\d{11}$/.test(n)) return false
+  const w = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]
+  const sum = w.reduce((a, x, i) => a + x * Number(n[i]), 0)
+  return (10 - (sum % 10)) % 10 === Number(n[10])
+}
+
 export function isValidEmail(input: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input.trim())
 }
@@ -134,6 +147,7 @@ export function validateKycForm(f: KycForm, kind: KycKind, today: Date = new Dat
     if (!f.nip.trim()) e.nip = 'Podaj NIP firmy.'
     else if (!isValidNip(f.nip)) e.nip = 'NIP jest niepoprawny (10 cyfr, sprawdź cyfrę kontrolną).'
     if (f.companyName.trim().length < 2) e.companyName = 'Podaj nazwę działalności.'
+    if (f.pesel.trim() && !isValidPesel(f.pesel)) e.pesel = 'PESEL jest niepoprawny (11 cyfr, sprawdź cyfrę kontrolną).'
   }
   return e
 }
@@ -154,6 +168,7 @@ export function buildKycPayload(f: KycForm, kind: KycKind): Record<string, strin
   if (kind === 'SOLE_TRADER') {
     p.nip = normalizeNip(f.nip)
     p.companyName = f.companyName.trim()
+    if (f.pesel.trim()) p.pesel = f.pesel.replace(/\s/g, '')
   }
   return p
 }
@@ -169,17 +184,33 @@ export function documentFileError(file: { size: number; type: string }): string 
 /** Krok kreatora, na który prowadzi stan weryfikacji (początek ścieżki; „dane → regulamin” w jednym stanie in_progress ustala widok). */
 export type KycStep = 'kind' | 'data' | 'regulations' | 'documents' | 'waiting' | 'verified' | 'rejected'
 
-export function stepForState(s: Pick<KycState, 'status' | 'documentsRequested'>, dataSent: boolean, regulationsAccepted: boolean): KycStep {
+export function stepForState(s: Pick<KycState, 'status' | 'documentsRequested' | 'dataSent' | 'regulationsAccepted'>): KycStep {
+  const docs = s.documentsRequested.length > 0
   switch (s.status) {
     case 'not_started': return 'kind'
     case 'verified': return 'verified'
     case 'rejected': return 'rejected'
-    case 'reverification': return s.documentsRequested.length > 0 ? 'documents' : 'data'
-    case 'pending': return s.documentsRequested.length > 0 ? 'documents' : 'waiting'
+    case 'reverification': return s.regulationsAccepted ? (docs ? 'documents' : 'waiting') : 'regulations'
+    case 'pending': return docs ? 'documents' : 'waiting'
     case 'in_progress':
-      if (!dataSent) return 'data'
-      return regulationsAccepted ? (s.documentsRequested.length > 0 ? 'documents' : 'waiting') : 'regulations'
+      if (!s.dataSent) return 'data'
+      if (!s.regulationsAccepted) return 'regulations'
+      return docs ? 'documents' : 'waiting'
   }
+}
+
+/** Dokumenty tożsamości: wymagają daty ważności i mogą mieć drugą stronę. */
+export const ID_DOCUMENT_TYPES = ['ID_CARD', 'PASSPORT', 'DRIVING_LICENCE', 'RESIDENCE_PERMIT']
+export const isIdDocument = (type: string) => ID_DOCUMENT_TYPES.includes(type)
+
+/** Błąd daty ważności dokumentu tożsamości (RRRR-MM-DD, w przyszłości) albo null. */
+export function expireDateError(value: string, today: Date = new Date()): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Podaj datę ważności dokumentu.'
+  const [y, m, d] = value.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return 'Podaj datę ważności dokumentu.'
+  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  return dt > t ? null : 'Dokument jest przeterminowany. Prześlij aktualny.'
 }
 
 export const STATUS_LABEL: Record<KycStatus, string> = {

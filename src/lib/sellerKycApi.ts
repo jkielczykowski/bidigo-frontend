@@ -59,7 +59,10 @@ function normalize(raw: Partial<KycState>): KycState {
     lastError: raw.lastError ?? null,
     extCustomerId: raw.extCustomerId ?? null,
     shopId: raw.shopId ?? null,
-    widgetUrl: raw.widgetUrl ?? null,
+    widgetUrl: raw.widgetUrl || null,
+    regulationsAccepted: raw.regulationsAccepted ?? null,
+    dataSent: raw.dataSent ?? null,
+    sandbox: raw.sandbox ?? null,
   }
 }
 
@@ -70,9 +73,12 @@ export const confirmRegulationsAccepted = () => call<Partial<KycState>>('/regula
 export const refreshKyc = () => call<Partial<KycState>>('/refresh', { method: 'POST' }).then(normalize)
 export const completeKyc = () => call<Partial<KycState>>('/complete', { method: 'POST' }).then(normalize)
 
-export function uploadKycDocument(code: string, file: File) {
+/** Dokument: `type` to kod z documentsRequested (np. ID_CARD); tył i data ważności tylko dla dokumentów tożsamości. */
+export function uploadKycDocument(type: string, file: File, opts: { fileBack?: File | null; expireDate?: string } = {}) {
   const form = new FormData()
-  form.append('code', code)
+  form.append('type', type)
   form.append('file', file)
+  if (opts.fileBack) form.append('fileBack', opts.fileBack)
+  if (opts.expireDate) form.append('expireDate', opts.expireDate)
   return call<Partial<KycState>>('/documents', { method: 'POST', form }).then(normalize)
 }

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   EMPTY_FORM, ageOn, amountWaitingForSeller, buildKycPayload, documentFileError, fieldErrorFromApi, formatIban, formatZip, ibanChecksumOk,
-  isValidNip, isValidPlIban, isValidZip, normalizePlIban, sellerKycMessage, stepForState, validateKycForm, BUYER_SELLER_VERIFYING, MAX_DOCUMENT_BYTES,
+  isValidNip, isValidPesel, isIdDocument, expireDateError, isValidPlIban, isValidZip, normalizePlIban, sellerKycMessage, stepForState, validateKycForm, BUYER_SELLER_VERIFYING, MAX_DOCUMENT_BYTES,
 } from './sellerKyc.ts'
 
 const GOOD_IBAN = 'PL61109010140000071219812874'
@@ -82,18 +82,35 @@ test('ładunek: telefon +48, IBAN bez spacji, NIP bez kresek; dla osoby prywatne
   assert.equal(t.companyName, 'Sklep')
 })
 
-test('kroki kreatora wynikają ze stanu z API', () => {
-  const none = { documentsRequested: [] }
-  const docs = { documentsRequested: [{ code: 'ID', label: 'Dowód' }] }
-  assert.equal(stepForState({ status: 'not_started', ...none }, false, false), 'kind')
-  assert.equal(stepForState({ status: 'in_progress', ...none }, false, false), 'data')
-  assert.equal(stepForState({ status: 'in_progress', ...none }, true, false), 'regulations')
-  assert.equal(stepForState({ status: 'in_progress', ...none }, true, true), 'waiting')
-  assert.equal(stepForState({ status: 'pending', ...none }, false, false), 'waiting')
-  assert.equal(stepForState({ status: 'pending', ...docs }, false, false), 'documents')
-  assert.equal(stepForState({ status: 'verified', ...none }, false, false), 'verified')
-  assert.equal(stepForState({ status: 'rejected', ...none }, false, false), 'rejected')
-  assert.equal(stepForState({ status: 'reverification', ...none }, false, false), 'data')
+test('kroki kreatora wynikają ze stanu z API (dataSent, regulationsAccepted)', () => {
+  const st = (status: string, dataSent: boolean | null, regs: boolean | null, docs = false) => stepForState({
+    status: status as never, dataSent, regulationsAccepted: regs, documentsRequested: docs ? [{ code: 'ID_CARD', label: 'Dowód' }] : [],
+  })
+  assert.equal(st('not_started', null, null), 'kind')
+  assert.equal(st('in_progress', false, false), 'data')
+  assert.equal(st('in_progress', null, null), 'data')
+  assert.equal(st('in_progress', true, false), 'regulations') // po przeładowaniu nie pokazujemy formularza od nowa
+  assert.equal(st('in_progress', true, true), 'waiting')
+  assert.equal(st('pending', true, true), 'waiting')
+  assert.equal(st('pending', true, true, true), 'documents')
+  assert.equal(st('verified', null, null), 'verified')
+  assert.equal(st('rejected', null, null), 'rejected')
+  assert.equal(st('reverification', true, false), 'regulations')
+})
+
+test('PESEL i data ważności dokumentu', () => {
+  assert.equal(isValidPesel('44051401359'), true)
+  assert.equal(isValidPesel('44051401358'), false)
+  assert.equal(isValidPesel('123'), false)
+  assert.match(validateKycForm({ ...good, nip: '5260250274', companyName: 'Sklep', pesel: '123' }, 'SOLE_TRADER', TODAY).pesel!, /PESEL/)
+  assert.equal(buildKycPayload({ ...good, nip: '5260250274', companyName: 'Sklep', pesel: '44051401359' }, 'SOLE_TRADER').pesel, '44051401359')
+  assert.equal('pesel' in buildKycPayload({ ...good, pesel: '44051401359' }, 'PRIVATE_PERSON'), false)
+  assert.equal(isIdDocument('ID_CARD'), true)
+  assert.equal(isIdDocument('INVOICE'), false)
+  assert.equal(expireDateError('2027-01-01', TODAY), null)
+  assert.match(expireDateError('2026-11-20', TODAY)!, /przeterminowany/)
+  assert.match(expireDateError('', TODAY)!, /ważności/)
+  assert.match(expireDateError('2027-02-30', TODAY)!, /ważności/)
 })
 
 test('dokumenty: limit 1 MB i formaty', () => {

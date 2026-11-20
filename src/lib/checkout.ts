@@ -23,7 +23,7 @@ const REASONS: Record<string, string> = {
   fee_not_configured: PROTECTION_TEMPORARILY_UNAVAILABLE,
   limits_not_configured: PROTECTION_TEMPORARILY_UNAVAILABLE,
   // sprzedający
-  seller_payu_missing: 'Sprzedający nie połączył jeszcze konta PayU, więc ta oferta nie ma Ochrony.',
+  seller_payu_missing: 'Sprzedający kończy weryfikację konta do wypłaty, więc ta oferta chwilowo nie ma Ochrony.',
   parcel_data_missing: 'Sprzedający nie podał jeszcze wymiarów paczki.',
   shipping_price_missing: 'Sprzedający nie podał jeszcze kosztu wysyłki Paczkomatem.',
   // przedmiot
