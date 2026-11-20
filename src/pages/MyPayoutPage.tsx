@@ -9,7 +9,6 @@ import {
 import {
   KycApiError, completeKyc, confirmRegulationsAccepted, fetchKyc, refreshKyc, sendKycData, startKyc, uploadKycDocument,
 } from '../lib/sellerKycApi'
-import { PayoutRegulations, type PayoutRegulationsHandle } from '../components/PayoutRegulations'
 import './shipping.css'
 import './payout.css'
 
@@ -47,8 +46,7 @@ export function MyPayoutPage() {
   const [errors, setErrors] = useState<KycFormErrors>({})
   const [restart, setRestart] = useState(false)
   const [uploaded, setUploaded] = useState<Set<string>>(new Set())
-  const [widgetReady, setWidgetReady] = useState(false)
-  const regs = useRef<PayoutRegulationsHandle>(null)
+  const [regsOk, setRegsOk] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -186,17 +184,20 @@ export function MyPayoutPage() {
         <section className="ship-card" data-testid="kyc-step-regulations">
           <h3>Regulamin operatora płatności</h3>
           <p>Wypłaty obsługuje operator płatności, więc jego regulamin musisz zaakceptować sam. Zaznacz zgodę poniżej.</p>
-          <PayoutRegulations
-            ref={regs} widgetUrl={state.widgetUrl} shopId={state.shopId} extCustomerId={state.extCustomerId}
-            onState={(s) => setWidgetReady(s === 'ready')}
-            onAccepted={() => void run(async () => {
+          <label className="check-row">
+            <input type="checkbox" checked={regsOk} onChange={(e) => setRegsOk(e.target.checked)} data-testid="payout-regulations-check" />
+            <span>
+              Znam i akceptuję{' '}
+              <a href="http://static.payu.com/regulations/marketplace-psd2-regulation-v2.pdf" target="_blank" rel="noreferrer">regulamin operatora płatności</a>
+              {' '}dotyczący wypłat dla sprzedających.
+            </span>
+          </label>
+          <div className="ship-actions">
+            <button type="button" className="btn btn-primary" disabled={busy || !regsOk} onClick={() => void run(async () => {
               const s = await confirmRegulationsAccepted()
               if (s.documentsRequested.length === 0 && s.status !== 'verified') return completeKyc()
               return s
-            })}
-          />
-          <div className="ship-actions">
-            <button type="button" className="btn btn-primary" disabled={busy || !widgetReady} onClick={() => regs.current?.accept()}>Akceptuję i dalej</button>
+            })}>Akceptuję i wysyłam do weryfikacji</button>
           </div>
         </section>
       )}
