@@ -5,6 +5,7 @@ import { bidLabel, formatEndsAt, formatPln, formatRemaining } from '../lib/forma
 import { FavoriteButton } from '../lib/favorites'
 import { usePromotionsEnabled } from '../lib/features'
 import { isPromoted } from '../lib/promotions'
+import { conditionLabel } from '../lib/listing'
 
 export function AuctionCard({ auction }: { auction: Auction }) {
   const promotionsOn = usePromotionsEnabled()
@@ -57,6 +58,7 @@ export function AuctionCard({ auction }: { auction: Auction }) {
         <p className="meta">
           {auction.city || 'Polska'}
           {auction.category?.name ? ` · ${auction.category.name}` : ''}
+          {conditionLabel(auction.condition) ? ` · ${conditionLabel(auction.condition)}` : ''}
         </p>
         <div className="auction-card-footer">
           <div className="auction-card-price-block">

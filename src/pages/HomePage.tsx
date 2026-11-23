@@ -10,6 +10,7 @@ import { SearchBar } from '../components/SearchBar'
 import type { Auction, Category } from '../lib/database.types'
 import { geocodeCity } from '../lib/cities'
 import { fetchSearch } from '../lib/searchApi'
+import { CONDITIONS } from '../lib/listing'
 import { AUCTION_CARD_COLUMNS, supabase } from '../lib/supabase'
 import { recordInterest } from '../lib/interests'
 
@@ -64,6 +65,7 @@ export function HomePage() {
   const lat = params.get('lat') || ''
   const lng = params.get('lng') || ''
   const radiusKm = params.get('promien') || ''
+  const condition = CONDITIONS.some((c) => c.id === params.get('stan')) ? params.get('stan')! : ''
   const sort = (params.get('sort') as SortKey) || 'ending'
   const browseMode = category === 'all' && !q && !city && params.get('all') !== '1'
 
@@ -113,6 +115,7 @@ export function HomePage() {
     !!priceTo ||
     !!city ||
     !!radiusKm ||
+    !!condition ||
     sort !== 'ending'
 
   useEffect(() => {
@@ -174,6 +177,7 @@ export function HomePage() {
             radiusKm: radius || undefined,
             priceFrom: priceFrom || undefined,
             priceTo: priceTo || undefined,
+            condition: condition || undefined,
             sort,
             limit: PAGE_SIZE,
             offset,
@@ -240,7 +244,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [q, category, page, browseMode, priceFrom, priceTo, sort, city, lat, lng, radiusKm])
+  }, [q, category, page, browseMode, priceFrom, priceTo, sort, city, lat, lng, radiusKm, condition])
 
   function patchParams(patch: Record<string, string | null>, resetPage = true) {
     const next = new URLSearchParams(params)
@@ -254,6 +258,7 @@ export function HomePage() {
       !next.get('cat') &&
       !next.get('q') &&
       !next.get('od') &&
+      !next.get('stan') &&
       !next.get('do') &&
       !next.get('miasto')
     ) {
@@ -426,6 +431,13 @@ export function HomePage() {
                   onChange={(e) => patchParams({ do: e.target.value || null })}
                 />
               </label>
+
+              <FilterMenu
+                label="Stan"
+                value={condition || 'all'}
+                options={CONDITIONS.map((c) => ({ value: c.id, label: c.label }))}
+                onChange={(v) => patchParams({ stan: v === 'all' ? null : v })}
+              />
 
               <FilterMenu
                 label="Sortuj"

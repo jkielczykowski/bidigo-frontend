@@ -164,7 +164,7 @@ export function CreateAuctionPage() {
     setBidIncrement(String(localBidIncrement(start)))
     let alive = true
     const timer = window.setTimeout(() => {
-      void supabase.rpc('suggest_bid_increment', { price: start }).then(({ data, error: rpcErr }) => {
+      void supabase.rpc('suggest_bid_increment', { p_price: start }).then(({ data, error: rpcErr }) => {
         const v = Number(data)
         if (alive && !rpcErr && Number.isFinite(v) && v >= 1) setBidIncrement(String(v))
       })

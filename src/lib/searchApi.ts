@@ -26,6 +26,7 @@ export type SearchHit = {
   title: string
   description?: string
   city?: string
+  condition?: string | null
   category_id?: string
   category_name?: string
   current_price: number
@@ -64,6 +65,7 @@ export async function fetchSearch(params: {
   radiusKm?: string | number
   priceFrom?: string
   priceTo?: string
+  condition?: string
   sort?: string
   limit?: number
   offset?: number
@@ -78,6 +80,7 @@ export async function fetchSearch(params: {
   if (params.radiusKm != null && params.radiusKm !== '') sp.set('radius_km', String(params.radiusKm))
   if (params.priceFrom) sp.set('price_from', params.priceFrom)
   if (params.priceTo) sp.set('price_to', params.priceTo)
+  if (params.condition) sp.set('condition', params.condition)
   if (params.sort) sp.set('sort', params.sort)
   if (params.limit != null) sp.set('limit', String(params.limit))
   if (params.offset != null) sp.set('offset', String(params.offset))
