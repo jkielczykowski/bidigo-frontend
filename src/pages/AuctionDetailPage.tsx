@@ -28,6 +28,7 @@ import { WinnerOrderCta } from '../components/WinnerOrderCta'
 import { useLockerMap } from '../lib/ordersApi'
 import { lockerAllowedFor } from '../lib/ordersLogic'
 import { addRecentView } from '../lib/recentViews'
+import { conditionLabel, copyText } from '../lib/listing'
 
 // One interest signal per auction per visit (load() runs again on realtime refreshes)
 const countedViews = new Set<string>()
@@ -57,6 +58,7 @@ export function AuctionDetailPage() {
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now())
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [shareNote, setShareNote] = useState<string | null>(null)
   const [activeImage, setActiveImage] = useState(0)
   const carRef = useRef<HTMLDivElement>(null)
   const categories = useCategories()
@@ -402,6 +404,23 @@ export function AuctionDetailPage() {
   }
 
   // Phone bidding bar: same checks as the form, then the sheet takes over
+  /** „Udostępnij”: systemowe okno udostępniania, a bez niego kopiowanie linku do schowka */
+  async function shareAuction() {
+    if (!auction) return
+    const url = `${window.location.origin}/auction/${auction.id}`
+    setShareNote(null)
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: auction.title, url })
+        return
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      }
+    }
+    setShareNote((await copyText(url)) ? 'Skopiowano link do schowka' : `Skopiuj link: ${url}`)
+    window.setTimeout(() => setShareNote(null), 4000)
+  }
+
   function openBidSheet() {
     if (!user) {
       navigate('/login')
@@ -668,7 +687,22 @@ export function AuctionDetailPage() {
               <PromoteAuction auction={auction} feeBlock={feeBlock} onPaid={() => void load()} />
             </div>
           )}
-          <FavoriteButton auctionId={auction.id} withLabel className="detail-fav" />
+          <div className="share-row">
+            <FavoriteButton auctionId={auction.id} withLabel className="detail-fav" />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void shareAuction()}>
+              {typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? 'Udostępnij' : 'Kopiuj link'}
+            </button>
+            {shareNote && (
+              <span className="muted" role="status">
+                {shareNote}
+              </span>
+            )}
+          </div>
+          {live && !isSeller && isLeading && (
+            <p className="hint" role="status">
+              Prowadzisz w tej aukcji, więc nie możesz podbić własnej ceny. Możesz tylko podnieść swój limit.
+            </p>
+          )}
           {live && !isSeller && user && myLimit != null && (
             <div className={`bid-status${isLeading ? ' is-leading' : ' is-outbid'}`} role="status">
               {isLeading ? (
@@ -689,7 +723,7 @@ export function AuctionDetailPage() {
               )}
             </div>
           )}
-          {live && !isSeller && (
+          {live && !isSeller && !isLeading && (
             <a className="next-bid" href="#historia-ofert">
               <strong>Następna oferta {formatPln(minBid)}</strong>
               <span>{bidLabel(auction.bid_count)} ⌄</span>
@@ -699,9 +733,14 @@ export function AuctionDetailPage() {
             <span className="label">Aktualna oferta</span>
             <strong className="price huge">{formatPln(auction.current_price)}</strong>
             <span className="muted">
-              Start {formatPln(auction.starting_price)} · krok {formatPln(auction.bid_increment)} ·{' '}
+              Start {formatPln(auction.starting_price)} · minimalne podbicie {formatPln(auction.bid_increment)} ·{' '}
               {bidLabel(auction.bid_count)}
             </span>
+            {conditionLabel(auction.condition) && (
+              <span className="muted">
+                Stan: <span className="item-condition">{conditionLabel(auction.condition)}</span>
+              </span>
+            )}
             {auction.reserve_price != null && (
               <span className="muted">Minimum sprzedawcy: {formatPln(auction.reserve_price)}</span>
             )}
@@ -748,7 +787,7 @@ export function AuctionDetailPage() {
                     </p>
                   )}
                   <button className="btn btn-primary btn-lg" disabled={busy} type="button" onClick={openBidSheet}>
-                    {myLimit != null && isLeading ? 'Zmień limit' : `Licytuj od ${formatPln(minBid)}`}
+                    {isLeading ? 'Podnieś limit' : `Licytuj od ${formatPln(minBid)}`}
                   </button>
                   {shownBuyNowPrice != null && (
                     <button className="btn btn-outline btn-lg" type="button" disabled={busy} onClick={openBuyNow}>
@@ -1103,7 +1142,7 @@ export function AuctionDetailPage() {
                 <strong>{formatPln(auction.current_price)}</strong>
               </div>
               <button type="button" className="bid-bar-btn" disabled={busy} onClick={openBidSheet}>
-                Licytuj
+                {isLeading ? 'Podnieś limit' : 'Licytuj'}
               </button>
             </>
           )}
@@ -1118,6 +1157,7 @@ export function AuctionDetailPage() {
         step={Number(auction.bid_increment) || 1}
         buyNowPrice={shownBuyNowPrice}
         currentLimit={myLimit}
+        leaderOnlyLimit={isLeading}
         leadingPrice={isLeading ? Number(auction.current_price) : null}
         busy={busy}
         error={sheetOpen ? error : null}

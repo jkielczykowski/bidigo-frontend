@@ -9,6 +9,8 @@ import { LocationMapView } from '../components/LocationMap'
 import { useAuth } from '../lib/auth'
 import type { Auction, SellerNote } from '../lib/database.types'
 import { formatPln } from '../lib/format'
+import { useCategories } from '../lib/categories'
+import { PICKUP_EXCLUDED_TEXT, conditionLabel, pickupAllowedFor } from '../lib/listing'
 import { supabase } from '../lib/supabase'
 
 type FieldErrors = {
@@ -30,7 +32,12 @@ export function EditAuctionPage() {
   const lockerMap = useLockerMap()
   const lockerOk = lockerAllowedFor(lockerMap, auction?.category_id) !== false
   const effParcel: ParcelInput = lockerOk ? parcel : { ...parcel, locker: 'no' }
-  const effShipping = lockerOk ? shipping : shipping.filter((o) => o !== 'inpost')
+  // No personal pickup in this category, or the listing has no location to pick up from (shipping-only listings)
+  const categories = useCategories()
+  const categoryPickupOk = pickupAllowedFor(categories, auction?.category_id)
+  const hasLocation = !!auction && auction.lat != null && auction.lng != null && !!auction.city
+  const pickupOk = categoryPickupOk && hasLocation
+  const effShipping = shipping.filter((o) => (lockerOk || o !== 'inpost') && (pickupOk || o !== 'odbior'))
   const [note, setNote] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState<string | null>(null)
@@ -209,6 +216,11 @@ export function EditAuctionPage() {
             ))}
           </div>
         )}
+        {conditionLabel(auction.condition) && (
+          <p className="muted">
+            Stan: <span className="item-condition">{conditionLabel(auction.condition)}</span>
+          </p>
+        )}
         {auction.city && <p className="muted">Miasto: {auction.city}</p>}
         {auction.lat != null && auction.lng != null && (
           <LocationMapView lat={Number(auction.lat)} lng={Number(auction.lng)} city={auction.city} />
@@ -277,7 +289,7 @@ export function EditAuctionPage() {
             </span>
           </legend>
           {[
-            ['odbior', 'Odbiór osobisty'],
+            ...(pickupOk ? [['odbior', 'Odbiór osobisty']] : []),
             ...(shippingOn && lockerOk ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([sid, label]) => (
@@ -286,6 +298,10 @@ export function EditAuctionPage() {
               {label}
             </label>
           ))}
+          {!categoryPickupOk && <p className="muted">{PICKUP_EXCLUDED_TEXT}</p>}
+          {categoryPickupOk && !hasLocation && (
+            <p className="muted">Ta aukcja nie ma lokalizacji, więc odbiór osobisty nie jest dostępny (tylko wysyłka).</p>
+          )}
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
 

@@ -9373,3 +9373,9 @@ body.nav-open .header {
 .alg-endsale h3{margin:0;font-size:1rem}
 .alg-endsale .alg-warn{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0}
 .imp-note{display:block;margin-top:2px;font-size:12px;color:var(--text-muted);white-space:nowrap}
+
+/* Podpowiedź kategorii po tytule, sekcja promowania w formularzu, przycisk Udostępnij */
+.category-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 8px; }
+.promote-on-create { border: 1px solid var(--border, #e5e7eb); border-radius: 12px; padding: 12px 14px; }
+.share-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0; }
+.item-condition { font-weight: 600; }

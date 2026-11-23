@@ -28,6 +28,8 @@ export type Category = {
   /** Min / max commission in zł for the category (fee_max null: no cap) */
   fee_min?: number | null
   fee_max?: number | null
+  /** Personal pickup allowed (null: inherit from the parent; default allowed) */
+  pickup_allowed?: boolean | null
 }
 
 export type SellerFee = {
@@ -77,6 +79,8 @@ export type Auction = {
   reserve_price: number | null
   current_price: number
   bid_increment: number
+  /** new | like_new | used | for_parts; null on old auctions */
+  condition?: 'new' | 'like_new' | 'used' | 'for_parts' | null
   buy_now_price: number | null
   status: AuctionStatus
   starts_at: string

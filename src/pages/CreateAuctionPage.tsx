@@ -3,7 +3,7 @@ import { lockerAllowedFor } from '../lib/ordersLogic'
 import { useLockerMap } from '../lib/ordersApi'
 import { ParcelFields } from '../components/ParcelFields'
 import { parcelColumns, parcelInputFrom, type ParcelInput } from '../lib/ordersLogic'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CategoryPicker } from '../components/CategoryPicker'
 import { CitySuggest } from '../components/CitySuggest'
@@ -24,6 +24,19 @@ import { allegroOffer, allegroPhoto, type AllegroOfferDetail } from '../lib/alle
 import { importedTexts } from '../lib/allegroSync'
 import { linkListing } from '../lib/allegroSyncApi'
 import { suggestCategory } from '../lib/allegroCategory'
+import {
+  CONDITIONS,
+  PICKUP_EXCLUDED_TEXT,
+  localBidIncrement,
+  needsLocation,
+  parseSuggestions,
+  pickupAllowedFor,
+  type CategorySuggestion,
+  type ItemCondition,
+} from '../lib/listing'
+import { usePromotionsEnabled } from '../lib/features'
+import { usePromotionPackages } from '../lib/promotions'
+import { formatPln } from '../lib/format'
 import { readImportQueue, suggestPrices, writeImportQueue, type ImportQueue } from '../lib/allegroQueue'
 
 const MAX_PHOTOS = 5
@@ -46,6 +59,7 @@ type FieldErrors = {
   title?: string
   description?: string
   categoryId?: string
+  condition?: string
   city?: string
   photos?: string
   startingPrice?: string
@@ -75,6 +89,12 @@ export function CreateAuctionPage() {
   const [importLoading, setImportLoading] = useState(false)
   const [importOffer, setImportOffer] = useState<AllegroOfferDetail | null>(null)
   const [categoryGuessed, setCategoryGuessed] = useState(false)
+  const [condition, setCondition] = useState<ItemCondition | ''>('')
+  const [suggestions, setSuggestions] = useState<CategorySuggestion[]>([])
+  const [incrementTouched, setIncrementTouched] = useState(false)
+  const [promoteAfter, setPromoteAfter] = useState(false)
+  const promotionsOn = usePromotionsEnabled()
+  const promoPackages = usePromotionPackages()
   const [categories, setCategories] = useState<Category[]>([])
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -95,7 +115,10 @@ export function CreateAuctionPage() {
   const lockerMap = useLockerMap()
   const lockerOk = lockerAllowedFor(lockerMap, categoryId) !== false
   const effParcel: ParcelInput = lockerOk ? parcel : { ...parcel, locker: 'no' }
-  const effShipping = lockerOk ? shipping : shipping.filter((o) => o !== 'inpost')
+  // A category without personal pickup: no "Odbiór osobisty" option (the backend refuses it too)
+  const pickupOk = pickupAllowedFor(categories, categoryId)
+  const effShipping = shipping.filter((o) => (lockerOk || o !== 'inpost') && (pickupOk || o !== 'odbior'))
+  const withLocation = needsLocation(effShipping)
   const endsOn = useMemo(() => isoDay(durationDays), [durationDays])
   const [photos, setPhotos] = useState<PhotoItem[]>([])
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -114,6 +137,43 @@ export function CreateAuctionPage() {
         setCategories(cats)
       })
   }, [])
+
+  // "Czy chodzi o…": categories suggested by the title (debounced, only while no category is picked)
+  const suggestSeq = useRef(0)
+  useEffect(() => {
+    const t = title.trim()
+    if (categoryId || t.length < 3 || importQueue) {
+      setSuggestions([])
+      return
+    }
+    const seq = ++suggestSeq.current
+    const timer = window.setTimeout(() => {
+      void supabase.rpc('suggest_categories', { p_title: t, p_limit: 3 }).then(({ data, error: rpcErr }) => {
+        if (seq !== suggestSeq.current) return
+        setSuggestions(rpcErr ? [] : parseSuggestions(data, 3))
+      })
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [title, categoryId, importQueue])
+
+  // "Minimalne podbicie" proposed from the starting price until the seller types their own value
+  useEffect(() => {
+    if (incrementTouched) return
+    const start = Number(startingPrice)
+    if (!Number.isFinite(start) || start < 1) return
+    setBidIncrement(String(localBidIncrement(start)))
+    let alive = true
+    const timer = window.setTimeout(() => {
+      void supabase.rpc('suggest_bid_increment', { price: start }).then(({ data, error: rpcErr }) => {
+        const v = Number(data)
+        if (alive && !rpcErr && Number.isFinite(v) && v >= 1) setBidIncrement(String(v))
+      })
+    }, 400)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+    }
+  }, [startingPrice, incrementTouched])
 
   useEffect(() => {
     if (!loading && !user) navigate('/login')
@@ -134,6 +194,8 @@ export function CreateAuctionPage() {
       setStartingPrice(String(a.starting_price))
       setReservePrice(a.reserve_price != null ? String(a.reserve_price) : '')
       setBidIncrement(String(a.bid_increment))
+      setIncrementTouched(true)
+      setCondition(a.condition ?? '')
       setBuyNowPrice(a.buy_now_price != null ? String(a.buy_now_price) : '')
       setShipping(a.shipping_options?.length ? a.shipping_options : ['odbior'])
     })()
@@ -285,10 +347,15 @@ export function CreateAuctionPage() {
     if (!categoryId || !isLeafCategory(categories, categoryId)) {
       errs.categoryId = 'Wybierz szczegółową kategorię'
     }
-    if (!city.trim() || city.trim().length < 2) {
-      errs.city = 'Podaj miasto'
-    } else if (cityLat == null || cityLng == null) {
-      errs.city = 'Ustaw lokalizację na mapie (wybierz miasto lub kliknij mapę)'
+    if (!condition) {
+      errs.condition = 'Wybierz stan przedmiotu'
+    }
+    if (withLocation) {
+      if (!city.trim() || city.trim().length < 2) {
+        errs.city = 'Podaj miasto odbioru'
+      } else if (cityLat == null || cityLng == null) {
+        errs.city = 'Ustaw lokalizację na mapie (wybierz miasto lub kliknij mapę)'
+      }
     }
     if (photos.length < 1) {
       errs.photos = 'Zdjęcie jest wymagane — dodaj co najmniej 1'
@@ -301,7 +368,7 @@ export function CreateAuctionPage() {
     }
     const inc = Number(bidIncrement)
     if (!bidIncrement || Number.isNaN(inc) || inc < 1) {
-      errs.bidIncrement = 'Krok oferty min. 1 zł'
+      errs.bidIncrement = 'Minimalne podbicie min. 1 zł'
     }
     if (reservePrice) {
       const r = Number(reservePrice)
@@ -333,7 +400,7 @@ export function CreateAuctionPage() {
 
     let lat = cityLat
     let lng = cityLng
-    if ((lat == null || lng == null) && city.trim().length >= 2) {
+    if (withLocation && (lat == null || lng == null) && city.trim().length >= 2) {
       const place = await geocodeCity(city.trim())
       if (place) {
         lat = place.lat
@@ -344,9 +411,9 @@ export function CreateAuctionPage() {
     }
 
     const errs = validate()
-    if ((lat == null || lng == null) && city.trim().length >= 2) {
+    if (withLocation && (lat == null || lng == null) && city.trim().length >= 2) {
       errs.city = 'Ustaw lokalizację na mapie (wybierz miasto lub kliknij mapę)'
-    } else if (lat != null && lng != null) {
+    } else if (withLocation && lat != null && lng != null) {
       delete errs.city
     }
     setFieldErrors(errs)
@@ -390,7 +457,8 @@ export function CreateAuctionPage() {
         status: 'active' as const,
         starts_at: new Date().toISOString(),
         ends_at: endsAt,
-        city: city.trim(),
+        condition,
+        city: withLocation ? city.trim() : null,
         shipping_options: effShipping,
         ...parcelColumns(effParcel).columns,
         duration_days: durationDays,
@@ -398,7 +466,7 @@ export function CreateAuctionPage() {
       }
 
       let insertPayload: Record<string, unknown> = { ...baseInsert }
-      if (lat != null && lng != null) {
+      if (withLocation && lat != null && lng != null) {
         insertPayload = { ...insertPayload, lat, lng }
       }
 
@@ -424,7 +492,8 @@ export function CreateAuctionPage() {
         return
       }
       if (importQueue) writeImportQueue(null)
-      navigate(`/auction/${created.id}`)
+      // The seller asked to promote: the page of the new listing opens the existing payment flow (PromoteAuction)
+      navigate(promoteAfter && promotionsOn ? `/auction/${created.id}?promuj=1` : `/auction/${created.id}`)
     } catch (err) {
       setError(errorMessage(err, 'Nie udało się wystawić aukcji'))
       if (isFeeBlockError(err)) void reloadFeeBlock()
@@ -489,7 +558,7 @@ export function CreateAuctionPage() {
       <p className="muted">
         {relistId
           ? 'Skopiowaliśmy dane z poprzedniej aukcji — dodaj zdjęcia i wystaw.'
-          : 'Wymagane: tytuł, opis, kategoria, miasto, min. 1 zdjęcie (max 5), ceny i dostawa.'}
+          : 'Wymagane: tytuł, opis, kategoria, stan przedmiotu, min. 1 zdjęcie (max 5), ceny i dostawa (miasto przy odbiorze osobistym).'}
       </p>
       <FeeBlockBanner block={feeBlock} />
       <AntifraudBanner status={afStatus} blockOnly />
@@ -524,6 +593,28 @@ export function CreateAuctionPage() {
           {fieldErrors.description && <span className="field-error">{fieldErrors.description}</span>}
         </label>
 
+        {!categoryId && suggestions.length > 0 && (
+          <div className="category-suggest" role="group" aria-label="Podpowiedź kategorii">
+            <span className="muted">Czy chodzi o:</span>
+            {suggestions.map((sg) => (
+              <button
+                key={sg.id}
+                type="button"
+                className="btn btn-outline btn-sm"
+                title={sg.path}
+                onClick={() => {
+                  setCategoryId(sg.id)
+                  setCategoryGuessed(false)
+                  setSuggestions([])
+                  setFieldErrors((er) => ({ ...er, categoryId: undefined }))
+                }}
+              >
+                {sg.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         <CategoryPicker
           categories={categories}
           value={categoryId}
@@ -535,6 +626,33 @@ export function CreateAuctionPage() {
           error={fieldErrors.categoryId}
         />
 
+        <fieldset className={`duration-field ${fieldErrors.condition ? 'has-error' : ''}`}>
+          <legend>
+            <span className="label-text">
+              Stan przedmiotu<span className="req"> *</span>
+            </span>
+          </legend>
+          <div className="duration-chips">
+            {CONDITIONS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`duration-chip ${condition === c.id ? 'is-active' : ''}`}
+                aria-pressed={condition === c.id}
+                onClick={() => {
+                  setCondition(c.id)
+                  setFieldErrors((er) => ({ ...er, condition: undefined }))
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {fieldErrors.condition && <span className="field-error">{fieldErrors.condition}</span>}
+        </fieldset>
+
+        {withLocation && (
+          <>
         <CitySuggest
           value={city}
           error={fieldErrors.city}
@@ -558,6 +676,8 @@ export function CreateAuctionPage() {
           <p className="muted city-search-hint" style={{ color: 'var(--accent-hover)' }}>
             Lokalizacja zapisana ({cityLat.toFixed(4)}, {cityLng.toFixed(4)})
           </p>
+        )}
+          </>
         )}
 
         <div className={`photo-field ${fieldErrors.photos ? 'has-error' : ''}`}>
@@ -627,7 +747,7 @@ export function CreateAuctionPage() {
           </label>
           <label className={fieldErrors.bidIncrement ? 'has-error' : ''}>
             <span className="label-text">
-              Krok oferty (zł)<span className="req"> *</span>
+              Minimalne podbicie (zł)<span className="req"> *</span>
             </span>
             <input
               type="number"
@@ -635,9 +755,14 @@ export function CreateAuctionPage() {
               value={bidIncrement}
               onChange={(e) => {
                 setBidIncrement(e.target.value)
+                setIncrementTouched(true)
                 setFieldErrors((er) => ({ ...er, bidIncrement: undefined }))
               }}
             />
+            <span className="muted">
+              O tyle co najmniej kupujący muszą podbić aktualną cenę. Podpowiadamy ok. 1% ceny startowej
+              {incrementTouched ? '' : ' (zmieni się razem z ceną)'}.
+            </span>
             {fieldErrors.bidIncrement && <span className="field-error">{fieldErrors.bidIncrement}</span>}
           </label>
         </div>
@@ -693,7 +818,7 @@ export function CreateAuctionPage() {
             </span>
           </legend>
           {[
-            ['odbior', 'Odbiór osobisty'],
+            ...(pickupOk ? [['odbior', 'Odbiór osobisty']] : []),
             ...(shippingOn && lockerOk ? [['inpost', 'Paczkomat InPost']] : []),
             ['kurier', 'Kurier'],
           ].map(([id, label]) => (
@@ -702,15 +827,18 @@ export function CreateAuctionPage() {
               {label}
             </label>
           ))}
+          {!pickupOk && <p className="muted">{PICKUP_EXCLUDED_TEXT}</p>}
           {fieldErrors.shipping && <span className="field-error">{fieldErrors.shipping}</span>}
         </fieldset>
 
         <ParcelFields value={effParcel} onChange={setParcel} errors={parcelErrors} categoryAllowed={lockerOk} />
 
-        <div className="location-block">
-          <h3>Lokalizacja na mapie</h3>
-          <LocationMapPicker lat={cityLat} lng={cityLng} city={city || null} />
-        </div>
+        {withLocation && (
+          <div className="location-block">
+            <h3>Lokalizacja odbioru na mapie</h3>
+            <LocationMapPicker lat={cityLat} lng={cityLng} city={city || null} />
+          </div>
+        )}
 
         <div className="fee-box">
           <h3>Bez prowizji</h3>
@@ -718,6 +846,35 @@ export function CreateAuctionPage() {
             Wystawianie i licytowanie jest <strong>darmowe</strong>, a Bidigo nie pobiera prowizji od sprzedaży.
           </p>
         </div>
+
+        {promotionsOn && !importQueue && (
+          <fieldset className="promote-on-create">
+            <legend>
+              <span className="label-text">Promowanie (opcjonalnie)</span>
+            </legend>
+            <p className="muted">
+              Promowana aukcja jest wyżej na liście, w kategorii i w wynikach wyszukiwania. Płacisz jednorazowo; pakiet
+              wybierzesz i opłacisz zaraz po opublikowaniu.
+            </p>
+            {promoPackages.length > 0 && (
+              <ul className="promote-packages">
+                {promoPackages.map((p) => (
+                  <li key={p.id} className="promote-package">
+                    <div>
+                      <strong>{p.name}</strong>
+                      <p className="muted">{p.description}</p>
+                    </div>
+                    <span>{formatPln(p.price)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <label className="checkbox">
+              <input type="checkbox" checked={promoteAfter} onChange={(e) => setPromoteAfter(e.target.checked)} />
+              Chcę wypromować aukcję po opublikowaniu
+            </label>
+          </fieldset>
+        )}
 
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primary btn-lg" disabled={busy} type="submit">

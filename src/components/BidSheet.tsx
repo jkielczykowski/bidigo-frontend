@@ -13,6 +13,8 @@ type BidSheetProps = {
   currentLimit?: number | null
   /** Current auction price when the bidder leads: a limit may then also be lowered, down to this price */
   leadingPrice?: number | null
+  /** The bidder leads: a plain bid is refused by the server, so only the limit can be changed */
+  leaderOnlyLimit?: boolean
   busy: boolean
   error: string | null
   /** Places the bid; resolves true on success so the sheet can close */
@@ -21,7 +23,7 @@ type BidSheetProps = {
 }
 
 /** Phone bidding flow like ricardo.ch: confirm the next bid, or set an auction limit (auto-bidding up to it). */
-export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice, currentLimit = null, leadingPrice = null, busy, error, onBid, onBuyNow }: BidSheetProps) {
+export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice, currentLimit = null, leadingPrice = null, leaderOnlyLimit = false, busy, error, onBid, onBuyNow }: BidSheetProps) {
   const [mode, setMode] = useState<'confirm' | 'limit'>('confirm')
   // The leader may move the limit either way (down to the current price); otherwise it can only go up
   const floor = currentLimit != null && leadingPrice != null ? leadingPrice : minBid
@@ -30,7 +32,7 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
 
   useEffect(() => {
     if (!open) return
-    setMode(currentLimit != null ? 'limit' : 'confirm')
+    setMode(currentLimit != null || leaderOnlyLimit ? 'limit' : 'confirm')
     setLimit(String(floor))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -168,9 +170,11 @@ export function BidSheet({ open, onClose, minBid, maxAllowed, step, buyNowPrice,
               >
                 {busy ? 'Składanie…' : `Potwierdź limit ${formatPln(Number.isFinite(lim) ? lim : 0)}`}
               </button>
-              <button type="button" className="bidsheet-secondary" disabled={busy} onClick={() => setMode('confirm')}>
-                Wróć
-              </button>
+              {!leaderOnlyLimit && (
+                <button type="button" className="bidsheet-secondary" disabled={busy} onClick={() => setMode('confirm')}>
+                  Wróć
+                </button>
+              )}
             </>
           )}
         </div>
